@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+import java.util.Optional;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
@@ -80,6 +81,43 @@ public class UserServiceTest {
     // then -> attempt to create second user with same user -> check that an error
     // is thrown
     assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
+  }
+
+  @Test
+  public void changePassword_validInputs_success() {
+    // given: a user with existing password
+    testUser.setPassword("oldPassword");
+    Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+
+    // when: user changes password with correct current password
+    userService.changePassword(testUser.getId(), "oldPassword", "newPassword123");
+
+    // then: password should be updated
+    assertEquals("newPassword123", testUser.getPassword());
+  }
+
+  @Test
+  public void changePassword_incorrectCurrentPassword_throwsException() {
+    // given
+    testUser.setPassword("correctPassword");
+    Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+
+    // when + then user changes password with incorrect current password
+    assertThrows(ResponseStatusException.class, () -> 
+        userService.changePassword(testUser.getId(), "wrongPassword", "newPassword")
+    );
+  }
+
+  @Test
+  public void changePassword_emptyNewPassword_throwsException() {
+    // given
+    testUser.setPassword("correctPassword");
+    Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+
+    // when + then user changes password to null
+    assertThrows(ResponseStatusException.class, () -> 
+        userService.changePassword(testUser.getId(), "correctPassword", "")
+    );
   }
 
 }

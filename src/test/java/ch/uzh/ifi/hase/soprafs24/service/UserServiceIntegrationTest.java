@@ -42,6 +42,7 @@ public class UserServiceIntegrationTest {
     User testUser = new User();
     testUser.setName("testName");
     testUser.setUsername("testUsername");
+    testUser.setPassword("testPassword"); 
 
     // when
     User createdUser = userService.createUser(testUser);
@@ -61,6 +62,7 @@ public class UserServiceIntegrationTest {
     User testUser = new User();
     testUser.setName("testName");
     testUser.setUsername("testUsername");
+    testUser.setPassword("testPassword"); 
     User createdUser = userService.createUser(testUser);
 
     // attempt to create second user with same username

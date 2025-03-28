@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPasswordDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -53,5 +54,12 @@ public class UserController {
     User createdUser = userService.createUser(userInput);
     // convert internal representation of user back to API
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(createdUser);
+  }
+
+  @PutMapping("/users/pwd/{userid}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void changePassword(@PathVariable Long userid, @RequestBody UserPasswordDTO userPasswordDTO) {
+    // change password
+    userService.changePassword(userid, userPasswordDTO.getCurrentPassword(), userPasswordDTO.getNewPassword());
   }
 }

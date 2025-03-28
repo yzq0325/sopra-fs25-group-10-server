@@ -52,6 +52,26 @@ public class UserService {
     return newUser;
   }
 
+  public void changePassword(Long userId, String currentPassword, String newPassword) {
+    // search user by ID
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+    // check if current password is correct
+    if (!user.getPassword().equals(currentPassword)) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Incorrect current password");
+    }
+
+    // Check if new password is valid
+    if (newPassword == null || newPassword.trim().isEmpty()) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password must not be empty");
+    }
+
+    // update password
+    user.setPassword(newPassword);
+    userRepository.save(user);
+  }
+
   /**
    * This is a helper method that will check the uniqueness criteria of the
    * username and the name

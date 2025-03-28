@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPasswordDTO;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,10 +21,12 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Collections;
 import java.util.List;
 
+import static org.mockito.Mockito.doNothing;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -96,6 +99,25 @@ public class UserControllerTest {
         .andExpect(jsonPath("$.name", is(user.getName())))
         .andExpect(jsonPath("$.username", is(user.getUsername())))
         .andExpect(jsonPath("$.status", is(user.getStatus().toString())));
+  }
+
+  @Test
+  public void changePassword_validInputs_success() throws Exception {
+    // given: setup test user and DTO
+    UserPasswordDTO passwordDTO = new UserPasswordDTO();
+    passwordDTO.setCurrentPassword("oldPassword");
+    passwordDTO.setNewPassword("newPassword123");
+
+    // when: mock userService
+    doNothing().when(userService).changePassword(Mockito.eq(1L), Mockito.eq("oldPassword"), Mockito.eq("newPassword123"));
+
+    // then: perform PUT request and expect NO_CONTENT (204)
+    MockHttpServletRequestBuilder putRequest = put("/users/pwd/1")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(passwordDTO));
+
+    mockMvc.perform(putRequest)
+        .andExpect(status().isNoContent());
   }
 
   /**
