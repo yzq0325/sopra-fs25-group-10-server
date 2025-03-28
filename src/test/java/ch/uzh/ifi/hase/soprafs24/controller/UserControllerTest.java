@@ -6,6 +6,8 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,21 @@ public class UserControllerTest {
 
   @MockBean
   private UserService userService;
+  
+  private User user;
+  private UserPostDTO userPostDTO;
+
+  @BeforeEach
+  public void setup() {
+    user = new User();
+    user.setId(1L);
+    user.setUsername("testUsername");
+    user.setToken("1");
+    user.setStatus(UserStatus.OFFLINE);
+
+    userPostDTO = new UserPostDTO();
+    userPostDTO.setUsername("testUsername");
+  }
 
   @Test
   public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
@@ -96,6 +113,39 @@ public class UserControllerTest {
         .andExpect(jsonPath("$.name", is(user.getName())))
         .andExpect(jsonPath("$.username", is(user.getUsername())))
         .andExpect(jsonPath("$.status", is(user.getStatus().toString())));
+  }
+
+  @Test
+  public void userAuthenticate_validToken_success() throws Exception {
+    // given
+    given(userService.userAuthenticate(Mockito.any())).willReturn(user);
+
+    // when
+    MockHttpServletRequestBuilder postRequest = post("/auth")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+
+    // then    
+    mockMvc.perform(postRequest)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.token").exists());
+  }
+
+  @Test
+  public void userAuthenticate_invalidToken_throwsException() throws Exception {
+    // given
+    given(userService.userAuthenticate(Mockito.any())).willThrow(
+      new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Authenticated"));
+    
+    // when
+    MockHttpServletRequestBuilder postRequest = post("/auth")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+    
+    // then
+    mockMvc.perform(postRequest)
+        .andExpect(status().isNotFound())
+        .andExpect(status().reason("User Not Authenticated"));
   }
 
   /**

@@ -20,6 +20,7 @@ public class DTOMapperTest {
     UserPostDTO userPostDTO = new UserPostDTO();
     userPostDTO.setName("name");
     userPostDTO.setUsername("username");
+    userPostDTO.setToken("token");
 
     // MAP -> Create user
     User user = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
@@ -27,6 +28,7 @@ public class DTOMapperTest {
     // check content
     assertEquals(userPostDTO.getName(), user.getName());
     assertEquals(userPostDTO.getUsername(), user.getUsername());
+    assertEquals(userPostDTO.getToken(), user.getToken());
   }
 
   @Test
@@ -46,5 +48,6 @@ public class DTOMapperTest {
     assertEquals(user.getName(), userGetDTO.getName());
     assertEquals(user.getUsername(), userGetDTO.getUsername());
     assertEquals(user.getStatus(), userGetDTO.getStatus());
+    assertEquals(user.getToken(), userGetDTO.getToken());
   }
 }

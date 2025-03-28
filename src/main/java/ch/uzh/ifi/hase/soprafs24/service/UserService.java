@@ -52,6 +52,14 @@ public class UserService {
     return newUser;
   }
 
+  public User userAuthenticate(User authenticateUser) {
+    User userVerified = userRepository.findByToken(authenticateUser.getToken());
+    if (userVerified == null) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Authenticated");
+    }
+    return userVerified;
+  }
+
   /**
    * This is a helper method that will check the uniqueness criteria of the
    * username and the name
