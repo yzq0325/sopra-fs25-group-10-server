@@ -9,9 +9,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.UUID;
 
 public class UserServiceTest {
 
@@ -80,6 +83,39 @@ public class UserServiceTest {
     // then -> attempt to create second user with same user -> check that an error
     // is thrown
     assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
+  }
+
+  @Test
+  public void userAuthenticate_validToken_success() {
+    // given
+    testUser.setToken(UUID.randomUUID().toString());
+    testUser.setStatus(UserStatus.ONLINE);
+    Mockito.when(userRepository.findByToken(testUser.getToken())).thenReturn(testUser);
+
+    // when
+    User freshUser = new User();
+    freshUser.setUsername("testUsername");
+    freshUser.setToken(testUser.getToken());
+    User user = userService.userAuthenticate(freshUser);
+
+    // then
+    assertNotNull(user);
+  }
+
+  @Test
+  public void userAuthenticate_invalidToken_throwsException() {
+    // given
+    Mockito.when(userRepository.findByToken(testUser.getToken())).thenReturn(null);
+
+    // when
+    User freshUser = new User();
+    freshUser.setUsername("testUsername");
+    freshUser.setToken(testUser.getToken());
+
+    // then
+    ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> userService.userAuthenticate(freshUser));
+    assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    assertEquals("User Not Authenticated", e.getReason());
   }
 
 }
