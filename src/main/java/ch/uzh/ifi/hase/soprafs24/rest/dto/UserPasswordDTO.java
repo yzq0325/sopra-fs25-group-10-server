@@ -1,8 +1,18 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 public class UserPasswordDTO {
+
+    private String token;
     private String currentPassword;
     private String newPassword;
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
 
     public String getCurrentPassword() {
         return currentPassword;

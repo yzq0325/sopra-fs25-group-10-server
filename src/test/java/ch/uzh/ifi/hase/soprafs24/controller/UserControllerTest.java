@@ -7,6 +7,8 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPasswordDTO;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +47,21 @@ public class UserControllerTest {
 
   @MockBean
   private UserService userService;
+  
+  private User user;
+  private UserPostDTO userPostDTO;
+
+  @BeforeEach
+  public void setup() {
+    user = new User();
+    user.setId(1L);
+    user.setUsername("testUsername");
+    user.setToken("1");
+    user.setStatus(UserStatus.OFFLINE);
+
+    userPostDTO = new UserPostDTO();
+    userPostDTO.setUsername("testUsername");
+  }
 
   @Test
   public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
@@ -102,22 +119,83 @@ public class UserControllerTest {
   }
 
   @Test
-  public void changePassword_validInputs_success() throws Exception {
-    // given: setup test user and DTO
+  public void changePassword_validToken_success() throws Exception {
+      // given: valid token and password DTO
+      UserPasswordDTO passwordDTO = new UserPasswordDTO();
+      passwordDTO.setToken("valid-token");
+      passwordDTO.setCurrentPassword("oldPassword");
+      passwordDTO.setNewPassword("newPassword123");
+  
+      User user = new User();
+      user.setId(1L);
+      user.setToken("valid-token");
+  
+      // when: mock authentication and password change
+      given(userService.userAuthenticate(Mockito.any())).willReturn(user);
+      doNothing().when(userService).changePassword(user.getId(), "oldPassword", "newPassword123");
+  
+      // then: perform request and expect 204
+      MockHttpServletRequestBuilder request = put("/users/pwd")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(asJsonString(passwordDTO));
+  
+      mockMvc.perform(request)
+          .andExpect(status().isNoContent());
+  }
+
+  @Test
+  public void changePassword_invalidToken_throwsException() throws Exception {
+    // given: DTO with invalid token
     UserPasswordDTO passwordDTO = new UserPasswordDTO();
+    passwordDTO.setToken("invalid-token");
     passwordDTO.setCurrentPassword("oldPassword");
     passwordDTO.setNewPassword("newPassword123");
 
-    // when: mock userService
-    doNothing().when(userService).changePassword(Mockito.eq(1L), Mockito.eq("oldPassword"), Mockito.eq("newPassword123"));
+    // when: authentication fails
+    given(userService.userAuthenticate(Mockito.any()))
+        .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Authenticated"));
 
-    // then: perform PUT request and expect NO_CONTENT (204)
-    MockHttpServletRequestBuilder putRequest = put("/users/pwd/1")
+    // then: perform request and expect 404 with reason
+    MockHttpServletRequestBuilder request = put("/users/pwd")
         .contentType(MediaType.APPLICATION_JSON)
         .content(asJsonString(passwordDTO));
 
-    mockMvc.perform(putRequest)
-        .andExpect(status().isNoContent());
+    mockMvc.perform(request)
+        .andExpect(status().isNotFound())
+        .andExpect(status().reason("User Not Authenticated"));
+  }
+  
+  @Test
+  public void userAuthenticate_validToken_success() throws Exception {
+    // given
+    given(userService.userAuthenticate(Mockito.any())).willReturn(user);
+
+    // when
+    MockHttpServletRequestBuilder postRequest = post("/auth")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+
+    // then    
+    mockMvc.perform(postRequest)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.token").exists());
+  }
+
+  @Test
+  public void userAuthenticate_invalidToken_throwsException() throws Exception {
+    // given
+    given(userService.userAuthenticate(Mockito.any())).willThrow(
+      new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Authenticated"));
+    
+    // when
+    MockHttpServletRequestBuilder postRequest = post("/auth")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+    
+    // then
+    mockMvc.perform(postRequest)
+        .andExpect(status().isNotFound())
+        .andExpect(status().reason("User Not Authenticated"));
   }
 
   /**

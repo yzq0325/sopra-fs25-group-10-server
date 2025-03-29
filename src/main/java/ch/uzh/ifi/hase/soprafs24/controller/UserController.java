@@ -56,10 +56,25 @@ public class UserController {
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(createdUser);
   }
 
-  @PutMapping("/users/pwd/{userid}")
+  @PutMapping("/users/pwd")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void changePassword(@PathVariable Long userid, @RequestBody UserPasswordDTO userPasswordDTO) {
-    // change password
-    userService.changePassword(userid, userPasswordDTO.getCurrentPassword(), userPasswordDTO.getNewPassword());
+  public void changePassword(@RequestBody UserPasswordDTO userPasswordDTO) {
+      // verification
+      User authenticatedUser = userService.userAuthenticate(new User() {{
+          setToken(userPasswordDTO.getToken());
+      }});
+      
+      userService.changePassword(authenticatedUser.getId(), userPasswordDTO.getCurrentPassword(), userPasswordDTO.getNewPassword());
+  }
+
+  @PostMapping("/auth")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public UserGetDTO userAuthenticate(@RequestBody UserPostDTO userPostDTO) {
+    User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
+
+    // logout
+    User userVerified = userService.userAuthenticate(userInput);
+    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(userVerified);
   }
 }

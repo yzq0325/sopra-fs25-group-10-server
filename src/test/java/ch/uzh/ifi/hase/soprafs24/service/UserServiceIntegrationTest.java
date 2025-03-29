@@ -8,10 +8,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+import java.time.LocalDate;
+import java.util.UUID;
 
 /**
  * Test class for the UserResource REST resource.
@@ -28,10 +32,21 @@ public class UserServiceIntegrationTest {
 
   @Autowired
   private UserService userService;
+  private User testUser;
 
   @BeforeEach
   public void setup() {
     userRepository.deleteAll();
+
+    testUser = new User();
+    testUser.setUsername("testUsername");
+    testUser.setName("testName");
+    testUser.setStatus(UserStatus.OFFLINE);
+    testUser.setToken(UUID.randomUUID().toString());
+    userRepository.save(testUser);
+    userRepository.flush();
+    
+    assertNotNull(userRepository.findByUsername("testUsername"));
   }
 
   @Test
@@ -43,36 +58,47 @@ public class UserServiceIntegrationTest {
     testUser.setName("testName");
     testUser.setUsername("testUsername");
     testUser.setPassword("testPassword"); 
+    testUser.setToken(UUID.randomUUID().toString());
 
     // when
     User createdUser = userService.createUser(testUser);
 
     // then
     assertEquals(testUser.getId(), createdUser.getId());
-    assertEquals(testUser.getName(), createdUser.getName());
     assertEquals(testUser.getUsername(), createdUser.getUsername());
+    assertEquals(testUser.getPassword(), createdUser.getPassword());
     assertNotNull(createdUser.getToken());
     assertEquals(UserStatus.OFFLINE, createdUser.getStatus());
   }
 
   @Test
-  public void createUser_duplicateUsername_throwsException() {
-    assertNull(userRepository.findByUsername("testUsername"));
-
-    User testUser = new User();
-    testUser.setName("testName");
-    testUser.setUsername("testUsername");
-    testUser.setPassword("testPassword"); 
-    User createdUser = userService.createUser(testUser);
-
+  public void createUser_duplicateInputs_throwsException() {
     // attempt to create second user with same username
     User testUser2 = new User();
 
     // change the name but forget about the username
-    testUser2.setName("testName2");
     testUser2.setUsername("testUsername");
+    testUser2.setName("testName2");
+    testUser.setPassword("testPassword"); 
 
     // check that an error is thrown
     assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser2));
+  }
+
+  @Test
+  public void userAuthenticate_validToken_success() {
+    User user = userService.userAuthenticate(testUser);
+
+    assertNotNull(user);
+  }
+
+  @Test
+  public void userAuthenticate_invalidToken_throwsException() {
+    User testUser2 = new User();
+    testUser2.setToken(UUID.randomUUID().toString());
+
+    ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> userService.userAuthenticate(testUser2));
+    assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    assertEquals("User Not Authenticated", e.getReason());
   }
 }

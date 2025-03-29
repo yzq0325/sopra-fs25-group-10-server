@@ -10,9 +10,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.UUID;
 
 public class UserServiceTest {
 
@@ -85,39 +88,76 @@ public class UserServiceTest {
 
   @Test
   public void changePassword_validInputs_success() {
-    // given: a user with existing password
-    testUser.setPassword("oldPassword");
-    Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
-
-    // when: user changes password with correct current password
-    userService.changePassword(testUser.getId(), "oldPassword", "newPassword123");
-
-    // then: password should be updated
-    assertEquals("newPassword123", testUser.getPassword());
+      // given: a user with existing password
+      testUser.setPassword("oldPassword");
+      Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+  
+      // when: user changes password with correct current password
+      userService.changePassword(testUser.getId(), "oldPassword", "newPassword123");
+  
+      // then: password should be updated and saved
+      assertEquals("newPassword123", testUser.getPassword());
+      Mockito.verify(userRepository).save(testUser);
   }
 
   @Test
   public void changePassword_incorrectCurrentPassword_throwsException() {
-    // given
-    testUser.setPassword("correctPassword");
-    Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
-
-    // when + then user changes password with incorrect current password
-    assertThrows(ResponseStatusException.class, () -> 
-        userService.changePassword(testUser.getId(), "wrongPassword", "newPassword")
-    );
+      // given: current password is incorrect
+      testUser.setPassword("correctPassword");
+      Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+  
+      // when + then: expect 400 BAD_REQUEST
+      ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+          userService.changePassword(testUser.getId(), "wrongPassword", "newPassword")
+      );
+  
+      assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+      assertTrue(exception.getReason().contains("Incorrect current password"));
   }
 
   @Test
   public void changePassword_emptyNewPassword_throwsException() {
-    // given
-    testUser.setPassword("correctPassword");
-    Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+      // given: new password is empty
+      testUser.setPassword("correctPassword");
+      Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+  
+      // when + then: expect 400 BAD_REQUEST
+      ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+          userService.changePassword(testUser.getId(), "correctPassword", "")
+      );
+  
+      assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+      assertTrue(exception.getReason().contains("New password must not be empty"));
+  }
 
-    // when + then user changes password to null
-    assertThrows(ResponseStatusException.class, () -> 
-        userService.changePassword(testUser.getId(), "correctPassword", "")
-    );
+  @Test
+  public void changePassword_userNotFound_throwsException() {
+      // given: repository returns empty
+      Mockito.when(userRepository.findById(999L)).thenReturn(Optional.empty());
+  
+      // when + then: expect 404 NOT_FOUND
+      ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+          userService.changePassword(999L, "any", "new")
+      );
+  
+      assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+      assertTrue(exception.getReason().contains("User not found"));
+  }
+
+  @Test
+  public void userAuthenticate_invalidToken_throwsException() {
+    // given
+    Mockito.when(userRepository.findByToken(testUser.getToken())).thenReturn(null);
+
+    // when
+    User freshUser = new User();
+    freshUser.setUsername("testUsername");
+    freshUser.setToken(testUser.getToken());
+
+    // then
+    ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> userService.userAuthenticate(freshUser));
+    assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    assertEquals("User Not Authenticated", e.getReason());
   }
 
 }
