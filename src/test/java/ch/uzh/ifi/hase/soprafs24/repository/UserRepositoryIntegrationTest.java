@@ -52,6 +52,7 @@ public class UserRepositoryIntegrationTest {
     User user = new User();
     user.setUsername("firstname@lastname");
     user.setName("name");
+    user.setPassword("dummyPassword");
     user.setStatus(UserStatus.OFFLINE);
     user.setToken("1");
 
@@ -74,6 +75,7 @@ public class UserRepositoryIntegrationTest {
     User user = new User();
     user.setUsername("firstname@lastname");
     user.setName("name");
+    user.setPassword("dummyPassword");
     user.setStatus(UserStatus.OFFLINE);
     user.setToken("1");
 

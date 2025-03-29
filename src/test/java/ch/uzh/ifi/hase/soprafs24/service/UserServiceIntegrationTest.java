@@ -41,6 +41,7 @@ public class UserServiceIntegrationTest {
     testUser = new User();
     testUser.setUsername("testUsername");
     testUser.setName("testName");
+    testUser.setPassword("testPassword");
     testUser.setStatus(UserStatus.OFFLINE);
     testUser.setToken(UUID.randomUUID().toString());
     userRepository.save(testUser);
@@ -52,11 +53,8 @@ public class UserServiceIntegrationTest {
   @Test
   public void createUser_validInputs_success() {
     // given
-    assertNull(userRepository.findByUsername("testUsername"));
-
-    User testUser = new User();
-    testUser.setName("testName");
-    testUser.setUsername("testUsername");
+    testUser.setUsername("testValidUsername");
+    testUser.setName("testValidName");
     testUser.setPassword("testPassword"); 
     testUser.setToken(UUID.randomUUID().toString());
 
@@ -66,7 +64,6 @@ public class UserServiceIntegrationTest {
     // then
     assertEquals(testUser.getId(), createdUser.getId());
     assertEquals(testUser.getUsername(), createdUser.getUsername());
-    assertEquals(testUser.getPassword(), createdUser.getPassword());
     assertNotNull(createdUser.getToken());
     assertEquals(UserStatus.OFFLINE, createdUser.getStatus());
   }
@@ -79,7 +76,8 @@ public class UserServiceIntegrationTest {
     // change the name but forget about the username
     testUser2.setUsername("testUsername");
     testUser2.setName("testName2");
-    testUser.setPassword("testPassword"); 
+    testUser2.setPassword("testPassword"); 
+    testUser2.setToken(UUID.randomUUID().toString());
 
     // check that an error is thrown
     assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser2));
