@@ -43,12 +43,49 @@ public class Game implements Serializable {
   private String gameCreationDate;
 
 
-  public Long getId() {
+  public Long getGameId() {
     return gameId;
   }
 
   public void setGameId(Long gameId) {
     this.gameId = gameId;
+  }
+
+  //Don't use these two methods 
+  //add player
+  public void addPlayer(User player) {
+    players.add(player);
+    player.setGame(this); 
+  }
+
+  //remove player
+  public void removePlayer(User player) {
+      players.remove(player);
+      player.setGame(null); 
+  }
+
+  //get scoreBoard
+  public Map<String, Integer> getScoreBoard() {
+      return scoreBoard;
+  }
+
+  public void setScoreBoard(Map<String, Integer> scoreBoard) {
+      this.scoreBoard = scoreBoard;
+  }
+
+  // update scoreBoard
+  public void updateScore(String username, int score) {
+      scoreBoard.put(username, score);
+  }
+
+  // get specific user's score
+  public Integer getScore(String username) {
+      return scoreBoard.get(username);
+  }
+
+  // remove specific user's score
+  public Integer removeScore(String username) {
+      return scoreBoard.remove(username);
   }
 
   public int getHintsNumber() {

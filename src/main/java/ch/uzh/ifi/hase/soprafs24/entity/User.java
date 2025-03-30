@@ -41,11 +41,11 @@ public class User implements Serializable {
   @JoinColumn(name = "game_id", nullable = true)
   private Game game;
 
-  public Long getId() {
+  public Long getUserId() {
     return userId;
   }
 
-  public void setId(Long userId) {
+  public void setUserId(Long userId) {
     this.userId = userId;
   }
 
@@ -79,5 +79,13 @@ public class User implements Serializable {
 
   public void setStatus(UserStatus status) {
     this.status = status;
+  }
+
+  public Game getGame() {
+    return game;
+  }
+
+  public void setGame(Game game) {
+      this.game = game;
   }
 }
