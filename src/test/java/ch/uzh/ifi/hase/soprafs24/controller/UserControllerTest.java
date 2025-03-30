@@ -198,6 +198,77 @@ public class UserControllerTest {
         .andExpect(status().reason("User Not Authenticated"));
   }
 
+  @Test
+  public void login_validCredentials_success() throws Exception {
+    // given
+    given(userService.login(Mockito.any())).willReturn(user);
+  
+    // when
+    MockHttpServletRequestBuilder postRequest = post("/login")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+  
+    // then
+    mockMvc.perform(postRequest)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.username").value(user.getUsername()))
+        .andExpect(jsonPath("$.token").exists());
+  }
+  
+  @Test
+  public void login_invalidCredentials_throwsUnauthorized() throws Exception {
+    // given
+    given(userService.login(Mockito.any())).willThrow(
+        new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password")
+    );
+  
+    // when
+    MockHttpServletRequestBuilder postRequest = post("/login")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+  
+    // then
+    mockMvc.perform(postRequest)
+        .andExpect(status().isUnauthorized())
+        .andExpect(status().reason("Invalid username or password"));
+  }
+
+  @Test
+  public void logout_validToken_success() throws Exception {
+    // given
+    User user = new User();
+    user.setToken("validToken");
+
+    Mockito.when(userService.userAuthenticate(Mockito.any())).thenReturn(user);
+    Mockito.doNothing().when(userService).logout(Mockito.any());
+
+    // when
+    MockHttpServletRequestBuilder postRequest = post("/logout")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+
+    // then
+    mockMvc.perform(postRequest)
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  public void logout_invalidToken_throwsException() throws Exception {
+    // given
+    Mockito.when(userService.userAuthenticate(Mockito.any()))
+           .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+    // when
+    MockHttpServletRequestBuilder postRequest = post("/logout")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+
+    // then
+    mockMvc.perform(postRequest)
+          .andExpect(status().isNotFound())
+          .andExpect(status().reason("User not found"));
+  }
+
   /**
    * Helper Method to convert userPostDTO into a JSON string such that the input
    * can be processed

@@ -61,7 +61,7 @@ public class UserController {
   public void changePassword(@RequestBody UserPasswordDTO userPasswordDTO) {
       // verification
       User authenticatedUser = userService.userAuthenticate(new User() {{
-          setToken(userPasswordDTO.getToken());
+        setToken(userPasswordDTO.getToken());
       }});
       
       userService.changePassword(authenticatedUser.getUserId(), userPasswordDTO.getCurrentPassword(), userPasswordDTO.getNewPassword());
@@ -73,8 +73,26 @@ public class UserController {
   public UserGetDTO userAuthenticate(@RequestBody UserPostDTO userPostDTO) {
     User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
 
-    // logout
     User userVerified = userService.userAuthenticate(userInput);
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(userVerified);
+  }
+
+  @PostMapping("/login")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public UserGetDTO login(@RequestBody UserPostDTO userPostDTO) {
+    User loginInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
+    User loggedInUser = userService.login(loginInput);
+    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(loggedInUser);
+  }
+
+  @PostMapping("/logout")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void logout(@RequestBody UserPostDTO userPostDTO) {
+    User authenticatedUser = userService.userAuthenticate(new User() {{
+      setToken(userPostDTO.getToken());
+      }});
+      
+      userService.logout(authenticatedUser);
   }
 }

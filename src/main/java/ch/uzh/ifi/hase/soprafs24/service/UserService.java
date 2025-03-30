@@ -72,6 +72,28 @@ public class UserService {
     userRepository.save(user);
   }
 
+  public User login(User loginUser) {
+    User userInDB = userRepository.findByUsername(loginUser.getUsername());
+    if (userInDB == null || !userInDB.getPassword().equals(loginUser.getPassword())) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+    }
+
+    userInDB.setStatus(UserStatus.ONLINE);
+    userInDB.setToken(UUID.randomUUID().toString());
+    userRepository.save(userInDB);
+    return userInDB;
+  }
+
+  public void logout(User user) {
+    User userInDB = userRepository.findByToken(user.getToken());
+    if (userInDB == null) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+    }
+
+    userInDB.setStatus(UserStatus.OFFLINE);
+    userRepository.save(userInDB);
+  }
+
   public User userAuthenticate(User authenticateUser) {
     User userVerified = userRepository.findByToken(authenticateUser.getToken());
     if (userVerified == null) {

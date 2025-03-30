@@ -160,4 +160,83 @@ public class UserServiceTest {
     assertEquals("User Not Authenticated", e.getReason());
   }
 
+  @Test
+  public void login_validCredentials_success() {
+    // given
+    User loginUser = new User();
+    loginUser.setUsername("testUser");
+    loginUser.setPassword("correctPassword");
+
+    User userInDB = new User();
+    userInDB.setUsername("testUser");
+    userInDB.setPassword("correctPassword");
+
+    Mockito.when(userRepository.findByUsername("testUser")).thenReturn(userInDB);
+
+    // when
+    User loggedInUser = userService.login(loginUser);
+
+    // then
+    assertEquals(UserStatus.ONLINE, loggedInUser.getStatus());
+    assertNotNull(loggedInUser.getToken());
+  }
+
+  @Test
+  public void login_invalidCredentials_throwsException() {
+    // given
+    User loginUser = new User();
+    loginUser.setUsername("testUser");
+    loginUser.setPassword("wrongPassword");
+
+    User userInDB = new User();
+    userInDB.setUsername("testUser");
+    userInDB.setPassword("correctPassword");
+
+    Mockito.when(userRepository.findByUsername("testUser")).thenReturn(userInDB);
+
+    // when + then
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+        userService.login(loginUser);
+    });
+
+    assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    assertEquals("Invalid username or password", exception.getReason());
+  }
+
+  @Test
+  public void logout_validToken_success() {
+    // given
+    User user = new User();
+    user.setToken("validToken");
+
+    User userInDB = new User();
+    userInDB.setToken("validToken");
+    userInDB.setStatus(UserStatus.ONLINE);
+
+    Mockito.when(userRepository.findByToken("validToken")).thenReturn(userInDB);
+
+    // when
+    userService.logout(user);
+
+    // then
+    Mockito.verify(userRepository).save(userInDB);
+    assertEquals(UserStatus.OFFLINE, userInDB.getStatus());
+  }
+  
+  @Test
+  public void logout_invalidToken_throwsException() {
+    // given
+    User user = new User();
+    user.setToken("invalidToken");
+
+    Mockito.when(userRepository.findByToken("invalidToken")).thenReturn(null);
+
+    // when + then
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+        userService.logout(user);
+    });
+
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    assertEquals("User not found", exception.getReason());
+  }
 }
