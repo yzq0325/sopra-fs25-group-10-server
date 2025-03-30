@@ -64,7 +64,7 @@ public class UserController {
           setToken(userPasswordDTO.getToken());
       }});
       
-      userService.changePassword(authenticatedUser.getId(), userPasswordDTO.getCurrentPassword(), userPasswordDTO.getNewPassword());
+      userService.changePassword(authenticatedUser.getUserId(), userPasswordDTO.getCurrentPassword(), userPasswordDTO.getNewPassword());
   }
 
   @PostMapping("/auth")

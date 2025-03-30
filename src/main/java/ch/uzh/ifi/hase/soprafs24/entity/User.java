@@ -25,8 +25,8 @@ public class User implements Serializable {
   @GeneratedValue
   private Long userId;
 
-  // @Column(nullable = false)
-  // private String name;
+  @Column(nullable = false)
+  private String name;
 
   @Column(nullable = false, unique = true)
   private String username;
@@ -52,13 +52,13 @@ public class User implements Serializable {
     this.userId = userId;
   }
 
-  // public String getName() {
-  //   return name;
-  // }
+  public String getName() {
+    return name;
+  }
 
-  // public void setName(String name) {
-  //   this.name = name;
-  // }
+  public void setName(String name) {
+    this.name = name;
+  }
 
   public String getUsername() {
     return username;
@@ -90,6 +90,8 @@ public class User implements Serializable {
     
   public void setPassword(String password) {
     this.password = password;
+  }
+
   public Game getGame() {
     return game;
   }

@@ -54,7 +54,7 @@ public class UserControllerTest {
   @BeforeEach
   public void setup() {
     user = new User();
-    user.setId(1L);
+    user.setUserId(1L);
     user.setUsername("testUsername");
     user.setToken("1");
     user.setStatus(UserStatus.OFFLINE);
@@ -92,7 +92,7 @@ public class UserControllerTest {
   public void createUser_validInput_userCreated() throws Exception {
     // given
     User user = new User();
-    user.setId(1L);
+    user.setUserId(1L);
     user.setName("Test User");
     user.setUsername("testUsername");
     user.setToken("1");
@@ -112,7 +112,7 @@ public class UserControllerTest {
     // then
     mockMvc.perform(postRequest)
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id", is(user.getId().intValue())))
+        .andExpect(jsonPath("$.id", is(user.getUserId().intValue())))
         .andExpect(jsonPath("$.name", is(user.getName())))
         .andExpect(jsonPath("$.username", is(user.getUsername())))
         .andExpect(jsonPath("$.status", is(user.getStatus().toString())));
@@ -127,12 +127,12 @@ public class UserControllerTest {
       passwordDTO.setNewPassword("newPassword123");
   
       User user = new User();
-      user.setId(1L);
+      user.setUserId(1L);
       user.setToken("valid-token");
   
       // when: mock authentication and password change
       given(userService.userAuthenticate(Mockito.any())).willReturn(user);
-      doNothing().when(userService).changePassword(user.getId(), "oldPassword", "newPassword123");
+      doNothing().when(userService).changePassword(user.getUserId(), "oldPassword", "newPassword123");
   
       // then: perform request and expect 204
       MockHttpServletRequestBuilder request = put("/users/pwd")

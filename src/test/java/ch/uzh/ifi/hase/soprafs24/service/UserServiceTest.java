@@ -33,7 +33,7 @@ public class UserServiceTest {
 
     // given
     testUser = new User();
-    testUser.setId(1L);
+    testUser.setUserId(1L);
     testUser.setName("testName");
     testUser.setUsername("testUsername");
 
@@ -51,7 +51,7 @@ public class UserServiceTest {
     // then
     Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any());
 
-    assertEquals(testUser.getId(), createdUser.getId());
+    assertEquals(testUser.getUserId(), createdUser.getUserId());
     assertEquals(testUser.getName(), createdUser.getName());
     assertEquals(testUser.getUsername(), createdUser.getUsername());
     assertNotNull(createdUser.getToken());
@@ -90,10 +90,10 @@ public class UserServiceTest {
   public void changePassword_validInputs_success() {
       // given: a user with existing password
       testUser.setPassword("oldPassword");
-      Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+      Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
   
       // when: user changes password with correct current password
-      userService.changePassword(testUser.getId(), "oldPassword", "newPassword123");
+      userService.changePassword(testUser.getUserId(), "oldPassword", "newPassword123");
   
       // then: password should be updated and saved
       assertEquals("newPassword123", testUser.getPassword());
@@ -104,11 +104,11 @@ public class UserServiceTest {
   public void changePassword_incorrectCurrentPassword_throwsException() {
       // given: current password is incorrect
       testUser.setPassword("correctPassword");
-      Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+      Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
   
       // when + then: expect 400 BAD_REQUEST
       ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
-          userService.changePassword(testUser.getId(), "wrongPassword", "newPassword")
+          userService.changePassword(testUser.getUserId(), "wrongPassword", "newPassword")
       );
   
       assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
@@ -119,11 +119,11 @@ public class UserServiceTest {
   public void changePassword_emptyNewPassword_throwsException() {
       // given: new password is empty
       testUser.setPassword("correctPassword");
-      Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+      Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
   
       // when + then: expect 400 BAD_REQUEST
       ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
-          userService.changePassword(testUser.getId(), "correctPassword", "")
+          userService.changePassword(testUser.getUserId(), "correctPassword", "")
       );
   
       assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
