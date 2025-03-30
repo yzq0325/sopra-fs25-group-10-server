@@ -23,10 +23,10 @@ public class User implements Serializable {
 
   @Id
   @GeneratedValue
-  private Long id;
+  private Long userId;
 
-  @Column(nullable = false)
-  private String name;
+  // @Column(nullable = false)
+  // private String name;
 
   @Column(nullable = false, unique = true)
   private String username;
@@ -40,21 +40,25 @@ public class User implements Serializable {
   @Column(nullable = false)
   private String password;
 
-  public Long getId() {
-    return id;
+  @ManyToOne
+  @JoinColumn(name = "game_id", nullable = true)
+  private Game game;
+
+  public Long getUserId() {
+    return userId;
   }
 
-  public void setId(Long id) {
-    this.id = id;
+  public void setUserId(Long userId) {
+    this.userId = userId;
   }
 
-  public String getName() {
-    return name;
-  }
+  // public String getName() {
+  //   return name;
+  // }
 
-  public void setName(String name) {
-    this.name = name;
-  }
+  // public void setName(String name) {
+  //   this.name = name;
+  // }
 
   public String getUsername() {
     return username;
@@ -86,5 +90,11 @@ public class User implements Serializable {
     
   public void setPassword(String password) {
     this.password = password;
+  public Game getGame() {
+    return game;
+  }
+
+  public void setGame(Game game) {
+      this.game = game;
   }
 }
