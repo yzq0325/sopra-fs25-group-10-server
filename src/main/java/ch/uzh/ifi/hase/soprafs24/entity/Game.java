@@ -27,11 +27,13 @@ public class Game implements Serializable {
   @GeneratedValue
   private Long gameId;
 
-  @OneToMany(mappedBy = "game", cascade = CascadeType.ALL)
-  private List<User> players = new ArrayList<>();
+  @ElementCollection
+  @CollectionTable(name = "gameplayers", joinColumns = @JoinColumn(name = "gameid"))
+  @Column(name = "username")
+  private List<String> players = new ArrayList<>();
   
   @ElementCollection
-  @CollectionTable(name = "scoreboard", joinColumns = @JoinColumn(name = "gameId"))
+  @CollectionTable(name = "scoreboard", joinColumns = @JoinColumn(name = "gameid"))
   @MapKeyColumn(name = "username")
   @Column(name = "userscore")
   private Map<String, Integer> scoreBoard = new HashMap<>();
@@ -51,16 +53,23 @@ public class Game implements Serializable {
     this.gameId = gameId;
   }
 
-  //Don't use these two methods 
+  public List<String> getPlayers() {
+    return players;
+  }
+
+  public void setPlayers(List<String> players) {
+    this.players = players;
+  }
+  
   //add player
   public void addPlayer(User player) {
-    players.add(player);
+    players.add(player.getUsername());
     player.setGame(this); 
   }
 
   //remove player
   public void removePlayer(User player) {
-      players.remove(player);
+      players.remove(player.getUsername());
       player.setGame(null); 
   }
 
