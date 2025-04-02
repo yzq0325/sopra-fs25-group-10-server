@@ -48,7 +48,7 @@ public class GameService {
         this.userRepository = userRepository;
     }
 
-    public Game createGame(GamePostDTO gamePostDTO) {
+    public Game createGame(List<String> players) {
 
       Game newGame = new Game();
         
@@ -57,7 +57,7 @@ public class GameService {
       newGame.setGameCreationDate(currentDate.format(formatter));
         
       Map<String, Integer> scoreBoard = new HashMap<>();
-      for (String username : gamePostDTO.getPlayers()) {
+      for (String username : players) {
         User player = userRepository.findByUsername(username);
         if (player == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, username + " is not found");
