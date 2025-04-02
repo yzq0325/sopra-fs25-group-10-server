@@ -4,6 +4,8 @@ public class UserPostDTO {
 
   private String name;
 
+  private String password;
+
   private String username;
 
   private String token;
@@ -30,5 +32,12 @@ public class UserPostDTO {
 
   public void setToken(String token) {
     this.token = token;
+  }
+  public String getPassword() {
+    return password;
+  }
+
+  public void setPassword(String password) {
+    this.password = password;
   }
 }
