@@ -30,8 +30,10 @@ public class GameController {
   @ResponseStatus(HttpStatus.CREATED)
   @ResponseBody
   public GameGetDTO createGame(@RequestBody GamePostDTO gamePostDTO) {
-      
-      Game createdGame = gameService.createGame(gamePostDTO);
+      Game gameToCreate = DTOMapper.INSTANCE.convertGamePostDTOtoEntity(gamePostDTO);
+
+      List<String> players = gameToCreate.getPlayers();
+      Game createdGame = gameService.createGame(players);
 
       return DTOMapper.INSTANCE.convertEntityToGameGetDTO(createdGame);
   }
