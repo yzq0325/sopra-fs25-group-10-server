@@ -199,7 +199,7 @@ public class UserServiceTest {
         userService.login(loginUser);
     });
 
-    assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
     assertEquals("Invalid username or password", exception.getReason());
   }
 
@@ -236,7 +236,7 @@ public class UserServiceTest {
         userService.logout(user);
     });
 
-    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
     assertEquals("User not found", exception.getReason());
   }
 }
