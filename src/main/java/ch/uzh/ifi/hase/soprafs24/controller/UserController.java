@@ -91,11 +91,12 @@ public class UserController {
 
   @PostMapping("/logout")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void logout(@RequestBody UserPostDTO userPostDTO) {
+  public void logout(@RequestHeader("userToken") String token) {
     User authenticatedUser = userService.userAuthenticate(new User() {{
-      setToken(userPostDTO.getToken());
-      }});
-      
-      userService.logout(authenticatedUser);
-  }
+        setToken(token);
+    }});
+    
+    // Perform the logout process
+    userService.logout(authenticatedUser);
+}
 }
