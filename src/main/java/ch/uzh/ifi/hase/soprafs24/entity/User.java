@@ -41,7 +41,7 @@ public class User implements Serializable {
   private String password;
 
   @ManyToOne
-  @JoinColumn(name = "game_id", nullable = true)
+  @JoinColumn(name = "gameId", nullable = true)
   private Game game;
 
   public Long getUserId() {
