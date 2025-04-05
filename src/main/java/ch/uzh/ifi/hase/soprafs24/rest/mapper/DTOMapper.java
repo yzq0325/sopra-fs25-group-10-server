@@ -7,6 +7,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.GameLobbyGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserProfileDTO;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
@@ -59,4 +60,12 @@ public interface DTOMapper {
   @Mapping(source = "lockType", target = "lockType") 
   @Mapping(source = "realPlayersNumber", target = "realPlayersNumber") 
   GameLobbyGetDTO convertGameEntitytoGameLobbyGetDTO(Game game);
+
+  // Profile mappings
+  @Mapping(source = "username", target = "username")
+  @Mapping(source = "avatar", target = "avatar")
+  @Mapping(source = "email", target = "email")
+  @Mapping(source = "bio", target = "bio")
+  User convertUserProfileDTOtoEntity(UserProfileDTO userProfileDTO);
+
 }

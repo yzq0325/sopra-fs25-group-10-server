@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Set;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,6 +30,14 @@ public class UserService {
   private final Logger log = LoggerFactory.getLogger(UserService.class);
 
   private final UserRepository userRepository;
+
+  private static final Set<String> VALID_AVATARS = Set.of(
+    "avatar1.png",
+    "avatar2.png",
+    "avatar3.png",
+    "avatar4.png",
+    "avatar5.png"
+  );
 
   @Autowired
   public UserService(@Qualifier("userRepository") UserRepository userRepository) {
@@ -94,12 +103,46 @@ public class UserService {
     userRepository.save(userInDB);
   }
 
+  public User findUserById(Long userId) {
+    return userRepository.findById(userId)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+  }
+
   public User userAuthenticate(User authenticateUser) {
     User userVerified = userRepository.findByToken(authenticateUser.getToken());
     if (userVerified == null) {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Authenticated");
     }
     return userVerified;
+  }
+
+  public User updateUserProfile(Long userId, User updatedInfo) {
+    User userInDB = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+    // username empty check
+    if (updatedInfo.getUsername() == null || updatedInfo.getUsername().trim().isEmpty()) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username must not be empty");
+    }
+
+    // username duplication check
+    if (!userInDB.getUsername().equals(updatedInfo.getUsername())
+            && userRepository.findByUsername(updatedInfo.getUsername()) != null) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists");
+    }
+
+    // avatar check
+    if (updatedInfo.getAvatar() != null && !VALID_AVATARS.contains(updatedInfo.getAvatar())) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid avatar selection");
+    }
+
+    userInDB.setUsername(updatedInfo.getUsername());
+    userInDB.setAvatar(updatedInfo.getAvatar());
+    userInDB.setEmail(updatedInfo.getEmail());
+    userInDB.setBio(updatedInfo.getBio());
+
+    userRepository.save(userInDB);
+    return userInDB;
   }
 
   /**
