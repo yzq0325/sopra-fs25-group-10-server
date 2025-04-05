@@ -48,7 +48,7 @@ public class GameService {
         this.userRepository = userRepository;
     }
 
-    public Game createGame(List<String> players) {
+    public Game createGame(Game gameToCreate) {
 
       Game newGame = new Game();
         
@@ -57,7 +57,7 @@ public class GameService {
       newGame.setGameCreationDate(currentDate.format(formatter));
         
       Map<String, Integer> scoreBoard = new HashMap<>();
-      for (String username : players) {
+      for (String username : gameToCreate.getPlayers()) {
         User player = userRepository.findByUsername(username);
         if (player == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, username + " is not found");
@@ -65,8 +65,14 @@ public class GameService {
         newGame.addPlayer(player);  
         scoreBoard.put(username, 0); 
     }
-    
+
       newGame.setHintsNumber(5);
+      newGame.setGameName(gameToCreate.getGameName());
+      newGame.setTime(gameToCreate.getTime());
+      newGame.setPlayersNumber(gameToCreate.getPlayersNumber());
+      newGame.setModeType(gameToCreate.getModeType());
+      newGame.setLockType(gameToCreate.getLockType());
+      newGame.setPassword(gameToCreate.getPassword());
       newGame = gameRepository.save(newGame);
       gameRepository.flush();
       

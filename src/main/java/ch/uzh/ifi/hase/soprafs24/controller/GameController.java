@@ -32,8 +32,7 @@ public class GameController {
   public GameGetDTO createGame(@RequestBody GamePostDTO gamePostDTO) {
       Game gameToCreate = DTOMapper.INSTANCE.convertGamePostDTOtoEntity(gamePostDTO);
 
-      List<String> players = gameToCreate.getPlayers();
-      Game createdGame = gameService.createGame(players);
+      Game createdGame = gameService.createGame(gameToCreate);
 
       return DTOMapper.INSTANCE.convertEntityToGameGetDTO(createdGame);
   }
