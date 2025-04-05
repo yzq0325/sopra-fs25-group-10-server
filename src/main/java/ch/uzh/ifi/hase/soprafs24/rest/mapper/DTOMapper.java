@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.GameLobbyGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
@@ -51,4 +52,11 @@ public interface DTOMapper {
 
   @Mapping(source = "scoreBoard", target = "scoreBoard")
   GameGetDTO convertEntityToGameGetDTO(Game game);
+
+  //Lobby mappings
+  @Mapping(source = "gameName", target = "gameName") 
+  @Mapping(source = "playersNumber", target = "playersNumber")
+  @Mapping(source = "lockType", target = "lockType") 
+  @Mapping(source = "realPlayersNumber", target = "realPlayersNumber") 
+  GameLobbyGetDTO convertGameEntitytoGameLobbyGetDTO(Game game);
 }

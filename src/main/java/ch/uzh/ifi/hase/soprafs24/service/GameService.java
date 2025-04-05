@@ -48,6 +48,10 @@ public class GameService {
         this.userRepository = userRepository;
     }
 
+    public List<Game> getAllGames() {
+      return this.gameRepository.findAll();
+    }
+
     public Game createGame(Game gameToCreate) {
 
       Game newGame = new Game();
@@ -70,6 +74,7 @@ public class GameService {
       newGame.setGameName(gameToCreate.getGameName());
       newGame.setTime(gameToCreate.getTime());
       newGame.setPlayersNumber(gameToCreate.getPlayersNumber());
+      newGame.setRealPlayersNumber(1);
       newGame.setModeType(gameToCreate.getModeType());
       newGame.setLockType(gameToCreate.getLockType());
       newGame.setPassword(gameToCreate.getPassword());

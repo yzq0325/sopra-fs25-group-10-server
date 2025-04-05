@@ -75,7 +75,4 @@ public class GamePostDTO {
       public void setPassword(String password) {
         this.password = password;
       }
-    
-
-
 }
