@@ -4,6 +4,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPasswordDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserProfileDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -29,7 +30,7 @@ public class UserController {
   }
 
 
- @GetMapping("/users")
+  @GetMapping("/users")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public List<UserGetDTO> getAllUsers() {
@@ -63,10 +64,11 @@ public class UserController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void changePassword(@RequestBody UserPasswordDTO userPasswordDTO) {
       // verification
-      User authenticatedUser = userService.userAuthenticate(new User() {{
-        setToken(userPasswordDTO.getToken());
-      }});
-      
+      User userInput = new User();
+      userInput.setToken(userPasswordDTO.getToken());
+      User authenticatedUser = userService.userAuthenticate(userInput);
+  
+      // change password
       userService.changePassword(authenticatedUser.getUserId(), userPasswordDTO.getCurrentPassword(), userPasswordDTO.getNewPassword());
   }
 
@@ -92,11 +94,27 @@ public class UserController {
   @PostMapping("/logout")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void logout(@RequestBody UserPostDTO userPostDTO) {
-      // extract token from body
-      User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
-  
-      // authenticate and perform logout
-      User authenticatedUser = userService.userAuthenticate(userInput);
-      userService.logout(authenticatedUser);
+    // verification
+    User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
+    User authenticatedUser = userService.userAuthenticate(userInput);
+
+    userService.logout(authenticatedUser);
+  }
+
+  @GetMapping("/users/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public UserGetDTO getUserProfile(@PathVariable("userId") Long userId) {
+    User user = userService.findUserById(userId);
+    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
+  }
+
+  @PutMapping("/users/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public UserGetDTO updateUserProfile(@PathVariable("userId") Long userId,@RequestBody UserProfileDTO userProfileDTO) {
+    User updatedInfo = DTOMapper.INSTANCE.convertUserProfileDTOtoEntity(userProfileDTO);
+    User updatedUser = userService.updateUserProfile(userId, updatedInfo);
+    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
   }
 }
