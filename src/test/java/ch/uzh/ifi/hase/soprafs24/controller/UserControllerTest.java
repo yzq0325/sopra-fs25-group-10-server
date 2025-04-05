@@ -4,6 +4,7 @@ import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPasswordDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserProfileDTO;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Collections;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -269,6 +271,150 @@ public class UserControllerTest {
           .andExpect(status().reason("User not found"));
   }
 
+  @Test
+  public void getUserProfile_validId_success() throws Exception {
+    // given
+    User user = new User();
+    user.setUserId(1L);
+    user.setName("Test");
+    user.setUsername("testUsername");
+    user.setAvatar("avatar1.png");
+    user.setEmail("test@example.com");
+    user.setBio("This is a test bio.");
+    user.setStatus(UserStatus.ONLINE);
+
+    given(userService.findUserById(1L)).willReturn(user);
+
+    // when
+    MockHttpServletRequestBuilder getRequest = get("/users/1")
+        .contentType(MediaType.APPLICATION_JSON);
+
+    // then
+    mockMvc.perform(getRequest)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.username", is(user.getUsername())))
+        .andExpect(jsonPath("$.avatar", is(user.getAvatar())))
+        .andExpect(jsonPath("$.email", is(user.getEmail())))
+        .andExpect(jsonPath("$.bio", is(user.getBio())));
+  }
+
+  @Test
+  public void getUserProfile_userNotFound_throwsException() throws Exception {
+    // given
+    Long nonExistentUserId = 999L;
+    given(userService.findUserById(nonExistentUserId))
+        .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+    // when
+    MockHttpServletRequestBuilder getRequest = get("/users/" + nonExistentUserId)
+        .contentType(MediaType.APPLICATION_JSON);
+
+    // then
+    mockMvc.perform(getRequest)
+        .andExpect(status().isNotFound())
+        .andExpect(status().reason("User not found"));
+  }
+
+  @Test
+  public void updateUserProfile_validInput_success() throws Exception {
+    // given
+    UserProfileDTO updateDTO = new UserProfileDTO();
+    updateDTO.setUsername("updatedUsername");
+    updateDTO.setAvatar("avatar2.png");
+    updateDTO.setEmail("updated@example.com");
+    updateDTO.setBio("Updated bio");
+
+    User updatedUser = new User();
+    updatedUser.setUserId(1L);
+    updatedUser.setUsername(updateDTO.getUsername());
+    updatedUser.setAvatar(updateDTO.getAvatar());
+    updatedUser.setEmail(updateDTO.getEmail());
+    updatedUser.setBio(updateDTO.getBio());
+
+    given(userService.updateUserProfile(eq(1L), any())).willReturn(updatedUser);
+
+    // when
+    MockHttpServletRequestBuilder putRequest = put("/users/1")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(updateDTO));
+
+    // then
+    mockMvc.perform(putRequest)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.username", is(updateDTO.getUsername())))
+        .andExpect(jsonPath("$.avatar", is(updateDTO.getAvatar())))
+        .andExpect(jsonPath("$.email", is(updateDTO.getEmail())))
+        .andExpect(jsonPath("$.bio", is(updateDTO.getBio())));
+  }
+
+  @Test
+  public void updateUserProfile_emptyUsername_throwsException() throws Exception {
+    // given
+    UserProfileDTO updateDTO = new UserProfileDTO();
+    updateDTO.setUsername("");
+    updateDTO.setAvatar("avatar1.png");
+    updateDTO.setEmail("test@example.com");
+    updateDTO.setBio("test bio");
+
+    given(userService.updateUserProfile(eq(1L), any()))
+        .willThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username must not be empty"));
+
+    // when
+    MockHttpServletRequestBuilder putRequest = put("/users/1")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(updateDTO));
+
+    // then
+    mockMvc.perform(putRequest)
+        .andExpect(status().isBadRequest())
+        .andExpect(status().reason("Username must not be empty"));
+  }
+
+  @Test
+  public void updateUserProfile_duplicateUsername_throwsException() throws Exception {
+    // given
+    UserProfileDTO updateDTO = new UserProfileDTO();
+    updateDTO.setUsername("duplicateUsername");
+    updateDTO.setAvatar("avatar1.png");
+    updateDTO.setEmail("test@example.com");
+    updateDTO.setBio("test bio");
+
+    given(userService.updateUserProfile(eq(1L), any()))
+        .willThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists"));
+
+    // when
+    MockHttpServletRequestBuilder putRequest = put("/users/1")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(updateDTO));
+
+    // then
+    mockMvc.perform(putRequest)
+        .andExpect(status().isBadRequest())
+        .andExpect(status().reason("Username already exists"));
+  }
+
+  @Test
+  public void updateUserProfile_invalidAvatar_throwsException() throws Exception {
+    // given
+    UserProfileDTO updateDTO = new UserProfileDTO();
+    updateDTO.setUsername("validUsername");
+    updateDTO.setAvatar("invalid-avatar.png");
+    updateDTO.setEmail("test@example.com");
+    updateDTO.setBio("test bio");
+
+    given(userService.updateUserProfile(eq(1L), any()))
+        .willThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid avatar selection"));
+
+    // when
+    MockHttpServletRequestBuilder putRequest = put("/users/1")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(updateDTO));
+
+    // then
+    mockMvc.perform(putRequest)
+        .andExpect(status().isBadRequest())
+        .andExpect(status().reason("Invalid avatar selection"));
+  }
   /**
    * Helper Method to convert userPostDTO into a JSON string such that the input
    * can be processed

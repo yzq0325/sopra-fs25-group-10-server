@@ -40,6 +40,15 @@ public class User implements Serializable {
   @Column(nullable = false)
   private String password;
 
+  @Column
+  private String avatar;
+
+  @Column
+  private String email;
+
+  @Column
+  private String bio;
+
   @ManyToOne
   @JoinColumn(name = "gameId", nullable = true)
   private Game game;
@@ -90,6 +99,30 @@ public class User implements Serializable {
     
   public void setPassword(String password) {
     this.password = password;
+  }
+
+  public String getAvatar() {
+    return avatar;
+  }
+
+  public void setAvatar(String avatar) {
+    this.avatar = avatar;
+  }
+
+  public String getEmail() {
+    return email;
+  }
+
+  public void setEmail(String email) {
+    this.email = email;
+  }
+
+  public String getBio() {
+    return bio;
+  }
+
+  public void setBio(String bio) {
+    this.bio = bio;
   }
 
   public Game getGame() {

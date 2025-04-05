@@ -239,4 +239,128 @@ public class UserServiceTest {
     assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
     assertEquals("User not found", exception.getReason());
   }
+
+  @Test
+  public void findUserById_validId_success() {
+    // given
+    testUser.setUserId(1L);
+    Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+    // when
+    User foundUser = userService.findUserById(1L);
+
+    // then
+    assertNotNull(foundUser);
+    assertEquals(testUser.getUserId(), foundUser.getUserId());
+    assertEquals(testUser.getUsername(), foundUser.getUsername());
+    assertEquals(testUser.getName(), foundUser.getName());
+  }
+
+  @Test
+  public void findUserById_invalidId_throwsException() {
+    // given
+    Mockito.when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+    // when + then
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+        userService.findUserById(999L);
+    });
+
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+    assertEquals("User not found", exception.getReason());
+  }
+
+
+
+  @Test
+  public void updateUserProfile_validInputs_success() {
+    // given
+    testUser.setUserId(1L);
+    testUser.setUsername("oldUsername");
+
+    User updateInfo = new User();
+    updateInfo.setUsername("newUsername");
+    updateInfo.setAvatar("avatar1.png");
+    updateInfo.setEmail("new@email.com");
+    updateInfo.setBio("new bio");
+
+    Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
+    Mockito.when(userRepository.findByUsername("newUsername")).thenReturn(null);
+
+    // when
+    userService.updateUserProfile(testUser.getUserId(), updateInfo);
+
+    // then
+    assertEquals("newUsername", testUser.getUsername());
+    assertEquals("avatar1.png", testUser.getAvatar());
+    assertEquals("new@email.com", testUser.getEmail());
+    assertEquals("new bio", testUser.getBio());
+  }
+
+  @Test
+  public void updateUserProfile_userNotFound_throwsException() {
+    // given
+    Mockito.when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+    // when + then
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+        userService.updateUserProfile(999L, new User())
+    );
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+    assertTrue(exception.getReason().contains("User not found"));
+  }
+
+  @Test
+  public void updateUserProfile_emptyUsername_throwsException() {
+    // given
+    User updateInfo = new User();
+    updateInfo.setUsername("   "); // blank
+
+    Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
+
+    // when + then
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+        userService.updateUserProfile(testUser.getUserId(), updateInfo)
+    );
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    assertTrue(exception.getReason().contains("Username must not be empty"));
+  }
+
+  @Test
+  public void updateUserProfile_duplicateUsername_throwsException() {
+    // given
+    User updateInfo = new User();
+    updateInfo.setUsername("duplicateUsername");
+
+    User existingUser = new User();
+    existingUser.setUsername("duplicateUsername");
+
+    Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
+    Mockito.when(userRepository.findByUsername("duplicateUsername")).thenReturn(existingUser);
+
+    // when + then
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+        userService.updateUserProfile(testUser.getUserId(), updateInfo)
+    );
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    assertTrue(exception.getReason().contains("Username already exists"));
+  }
+
+  @Test
+  public void updateUserProfile_invalidAvatar_throwsException() {
+    // given
+    User updateInfo = new User();
+    updateInfo.setUsername("newUsername");
+    updateInfo.setAvatar("invalid_avatar.png");
+
+    Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
+    Mockito.when(userRepository.findByUsername("newUsername")).thenReturn(null);
+
+    // when + then
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+        userService.updateUserProfile(testUser.getUserId(), updateInfo)
+    );
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    assertTrue(exception.getReason().contains("Invalid avatar selection"));
+  }
 }
