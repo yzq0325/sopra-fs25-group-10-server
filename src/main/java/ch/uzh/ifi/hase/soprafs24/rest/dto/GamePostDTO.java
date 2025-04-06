@@ -4,7 +4,11 @@ import java.util.List;
 
 public class GamePostDTO {
 
+    private Long gameId;
+
     private String gameName;
+
+    private String owner;
 
     private List<String> players;
     
@@ -18,6 +22,13 @@ public class GamePostDTO {
 
     private String password;
 
+    public Long getGameId() {
+        return gameId;
+      }
+    
+    public void setGameId(Long gameId) {
+        this.gameId = gameId;
+    }
 
     public String getGameName() {
         return gameName;
@@ -25,6 +36,14 @@ public class GamePostDTO {
     
     public void setGameName(String gameName) {
         this.gameName = gameName;
+    }
+
+    public String getOwner() {
+        return owner;
+      }
+    
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 
     public List<String> getPlayers() {

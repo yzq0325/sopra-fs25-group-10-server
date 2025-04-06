@@ -30,6 +30,9 @@ public class Game implements Serializable {
   @Column(nullable = false, unique = true)
   private String gameName;
 
+  @Column(nullable = false, unique = true)
+  private String owner;
+
   @ElementCollection
   @CollectionTable(name = "gameplayers", joinColumns = @JoinColumn(name = "gameid"))
   @Column(name = "username")
@@ -81,6 +84,14 @@ public class Game implements Serializable {
 
   public void setGameName(String gameName) {
     this.gameName = gameName;
+  }
+
+  public String getOwner() {
+    return owner;
+  }
+
+  public void setOwner(String owner) {
+    this.owner = owner;
   }
 
   public List<String> getPlayers() {

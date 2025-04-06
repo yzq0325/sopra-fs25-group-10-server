@@ -4,6 +4,8 @@ import java.util.Map;
 
 public class GameGetDTO {
 
+    private Long gameId;
+
     private Map<String, String> scoreBoard;
 
     private String gameName;
@@ -14,9 +16,17 @@ public class GameGetDTO {
 
     private int realPlayersNumber;
 
+    public Long getGameId() {
+        return gameId;
+    }
+    
+    public void setGameId(Long gameId) {
+        this.gameId = gameId;
+    }
+
     public String getGameName() {
         return gameName;
-      }
+    }
     
     public void setGameName(String gameName) {
         this.gameName = gameName;
@@ -24,11 +34,11 @@ public class GameGetDTO {
 
     public int getPlayersNumber() {
         return playersNumber;
-      }
+    }
     
     public void setPlayersNumber(int playersNumber) {
         this.playersNumber = playersNumber;
-      }     
+    }     
     
     public String getLockType() {
         return lockType;
@@ -40,19 +50,19 @@ public class GameGetDTO {
 
     public int getPlayerNumbers() {
         return playersNumber;
-      }
+    }
     
     public void setPlayerNumbers(int playersNumber) {
         this.playersNumber = playersNumber;
-      }     
+    }     
 
       public int getRealPlayersNumber() {
         return realPlayersNumber;
-      }
+    }
     
     public void setRealPlayersNumber(int realPlayersNumber) {
         this.realPlayersNumber = realPlayersNumber;
-      }   
+    }   
 
     public Map<String, String> getScoreBoard() {
         return scoreBoard;
