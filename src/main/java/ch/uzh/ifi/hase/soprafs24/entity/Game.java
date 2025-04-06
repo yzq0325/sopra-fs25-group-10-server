@@ -48,6 +48,9 @@ public class Game implements Serializable {
   private int playersNumber;
 
   @Column(nullable = false)
+  private int realPlayersNumber;
+
+  @Column(nullable = false)
   private int time;
   
   @Column(nullable = false)
@@ -138,6 +141,14 @@ public class Game implements Serializable {
 
   public void setPlayersNumber(int playersNumber) {
     this.playersNumber = playersNumber;
+  }
+
+  public int getRealPlayersNumber() {
+    return realPlayersNumber;
+  }
+
+  public void setRealPlayersNumber(int realPlayersNumber) {
+    this.realPlayersNumber = realPlayersNumber;
   }
   
   public int getTime() {

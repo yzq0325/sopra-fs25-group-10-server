@@ -48,10 +48,14 @@ public interface DTOMapper {
   @Mapping(source = "modeType", target = "modeType") 
   @Mapping(source = "lockType", target = "lockType") 
   @Mapping(source = "password", target = "password")  
-  Game convertGamePostDTOtoEntity(GamePostDTO gamePostDTO);
+  Game convertGamePostDTOtoGameEntity(GamePostDTO gamePostDTO);
 
   @Mapping(source = "scoreBoard", target = "scoreBoard")
-  GameGetDTO convertEntityToGameGetDTO(Game game);
+  @Mapping(source = "gameName", target = "gameName") 
+  @Mapping(source = "playersNumber", target = "playersNumber")
+  @Mapping(source = "lockType", target = "lockType") 
+  @Mapping(source = "realPlayersNumber", target = "realPlayersNumber") 
+  GameGetDTO convertGameEntityToGameGetDTO(Game game);
 
   // Profile mappings
   @Mapping(source = "username", target = "username")
@@ -59,4 +63,5 @@ public interface DTOMapper {
   @Mapping(source = "email", target = "email")
   @Mapping(source = "bio", target = "bio")
   User convertUserProfileDTOtoEntity(UserProfileDTO userProfileDTO);
+
 }
