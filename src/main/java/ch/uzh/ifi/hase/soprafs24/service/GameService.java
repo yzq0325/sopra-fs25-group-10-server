@@ -58,11 +58,13 @@ public class GameService {
 
       List<String> players = new ArrayList<>();
       Map<String, Integer> scoreBoard = new HashMap<>();
+      checkIfOwnerExists(gameToCreate.getOwner());
       gameCreated.setOwner(gameToCreate.getOwner());
 
       gameCreated.setScoreBoard(scoreBoard);
       gameCreated.setPlayers(players);
       gameCreated.setHintsNumber(5);
+      checkIfGameExists(gameToCreate.getGameName());
       gameCreated.setGameName(gameToCreate.getGameName());
       gameCreated.setTime(gameToCreate.getTime());
       gameCreated.setPlayersNumber(gameToCreate.getPlayersNumber());
@@ -87,6 +89,19 @@ public class GameService {
       }
       else{
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!"); 
+      }
+    }
+
+    public void checkIfOwnerExists(String username){
+      User userwithUsername = userRepository.findByUsername(username);
+      if(userwithUsername == null){
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner doesn't exists! Please try an existed ownername");
+      }
+    }
+    public void checkIfGameExists(String gameName){
+      Game gameWithSameName = gameRepository.findBygameName(gameName);
+      if(gameWithSameName != null){
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "GameName exists! Please try a new one!");
       }
     }
 }
