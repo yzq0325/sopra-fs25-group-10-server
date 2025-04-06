@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.Map;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -90,10 +90,10 @@ public class GameService {
       return gameRepository.findBygameId(gameId);
     }
 
-    public void checkIfCanJoin(User userToJoin, Game gameToBeJoined, Long gameId){
-      if(gameToBeJoined.getPassword().equals((gameRepository.findBygameId(gameId)).getPassword())){
-        (gameRepository.findBygameId(gameId)).addPlayer(userToJoin);
-        (gameRepository.findBygameId(gameId)).setRealPlayersNumber((gameRepository.findBygameId(gameId)).getRealPlayersNumber()+1);
+    public void checkIfCanJoin(Game gameToBeJoined, Long userId){
+      if(gameToBeJoined.getPassword().equals((gameRepository.findBygameId(gameToBeJoined.getGameId())).getPassword())){
+        (gameRepository.findBygameId(gameToBeJoined.getGameId())).addPlayer(userRepository.findByUserId(userId));
+        (gameRepository.findBygameId(gameToBeJoined.getGameId())).setRealPlayersNumber((gameRepository.findBygameId(gameToBeJoined.getGameId())).getRealPlayersNumber()+1);
       }
       else{
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!"); 
@@ -116,6 +116,25 @@ public class GameService {
       Game gameWithSameName = gameRepository.findBygameName(gameName);
       if(gameWithSameName != null){
         throw new ResponseStatusException(HttpStatus.CONFLICT, "GameName exists! Please try a new one!");
+      }
+    }
+    public void startGame(Long gameId){
+      Game gameToStart = gameRepository.findBygameId(gameId);
+
+      //set time
+      LocalDateTime now = LocalDateTime.now();    
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy, HH:mm");
+      gameToStart.setGameCreationDate(now.format(formatter));
+
+      //set scoreBoard
+
+      (gameToStart.getScoreBoard()).put(gameToStart.getOwner(), 0);
+      for (String username : gameToStart.getPlayers()) {
+        User player = userRepository.findByUsername(username);
+        if (player == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, username + " is not found");
+        }
+        (gameToStart.getScoreBoard()).put(username, 0); 
       }
     }
 }
