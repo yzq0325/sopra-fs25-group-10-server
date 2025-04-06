@@ -4,6 +4,8 @@ import java.util.Map;
 
 public class GameGetDTO {
 
+    private String owner;
+
     private Long gameId;
 
     private Map<String, String> scoreBoard;
@@ -30,6 +32,14 @@ public class GameGetDTO {
     
     public void setGameName(String gameName) {
         this.gameName = gameName;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+    
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 
     public int getPlayersNumber() {

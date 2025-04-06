@@ -34,12 +34,12 @@ public class Game implements Serializable {
   private String owner;
 
   @ElementCollection
-  @CollectionTable(name = "gameplayers", joinColumns = @JoinColumn(name = "gameid"))
+  @CollectionTable(name = "gameplayers", joinColumns = @JoinColumn(name = "gameId"))
   @Column(name = "username")
   private List<String> players = new ArrayList<>();
   
   @ElementCollection
-  @CollectionTable(name = "scoreboard", joinColumns = @JoinColumn(name = "gameid"))
+  @CollectionTable(name = "scoreboard", joinColumns = @JoinColumn(name = "gameId"))
   @MapKeyColumn(name = "username")
   @Column(name = "userscore")
   private Map<String, Integer> scoreBoard = new HashMap<>();
@@ -60,12 +60,8 @@ public class Game implements Serializable {
   private String gameCreationDate;
 
   //solo or combat mode
-  @Column(nullable = false)
-  private String modeType;
-
-  //private or public 
-  @Column(nullable = false)
-  private String lockType;
+  // @Column(nullable = false)
+  // private String modeType;
 
   @Column(nullable = true)
   private String password;
@@ -178,21 +174,13 @@ public class Game implements Serializable {
     this.gameCreationDate = gameCreationDate;
   }
 
-  public String getModeType() {
-    return modeType;
-  }
+  // public String getModeType() {
+  //   return modeType;
+  // }
 
-  public void setModeType(String modeType) {
-    this.modeType = modeType;
-  }
-
-  public String getLockType() {
-    return lockType;
-  }
-
-  public void setLockType(String lockType) {
-    this.lockType = lockType;
-  }
+  // public void setModeType(String modeType) {
+  //   this.modeType = modeType;
+  // }
 
   public String getPassword() {
     return password;
