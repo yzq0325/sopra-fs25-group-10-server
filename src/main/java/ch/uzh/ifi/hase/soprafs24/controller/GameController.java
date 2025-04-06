@@ -62,13 +62,22 @@ public class GameController {
     return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(gameSelected);
   }
 
-  @PutMapping("/lobby/{userId}")
+  @PutMapping("/lobbyIn/{userId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public void joinGame(@RequestBody GamePostDTO gamePostDTO, @PathVariable Long userId) {
     Game gameToBeJoined = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
   
-    gameService.checkIfCanJoin(gameToBeJoined, userId);
+    gameService.userJoinGame(gameToBeJoined, userId);
+  }
+
+  @PutMapping("/lobbyOut/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void exitGame(@RequestBody GamePostDTO gamePostDTO, @PathVariable Long userId) {
+    Game gameToBeExited = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
+  
+    gameService.userExitGame(gameToBeExited, userId);
   }
 
   @PutMapping("/start/{gameId}")
