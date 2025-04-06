@@ -53,7 +53,7 @@ public class GameController {
     return gameLobbyGetDTOs;
   }
 
-  @GetMapping("/hall")
+  @GetMapping("/game/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public GameGetDTO getGameHall(Long gameId) {
@@ -61,13 +61,19 @@ public class GameController {
     return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(gameSelected);
   }
 
-  @PutMapping("/lobby/{gameId}")
+  @PutMapping("/lobby/{userId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public void joinGame(GamePostDTO gamePostDTO, UserPostDTO userPostDTO, Long gameId) {
-    User userToJoin = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
+  public void joinGame(GamePostDTO gamePostDTO, Long userId) {
     Game gameToBeJoined = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
   
-    gameService.checkIfCanJoin(userToJoin, gameToBeJoined, gameId);
+    gameService.checkIfCanJoin(gameToBeJoined, userId);
+  }
+
+  @PutMapping("/start/{gameId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void startGame(Long gameId) {
+    gameService.startGame(gameId);
   }
 }
