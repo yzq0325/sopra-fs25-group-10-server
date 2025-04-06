@@ -97,12 +97,17 @@ public class GameService {
     }
 
     public void userJoinGame(Game gameToBeJoined, Long userId){
-      if(gameToBeJoined.getPassword().equals((gameRepository.findBygameId(gameToBeJoined.getGameId())).getPassword())){
-        (gameRepository.findBygameId(gameToBeJoined.getGameId())).addPlayer(userRepository.findByUserId(userId));
-        (gameRepository.findBygameId(gameToBeJoined.getGameId())).setRealPlayersNumber((gameRepository.findBygameId(gameToBeJoined.getGameId())).getRealPlayersNumber()+1);
+      if((gameRepository.findBygameId(gameToBeJoined.getGameId())).getRealPlayersNumber() == 5){
+        if(gameToBeJoined.getPassword().equals((gameRepository.findBygameId(gameToBeJoined.getGameId())).getPassword())){
+          (gameRepository.findBygameId(gameToBeJoined.getGameId())).addPlayer(userRepository.findByUserId(userId));
+          (gameRepository.findBygameId(gameToBeJoined.getGameId())).setRealPlayersNumber((gameRepository.findBygameId(gameToBeJoined.getGameId())).getRealPlayersNumber()+1);
+        }
+        else{
+          throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!"); 
+        }
       }
       else{
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!"); 
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't join this game because this game is full!");
       }
     }
 
