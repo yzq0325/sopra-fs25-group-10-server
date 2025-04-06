@@ -60,4 +60,14 @@ public class GameController {
     Game gameSelected = gameService.getGameByGameId(gameId);
     return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(gameSelected);
   }
+
+  @PutMapping("/lobby/{gameId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void joinGame(GamePostDTO gamePostDTO, UserPostDTO userPostDTO, Long gameId) {
+    User userToJoin = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
+    Game gameToBeJoined = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
+  
+    gameService.checkIfCanJoin(userToJoin, gameToBeJoined, gameId);
+  }
 }
