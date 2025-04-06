@@ -80,4 +80,14 @@ public class GameService {
     public Game getGameByGameId(Long gameId){
       return gameRepository.findBygameId(gameId);
     }
+
+    public void checkIfCanJoin(User userToJoin, Game gameToBeJoined, Long gameId){
+      if(gameToBeJoined.getPassword().equals((gameRepository.findBygameId(gameId)).getPassword())){
+        (gameRepository.findBygameId(gameId)).addPlayer(userToJoin);
+        (gameRepository.findBygameId(gameId)).setRealPlayersNumber((gameRepository.findBygameId(gameId)).getRealPlayersNumber()+1);
+      }
+      else{
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!"); 
+      }
+    }
 }
