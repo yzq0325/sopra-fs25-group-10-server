@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -53,35 +54,30 @@ public class GameService {
     }
 
     public Game createGame(Game gameToCreate) {
+      Game gameCreated = new Game();
 
-      Game newGame = new Game();
-        
-      LocalDate currentDate = LocalDate.now();
-      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-      newGame.setGameCreationDate(currentDate.format(formatter));
-        
+      List<String> players = new ArrayList<>();
       Map<String, Integer> scoreBoard = new HashMap<>();
-      for (String username : gameToCreate.getPlayers()) {
-        User player = userRepository.findByUsername(username);
-        if (player == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, username + " is not found");
-        }
-        newGame.addPlayer(player);  
-        scoreBoard.put(username, 0); 
-    }
+      gameCreated.setOwner(gameToCreate.getOwner());
 
-      newGame.setHintsNumber(5);
-      newGame.setGameName(gameToCreate.getGameName());
-      newGame.setTime(gameToCreate.getTime());
-      newGame.setPlayersNumber(gameToCreate.getPlayersNumber());
-      newGame.setRealPlayersNumber(1);
-      newGame.setModeType(gameToCreate.getModeType());
-      newGame.setLockType(gameToCreate.getLockType());
-      newGame.setPassword(gameToCreate.getPassword());
-      newGame = gameRepository.save(newGame);
+      gameCreated.setScoreBoard(scoreBoard);
+      gameCreated.setPlayers(players);
+      gameCreated.setHintsNumber(5);
+      gameCreated.setGameName(gameToCreate.getGameName());
+      gameCreated.setTime(gameToCreate.getTime());
+      gameCreated.setPlayersNumber(gameToCreate.getPlayersNumber());
+      gameCreated.setRealPlayersNumber(1);
+      // gameCreated.setModeType(gameToCreate.getModeType());
+      gameCreated.setLockType(gameToCreate.getLockType());
+      gameCreated.setPassword(gameToCreate.getPassword());
+      gameCreated = gameRepository.save(gameCreated);
       gameRepository.flush();
       
-      log.debug("Created new Game: {}", newGame);
-      return newGame;
+      log.debug("Created new Game: {}", gameToCreate);
+      return gameCreated;
+    }
+
+    public Game getGameByGameId(Long gameId){
+      return gameRepository.findBygameId(gameId);
     }
 }

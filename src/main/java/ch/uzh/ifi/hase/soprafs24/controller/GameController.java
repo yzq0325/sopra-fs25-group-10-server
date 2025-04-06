@@ -18,6 +18,7 @@ import java.util.List;
  * The controller will receive the request and delegate the execution to the
  * UserService and finally return the result.
  */
+@RestController
 public class GameController {
 
   private final GameService gameService;
@@ -37,7 +38,7 @@ public class GameController {
       return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(createdGame);
   }
 
-  @PostMapping("/lobby")
+  @GetMapping("/lobby")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public List<GameGetDTO> getGameLobby() {
@@ -47,7 +48,14 @@ public class GameController {
       for (Game game : allGames) {
         gameLobbyGetDTOs.add(DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game));
     }
-    
     return gameLobbyGetDTOs;
+  }
+
+  @GetMapping("/hall")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public GameGetDTO getGameHall(Long gameId) {
+    Game gameSelected = gameService.getGameByGameId(gameId);
+    return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(gameSelected);
   }
 }
