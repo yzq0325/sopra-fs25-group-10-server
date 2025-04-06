@@ -56,7 +56,7 @@ public class Game implements Serializable {
   @Column(nullable = false)
   private int time;
   
-  @Column(nullable = false)
+  @Column(nullable = true)
   private String gameCreationDate;
 
   //solo or combat mode
