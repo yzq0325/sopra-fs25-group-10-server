@@ -56,7 +56,7 @@ public class GameController {
   @GetMapping("/game/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public GameGetDTO getGameHall(Long gameId) {
+  public GameGetDTO getGameReady(Long gameId) {
     Game gameSelected = gameService.getGameByGameId(gameId);
     return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(gameSelected);
   }
