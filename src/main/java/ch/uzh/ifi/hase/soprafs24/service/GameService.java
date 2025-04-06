@@ -68,7 +68,6 @@ public class GameService {
       gameCreated.setPlayersNumber(gameToCreate.getPlayersNumber());
       gameCreated.setRealPlayersNumber(1);
       // gameCreated.setModeType(gameToCreate.getModeType());
-      gameCreated.setLockType(gameToCreate.getLockType());
       gameCreated.setPassword(gameToCreate.getPassword());
       gameCreated = gameRepository.save(gameCreated);
       gameRepository.flush();
