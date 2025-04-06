@@ -59,13 +59,14 @@ public class GameService {
       List<String> players = new ArrayList<>();
       Map<String, Integer> scoreBoard = new HashMap<>();
 
-      checkIfOwnerExists(gameToCreate.getOwner());
+      checkIfOwnerNameExists(gameToCreate.getOwner());
+      checkIfGameHaveSameOwner(gameToCreate.getOwner());
       gameCreated.setOwner(gameToCreate.getOwner());
 
       gameCreated.setScoreBoard(scoreBoard);
       gameCreated.setPlayers(players);
       gameCreated.setHintsNumber(5);
-      checkIfGameExists(gameToCreate.getGameName());
+      checkIfGameNameExists(gameToCreate.getGameName());
       gameCreated.setGameName(gameToCreate.getGameName());
       gameCreated.setTime(gameToCreate.getTime());
       gameCreated.setPlayersNumber(gameToCreate.getPlayersNumber());
@@ -76,7 +77,6 @@ public class GameService {
       gameRepository.flush();
 
       User owner = userRepository.findByUsername(gameToCreate.getOwner());
-      checkIfOnwerHaveGame(owner.getUsername());
       owner.setGame(gameCreated);
       userRepository.save(owner);
       userRepository.flush();
@@ -100,22 +100,22 @@ public class GameService {
       }
     }
 
-    public void checkIfOwnerExists(String username){
+    public void checkIfOwnerNameExists(String username){
       User userwithUsername = userRepository.findByUsername(username);
       if(userwithUsername == null){
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner doesn't exists! Please try an existed ownername");
       }
     }
-    public void checkIfGameExists(String gameName){
+    public void checkIfGameHaveSameOwner(String username){
+      Game gameWithSameOwner = gameRepository.findByowner(username);
+      if(gameWithSameOwner != null){
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "This owner have already create a game! Please use another one!");
+      }
+    }
+    public void checkIfGameNameExists(String gameName){
       Game gameWithSameName = gameRepository.findBygameName(gameName);
       if(gameWithSameName != null){
         throw new ResponseStatusException(HttpStatus.CONFLICT, "GameName exists! Please try a new one!");
-      }
-    }
-    public void checkIfOnwerHaveGame(String username){
-      Game gameOfOwner = (userRepository.findByUsername(username)).getGame();
-      if(gameOfOwner != null){
-        throw new ResponseStatusException(HttpStatus.CONFLICT, "This user have already create a game! Please use another one!");
       }
     }
 }
