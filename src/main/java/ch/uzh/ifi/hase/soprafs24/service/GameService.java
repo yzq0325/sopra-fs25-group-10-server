@@ -58,6 +58,7 @@ public class GameService {
 
       List<String> players = new ArrayList<>();
       Map<String, Integer> scoreBoard = new HashMap<>();
+
       checkIfOwnerExists(gameToCreate.getOwner());
       gameCreated.setOwner(gameToCreate.getOwner());
 
@@ -73,6 +74,13 @@ public class GameService {
       gameCreated.setPassword(gameToCreate.getPassword());
       gameCreated = gameRepository.save(gameCreated);
       gameRepository.flush();
+
+      User owner = userRepository.findByUsername(gameToCreate.getOwner());
+      checkIfOnwerHaveGame(owner.getUsername());
+      owner.setGame(gameCreated);
+      userRepository.save(owner);
+      userRepository.flush();
+
       
       log.debug("Created new Game: {}", gameToCreate);
       return gameCreated;
@@ -102,6 +110,12 @@ public class GameService {
       Game gameWithSameName = gameRepository.findBygameName(gameName);
       if(gameWithSameName != null){
         throw new ResponseStatusException(HttpStatus.CONFLICT, "GameName exists! Please try a new one!");
+      }
+    }
+    public void checkIfOnwerHaveGame(String username){
+      Game gameOfOwner = (userRepository.findByUsername(username)).getGame();
+      if(gameOfOwner != null){
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "This user have already create a game! Please use another one!");
       }
     }
 }
