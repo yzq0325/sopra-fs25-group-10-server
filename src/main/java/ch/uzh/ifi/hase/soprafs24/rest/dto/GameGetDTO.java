@@ -18,6 +18,8 @@ public class GameGetDTO {
 
     private int realPlayersNumber;
 
+    private String password;
+
     public Long getGameId() {
         return gameId;
     }
@@ -80,6 +82,14 @@ public class GameGetDTO {
 
     public void setScoreBoard(Map<String, String> scoreBoard) {
         this.scoreBoard = scoreBoard;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+    
+    public void setPassword(String password) {
+        this.password = password;
     }
 }
 
