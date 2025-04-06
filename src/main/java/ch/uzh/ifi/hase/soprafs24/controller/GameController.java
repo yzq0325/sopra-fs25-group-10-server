@@ -64,7 +64,7 @@ public class GameController {
   @PutMapping("/lobby/{userId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public void joinGame(GamePostDTO gamePostDTO, Long userId) {
+  public void joinGame(@RequestBody GamePostDTO gamePostDTO, @PathVariable Long userId) {
     Game gameToBeJoined = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
   
     gameService.checkIfCanJoin(gameToBeJoined, userId);
