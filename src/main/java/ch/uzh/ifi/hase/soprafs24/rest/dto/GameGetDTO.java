@@ -20,6 +20,8 @@ public class GameGetDTO {
 
     private String password;
 
+    private String modeType;
+
     public Long getGameId() {
         return gameId;
     }
@@ -90,6 +92,14 @@ public class GameGetDTO {
     
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getModeType() {
+        return modeType;
+    }
+    
+    public void setModeType(String modeType) {
+        this.modeType = modeType;
     }
 }
 

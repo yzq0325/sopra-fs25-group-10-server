@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.List;
 
 /**
@@ -75,5 +76,11 @@ public class GameController {
   @ResponseBody
   public void startGame(Long gameId) {
     gameService.startGame(gameId);
+  }
+
+  @PutMapping("/games/{gameId}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void submitScores(@PathVariable Long gameId, @RequestBody Map<String, Integer> scores) {
+      gameService.submitScores(gameId, scores);
   }
 }

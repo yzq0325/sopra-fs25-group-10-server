@@ -71,7 +71,13 @@ public class GameService {
       gameCreated.setTime(gameToCreate.getTime());
       gameCreated.setPlayersNumber(gameToCreate.getPlayersNumber());
       gameCreated.setRealPlayersNumber(1);
-      // gameCreated.setModeType(gameToCreate.getModeType());
+
+      String mode = gameToCreate.getModeType();
+      if (mode == null || (!mode.equals("solo") && !mode.equals("combat"))) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'");
+      }
+      gameCreated.setModeType(mode);
+
       gameCreated.setPassword(gameToCreate.getPassword());
       gameCreated = gameRepository.save(gameCreated);
       gameRepository.flush();
@@ -136,5 +142,25 @@ public class GameService {
         }
         (gameToStart.getScoreBoard()).put(username, 0); 
       }
+    }
+
+    public void submitScores(Long gameId, Map<String, Integer> incomingScores) {
+      Game game = gameRepository.findBygameId(gameId);
+  
+      if (game == null) {
+          throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found");
+      }
+  
+      // update scoreBoard
+      for (Map.Entry<String, Integer> entry : incomingScores.entrySet()) {
+          game.updateScore(entry.getKey(), entry.getValue());
+      }
+  
+      // end
+      if (game.getScoreBoard().size() >= game.getRealPlayersNumber()) {
+          log.info("Game " + gameId + " ended automatically. All players submitted scores.");
+      }
+  
+      gameRepository.save(game);
     }
 }

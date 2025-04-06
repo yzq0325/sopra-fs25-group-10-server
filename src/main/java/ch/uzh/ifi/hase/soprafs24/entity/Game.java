@@ -59,9 +59,8 @@ public class Game implements Serializable {
   @Column(nullable = true)
   private String gameCreationDate;
 
-  //solo or combat mode
-  // @Column(nullable = false)
-  // private String modeType;
+  @Column(nullable = false)
+  private String modeType;
 
   @Column(nullable = true)
   private String password;
@@ -174,13 +173,13 @@ public class Game implements Serializable {
     this.gameCreationDate = gameCreationDate;
   }
 
-  // public String getModeType() {
-  //   return modeType;
-  // }
+  public String getModeType() {
+     return modeType;
+  }
 
-  // public void setModeType(String modeType) {
-  //   this.modeType = modeType;
-  // }
+  public void setModeType(String modeType) {
+    this.modeType = modeType;
+  }
 
   public String getPassword() {
     return password;
