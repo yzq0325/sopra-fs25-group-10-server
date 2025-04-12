@@ -57,7 +57,9 @@ public interface DTOMapper {
   @Mapping(source = "playersNumber", target = "playersNumber")
   @Mapping(source = "realPlayersNumber", target = "realPlayersNumber")
   @Mapping(source = "password", target = "password")
-  @Mapping(source = "gameId", target = "gameId")  
+  @Mapping(source = "gameId", target = "gameId")
+  @Mapping(source = "endTime", target = "endTime")
+  @Mapping(source = "finalScore", target = "finalScore")
   GameGetDTO convertGameEntityToGameGetDTO(Game game);
 
   // Profile mappings
