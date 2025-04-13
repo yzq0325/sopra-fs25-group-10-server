@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
 
 /**
  * Internal User Representation
@@ -64,6 +65,30 @@ public class Game implements Serializable {
 
   @Column(nullable = true)
   private String password;
+
+  @Column(nullable = false)
+  private LocalDateTime endTime;
+  
+  @Column(nullable = true)
+  private Integer finalScore;
+  
+  @ElementCollection
+  @CollectionTable(name = "correct_answers", joinColumns = @JoinColumn(name = "gameId"))
+  @MapKeyColumn(name = "username")
+  @Column(name = "correct")
+  private Map<String, Integer> correctAnswersMap = new HashMap<>();
+  
+  @ElementCollection
+  @CollectionTable(name = "total_questions", joinColumns = @JoinColumn(name = "gameId"))
+  @MapKeyColumn(name = "username")
+  @Column(name = "total")
+  private Map<String, Integer> totalQuestionsMap = new HashMap<>();
+  
+  @ElementCollection
+  @CollectionTable(name = "result_summaries", joinColumns = @JoinColumn(name = "gameId"))
+  @MapKeyColumn(name = "username")
+  @Column(name = "summary")
+  private Map<String, String> resultSummaryMap = new HashMap<>();
 
   public Long getGameId() {
     return gameId;
@@ -189,4 +214,43 @@ public class Game implements Serializable {
     this.password = password;
   }
 
+  public LocalDateTime getEndTime() {
+    return endTime;
+  }
+
+  public void setEndTime(LocalDateTime endTime) {
+    this.endTime = endTime;
+  }
+
+  public Integer getFinalScore() {
+    return finalScore;
+  }
+
+  public void setFinalScore(Integer finalScore) {
+    this.finalScore = finalScore;
+  }
+
+  public Map<String, String> getResultSummaryMap() {
+    return resultSummaryMap;
+  }
+
+  public void setResultSummaryMap(Map<String, String> resultSummaryMap) {
+    this.resultSummaryMap = resultSummaryMap;
+  }
+
+  public Map<String, Integer> getTotalQuestionsMap() {
+    return totalQuestionsMap;
+  }
+
+  public void setTotalQuestionsMap(Map<String, Integer> totalQuestionsMap) {
+    this.totalQuestionsMap = totalQuestionsMap;
+  }
+
+  public Map<String, Integer> getCorrectAnswersMap() {
+    return correctAnswersMap;
+  }
+
+  public void setCorrectAnswersMap(Map<String, Integer> correctAnswersMap) {
+    this.correctAnswersMap = correctAnswersMap;
+  }
 }

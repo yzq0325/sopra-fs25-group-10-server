@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 import java.util.List;
+import java.util.Map;
 
 public class GamePostDTO {
 
@@ -21,6 +22,12 @@ public class GamePostDTO {
     private String lockType;
 
     private String password;
+
+    private Map<String, Integer> scoreMap;
+
+    private Map<String, Integer> correctAnswersMap;
+
+    private Map<String, Integer> totalQuestionsMap;
 
     public Long getGameId() {
         return gameId;
@@ -93,5 +100,29 @@ public class GamePostDTO {
     
       public void setPassword(String password) {
         this.password = password;
+      }
+
+      public Map<String, Integer> getScoreMap() {
+        return scoreMap;
+      }
+    
+      public void setScoreMap(Map<String, Integer> scoreMap) {
+        this.scoreMap = scoreMap;
+      }
+    
+      public Map<String, Integer> getCorrectAnswersMap() {
+        return correctAnswersMap;
+      }
+    
+      public void setCorrectAnswersMap(Map<String, Integer> correctAnswersMap) {
+        this.correctAnswersMap = correctAnswersMap;
+      }
+    
+      public Map<String, Integer> getTotalQuestionsMap() {
+        return totalQuestionsMap;
+      }
+    
+      public void setTotalQuestionsMap(Map<String, Integer> totalQuestionsMap) {
+        this.totalQuestionsMap = totalQuestionsMap;
       }
 }

@@ -8,6 +8,7 @@ import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 
 import org.slf4j.Logger;
@@ -25,6 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.Map;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -176,24 +179,51 @@ public class GameService {
         (gameToStart.getScoreBoard()).put(userId, 0); 
       }
     }
-
-    public void submitScores(Long gameId, Map<Long, Integer> incomingScores) {
+  
+    public void submitScores(Long gameId,Map<String, Integer> scoreMap, Map<String, Integer> correctAnswersMap, Map<String, Integer> totalQuestionsMap) {
       Game game = gameRepository.findBygameId(gameId);
-  
+
       if (game == null) {
-          throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found");
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found");
       }
   
-      // update scoreBoard
-      for (Map.Entry<Long, Integer> entry : incomingScores.entrySet()) {
-          game.updateScore(entry.getKey(), entry.getValue());
+      // update all users
+      for (String username : scoreMap.keySet()) {
+        Integer score = scoreMap.get(username);
+        Integer correct = correctAnswersMap.getOrDefault(username, 0);
+        Integer total = totalQuestionsMap.getOrDefault(username, 0);
+        String summary = correct + " of " + total + " correct";
+
+        game.updateScore(username, score);
+        game.getCorrectAnswersMap().put(username, correct);
+        game.getTotalQuestionsMap().put(username, total);
+        game.getResultSummaryMap().put(username, summary);
+
       }
-  
+
       // end
       if (game.getScoreBoard().size() >= game.getRealPlayersNumber()) {
-          log.info("Game " + gameId + " ended automatically. All players submitted scores.");
+        game.setEndTime(LocalDateTime.now());
+        log.info("Game " + gameId + " ended automatically. All players submitted scores.");
       }
-  
+
       gameRepository.save(game);
+    }
+
+    public List<GameGetDTO> getGamesByUser(Long userId) {
+      User user = userRepository.findById(userId)
+          .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+      String username = user.getUsername();
+  
+      return gameRepository.findByPlayersContaining(username).stream()
+          .filter(game -> game.getEndTime() != null)
+          .map(game -> {
+              GameGetDTO dto = DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game);
+              dto.setCorrectAnswers(game.getCorrectAnswersMap().get(username));
+              dto.setTotalQuestions(game.getTotalQuestionsMap().get(username));
+              dto.setResultSummary(game.getResultSummaryMap().get(username));
+              return dto;
+          })
+          .collect(Collectors.toList());
     }
 }
