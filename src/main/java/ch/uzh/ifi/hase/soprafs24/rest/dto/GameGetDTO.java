@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 import java.util.Map;
+import java.util.List;
 import java.time.LocalDateTime;
 
 public class GameGetDTO {
@@ -14,6 +15,8 @@ public class GameGetDTO {
     private Map<Long, String> scoreBoard;
 
     private String gameName;
+
+    private int time;
 
     private String lockType;
 
@@ -35,7 +38,7 @@ public class GameGetDTO {
 
     private Integer correctAnswers;
 
-    private Map<Integer, String> hints;
+    private List<Map<String, Object>> hints;
 
     public Long getGameId() {
         return gameId;
@@ -109,6 +112,14 @@ public class GameGetDTO {
         this.scoreBoard = scoreBoard;
     }
 
+    public int getTime() {
+        return time;
+    }
+    
+    public void setTime(int time) {
+        this.time = time;
+    }
+
     public String getPassword() {
         return password;
     }
@@ -165,7 +176,11 @@ public class GameGetDTO {
         this.correctAnswers = correctAnswers;
     }
 
-    public void setHints(Map<Integer, String> hints){
+    public List<Map<String, Object>> getHints(){
+        return hints;
+    }
+
+    public void setHints(List<Map<String, Object>> hints){
         this.hints = hints;
     }
 }
