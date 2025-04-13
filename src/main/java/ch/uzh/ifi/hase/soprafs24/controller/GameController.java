@@ -80,6 +80,13 @@ public class GameController {
     gameService.userExitGame(gameToBeExited, userId);
   }
 
+  @GetMapping("/start/{gameId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void getGamePlayers(Long gameId) {
+    gameService.getGamePlayers(gameId);
+  }
+
   @PutMapping("/start/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody

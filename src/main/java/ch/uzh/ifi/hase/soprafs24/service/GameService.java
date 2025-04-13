@@ -5,7 +5,10 @@ import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,6 +138,24 @@ public class GameService {
         throw new ResponseStatusException(HttpStatus.CONFLICT, "GameName exists! Please try a new one!");
       }
     }
+
+    public List<UserGetDTO> getGamePlayers(Long gameId){
+      Game gameJoined = gameRepository.findBygameId(gameId);
+      User owner = userRepository.findByUsername(gameJoined.getOwner());
+      List<String> allPlayers = gameJoined.getPlayers();
+
+      List<UserGetDTO> allPlayersDTOs = new ArrayList<>();
+
+      allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(owner));
+      for (String username : allPlayers) {
+        allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(userRepository.findByUsername(username)));
+      }
+
+      return allPlayersDTOs;
+
+    }
+
+
     public void startGame(Long gameId){
       Game gameToStart = gameRepository.findBygameId(gameId);
 
