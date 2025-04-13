@@ -17,8 +17,8 @@ public class UtilServiceTest {
     }
 
     @Test
-    void testGenerateClues_validOutput_returns10Clues() {
-        Map<String, List<Map<String, Object>>> result = utilService.generateClues();
+    void testGenerateClues_validOutput_returns5Clues() {
+        Map<String, List<Map<String, Object>>> result = utilService.generateClues(5);
 
         // one country only
         assertEquals(1, result.size(), "Result should contain exactly one country");
@@ -27,7 +27,7 @@ public class UtilServiceTest {
         List<Map<String, Object>> clues = result.get(country);
 
         // the number of clues should be 10
-        assertEquals(10, clues.size(), "Should generate exactly 10 clues");
+        assertEquals(5, clues.size(), "Should generate exactly 10 clues");
 
         // all clues should contain text and difficulty
         for (int i = 0; i < clues.size(); i++) {
@@ -40,7 +40,7 @@ public class UtilServiceTest {
 
             // difficulty should be in range of 1 to 10
             int difficulty = (int) clue.get("difficulty");
-            assertTrue(difficulty >= 1 && difficulty <= 10, "Difficulty should be between 1 and 10");
+            assertTrue(difficulty >= 1 && difficulty <= 5, "Difficulty should be between 1 and 10");
         }
 
         System.out.println("Country: " + country);
@@ -57,11 +57,11 @@ public class UtilServiceTest {
 
         for (int i = 0; i < totalRuns; i++) {
             try {
-                Map<String, List<Map<String, Object>>> result = utilService.generateClues();
+                Map<String, List<Map<String, Object>>> result = utilService.generateClues(5);
 
                 assertEquals(1, result.size(), "Should contain exactly one country");
                 List<Map<String, Object>> clues = result.values().iterator().next();
-                assertEquals(10, clues.size(), "Should contain exactly 10 clues");
+                assertEquals(5, clues.size(), "Should contain exactly 10 clues");
 
                 for (Map<String, Object> clue : clues) {
                     assertTrue(clue.containsKey("text"), "Missing 'text' field");

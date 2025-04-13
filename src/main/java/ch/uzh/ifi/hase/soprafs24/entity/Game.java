@@ -66,7 +66,7 @@ public class Game implements Serializable {
   @Column(nullable = true)
   private String password;
 
-  @Column(nullable = false)
+  @Column(nullable = true)
   private LocalDateTime endTime;
   
   @Column(nullable = true)
