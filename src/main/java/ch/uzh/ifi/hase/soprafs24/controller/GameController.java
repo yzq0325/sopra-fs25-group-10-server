@@ -103,9 +103,8 @@ public class GameController {
   @PutMapping("/start/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public GameGetDTO startGame(@PathVariable Long gameId) {
-    GameGetDTO gameHintsDTO = gameService.startGame(gameId);
-    return gameHintsDTO;
+  public void startGame(@PathVariable Long gameId) {
+    gameService.startGame(gameId);
   }
 
   @PutMapping("/games/{gameId}/end")

@@ -27,7 +27,7 @@ public class UtilService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     //<country, clue, difficulty(int)>
-    public Map<String, List<Map<String, Object>>> generateClues(int clueNumber) {
+    public Map<Country, List<Map<String, Object>>> generateClues(int clueNumber) {
         try {
             Country[] countries = Country.values();
             Country targetCountry = countries[new Random().nextInt(countries.length)];
@@ -80,7 +80,7 @@ public class UtilService {
         return objectMapper.writeValueAsString(payload);
     }
 
-    private Map<String, List<Map<String, Object>>> extractClues(String responseBody, Country country) throws Exception {
+    private Map<Country, List<Map<String, Object>>> extractClues(String responseBody, Country country) throws Exception {
         JsonNode root = objectMapper.readTree(responseBody);
 
         JsonNode parts = root
@@ -113,8 +113,8 @@ public class UtilService {
             }
         }
 
-        Map<String, List<Map<String, Object>>> result = new HashMap<>();
-        result.put(country.name(), clueList);
+        Map<Country, List<Map<String, Object>>> result = new HashMap<>();
+        result.put(country, clueList);
         return result;
     }
 
