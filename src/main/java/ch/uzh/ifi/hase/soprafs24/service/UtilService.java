@@ -26,6 +26,7 @@ public class UtilService {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    //<country, clue, difficulty(int)>
     public Map<String, List<Map<String, Object>>> generateClues(int clueNumber) {
         try {
             Country[] countries = Country.values();

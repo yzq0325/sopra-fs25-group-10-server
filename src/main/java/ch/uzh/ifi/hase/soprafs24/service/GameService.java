@@ -10,6 +10,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
+import ch.uzh.ifi.hase.soprafs24.service.UtilService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,8 +49,14 @@ public class GameService {
     private final GameRepository gameRepository;
     private final UserRepository userRepository;
 
+    private Map<String, List<Map<String, Object>>> generatedHintsA;
+    private Map<String, List<Map<String, Object>>> generatedHintsB;
+    private String submitAnswer;
+
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+
+    UtilService utilService = new UtilService();
 
     public GameService(
             @Qualifier("gameRepository") GameRepository gameRepository,
@@ -135,20 +142,52 @@ public class GameService {
 
     public void userExitGame(Long userId){
       Game targetGame = userRepository.findByUserId(userId).getGame();
-      log.info("gameId: ", targetGame.getGameId());
-      targetGame.removePlayer(userRepository.findByUserId(userId));
-      targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber()-1);
-      gameRepository.save(targetGame);
-      gameRepository.flush();
+      if(userId != targetGame.getOwnerId()){
+        log.info("gameId: ", targetGame.getGameId());
+        targetGame.removePlayer(userRepository.findByUserId(userId));
+        targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber()-1);
+        gameRepository.save(targetGame);
+        gameRepository.flush();
 
-      User targetUser = userRepository.findByUserId(userId);
-      targetUser.setGame(null);
-      userRepository.save(targetUser);
-      userRepository.flush();
+        User targetUser = userRepository.findByUserId(userId);
+        targetUser.setGame(null);
+        userRepository.save(targetUser);
+        userRepository.flush();
 
-      List<User> players = getGamePlayers(targetGame.getGameId());
-      messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
-      log.info("websocket send!");
+        List<User> players = getGamePlayers(targetGame.getGameId());
+        messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
+        log.info("websocket send!");
+      }
+      else if(targetGame.getRealPlayersNumber()==1){
+        gameRepository.deleteByGameId(targetGame.getGameId());
+        gameRepository.flush();
+
+        User targetUser = userRepository.findByUserId(userId);
+        targetUser.setGame(null);
+        userRepository.save(targetUser);
+        userRepository.flush();
+
+        List<User> players = getGamePlayers(targetGame.getGameId());
+        messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
+        log.info("websocket send!");
+
+      }
+      else{
+        targetGame.removePlayer(userRepository.findByUserId(userId));
+        targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber()-1);
+        targetGame.setOwnerId((targetGame.getPlayers()).get(0));
+        gameRepository.save(targetGame);
+        gameRepository.flush();
+
+        User targetUser = userRepository.findByUserId(userId);
+        targetUser.setGame(null);
+        userRepository.save(targetUser);
+        userRepository.flush();
+
+        List<User> players = getGamePlayers(targetGame.getGameId());
+        messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
+        log.info("websocket send!");
+      }
     }
 
     public void checkIfOwnerExists(Long userId){
@@ -190,7 +229,7 @@ public class GameService {
     }
 
 
-    public void startGame(Long gameId){
+    public GameGetDTO startGame(Long gameId){
       Game gameToStart = gameRepository.findBygameId(gameId);
 
       //set time
@@ -209,10 +248,19 @@ public class GameService {
         (gameToStart.getScoreBoard()).put(userId, 0); 
       }
 
+      generatedHintsA = utilService.generateClues(gameToStart.getHintsNumber());
+      generatedHintsB = utilService.generateClues(gameToStart.getHintsNumber());
+
+      GameGetDTO gameHintDTO = new GameGetDTO();
       
+      gameHintDTO.setHints(generatedHintsA.values().iterator().next());
+      gameHintDTO.setTime(gameToStart.getTime());
+
+      return gameHintDTO;
     }
 
-    // public void (){
+    // public void processingAnswer(){
+      
 
     // }
   
