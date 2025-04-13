@@ -82,10 +82,8 @@ public class GameController {
   @PutMapping("/lobbyOut/{userId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public void exitGame(@RequestBody GamePostDTO gamePostDTO, @PathVariable Long userId) {
-    Game gameToBeExited = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
-  
-    gameService.userExitGame(gameToBeExited, userId);
+  public void exitGame(@PathVariable Long userId) {
+    gameService.userExitGame(userId);
   }
 
   @GetMapping("/ready/{gameId}")

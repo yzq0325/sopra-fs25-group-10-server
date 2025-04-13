@@ -106,10 +106,11 @@ public class GameService {
     }
 
     public void userJoinGame(Game gameToBeJoined, Long userId){
-      if((gameRepository.findBygameId(gameToBeJoined.getGameId())).getRealPlayersNumber() == 5){
+      if((gameRepository.findBygameId(gameToBeJoined.getGameId())).getRealPlayersNumber() == (gameRepository.findBygameId(gameToBeJoined.getGameId())).getPlayersNumber()){
         if(gameToBeJoined.getPassword().equals((gameRepository.findBygameId(gameToBeJoined.getGameId())).getPassword())){
           (gameRepository.findBygameId(gameToBeJoined.getGameId())).addPlayer(userRepository.findByUserId(userId));
           (gameRepository.findBygameId(gameToBeJoined.getGameId())).setRealPlayersNumber((gameRepository.findBygameId(gameToBeJoined.getGameId())).getRealPlayersNumber()+1);
+          (userRepository.findByUserId(userId)).setGame(gameToBeJoined);
         }
         else{
           throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!"); 
@@ -120,9 +121,9 @@ public class GameService {
       }
     }
 
-    public void userExitGame(Game gameToBeExited, Long userId){
-      (gameRepository.findBygameId(gameToBeExited.getGameId())).removePlayer(userRepository.findByUserId(userId));
-      (gameRepository.findBygameId(gameToBeExited.getGameId())).setRealPlayersNumber((gameRepository.findBygameId(gameToBeExited.getGameId())).getRealPlayersNumber()-1);
+    public void userExitGame(Long userId){
+      (gameRepository.findBygameId(((userRepository.findByUserId(userId)).getGame()).getGameId())).removePlayer(userRepository.findByUserId(userId));
+      (gameRepository.findBygameId(((userRepository.findByUserId(userId)).getGame()).getGameId())).setRealPlayersNumber((gameRepository.findBygameId(((userRepository.findByUserId(userId)).getGame()).getGameId())).getRealPlayersNumber()-1);
       (userRepository.findByUserId(userId)).setGame(null);
     }
 

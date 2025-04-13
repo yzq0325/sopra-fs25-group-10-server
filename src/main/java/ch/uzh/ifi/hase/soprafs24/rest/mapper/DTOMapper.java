@@ -52,6 +52,7 @@ public interface DTOMapper {
   Game convertGamePostDTOtoGameEntity(GamePostDTO gamePostDTO);
 
   @Mapping(source = "ownerId", target = "ownerId")
+  @Mapping(target = "ownerName", expression = "java(userRepository.findByUserId(game.getOwnerId()).getUsername())")
   @Mapping(source = "scoreBoard", target = "scoreBoard")
   @Mapping(source = "gameName", target = "gameName") 
   @Mapping(source = "playersNumber", target = "playersNumber")
