@@ -65,11 +65,12 @@ public class GameService {
       Game gameCreated = new Game();
 
       List<Long> players = new ArrayList<>();
+      players.add(gameToCreate.getOwnerId());
       Map<Long, Integer> scoreBoard = new HashMap<>();
 
       checkIfOwnerExists(gameToCreate.getOwnerId());
       checkIfGameHaveSameOwner(gameToCreate.getOwnerId());
-      gameCreated.setOwnerId(gameToCreate.getOwnerId());
+      gameCreated.setOwnerId(players.get(0));
 
       gameCreated.setScoreBoard(scoreBoard);
       gameCreated.setPlayers(players);
@@ -146,12 +147,10 @@ public class GameService {
 
     public List<UserGetDTO> getGamePlayers(Long gameId){
       Game gameJoined = gameRepository.findBygameId(gameId);
-      User owner = userRepository.findByUserId(gameJoined.getOwnerId());
       List<Long> allPlayers = gameJoined.getPlayers();
 
       List<UserGetDTO> allPlayersDTOs = new ArrayList<>();
 
-      allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(owner));
       for (Long userId : allPlayers) {
         allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(userRepository.findByUserId(userId)));
       }
@@ -178,9 +177,15 @@ public class GameService {
         }
         (gameToStart.getScoreBoard()).put(userId, 0); 
       }
+
+      
     }
+
+    // public void (){
+
+    // }
   
-    public void submitScores(Long gameId,Map<String, Integer> scoreMap, Map<String, Integer> correctAnswersMap, Map<String, Integer> totalQuestionsMap) {
+    public void submitScores(Long gameId,Map<Long, Integer> scoreMap, Map<Long, Integer> correctAnswersMap, Map<Long, Integer> totalQuestionsMap) {
       Game game = gameRepository.findBygameId(gameId);
 
       if (game == null) {
@@ -188,16 +193,16 @@ public class GameService {
       }
   
       // update all users
-      for (String username : scoreMap.keySet()) {
-        Integer score = scoreMap.get(username);
-        Integer correct = correctAnswersMap.getOrDefault(username, 0);
-        Integer total = totalQuestionsMap.getOrDefault(username, 0);
+      for (Long userId : scoreMap.keySet()) {
+        Integer score = scoreMap.get(userId);
+        Integer correct = correctAnswersMap.getOrDefault(userId, 0);
+        Integer total = totalQuestionsMap.getOrDefault(userId, 0);
         String summary = correct + " of " + total + " correct";
 
-        game.updateScore(username, score);
-        game.getCorrectAnswersMap().put(username, correct);
-        game.getTotalQuestionsMap().put(username, total);
-        game.getResultSummaryMap().put(username, summary);
+        game.updateScore(userId, score);
+        game.getCorrectAnswersMap().put(userId, correct);
+        game.getTotalQuestionsMap().put(userId, total);
+        game.getResultSummaryMap().put(userId, summary);
 
       }
 
@@ -219,9 +224,9 @@ public class GameService {
           .filter(game -> game.getEndTime() != null)
           .map(game -> {
               GameGetDTO dto = DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game);
-              dto.setCorrectAnswers(game.getCorrectAnswersMap().get(username));
-              dto.setTotalQuestions(game.getTotalQuestionsMap().get(username));
-              dto.setResultSummary(game.getResultSummaryMap().get(username));
+              dto.setCorrectAnswers(game.getCorrectAnswersMap().get(userId));
+              dto.setTotalQuestions(game.getTotalQuestionsMap().get(userId));
+              dto.setResultSummary(game.getResultSummaryMap().get(userId));
               return dto;
           })
           .collect(Collectors.toList());

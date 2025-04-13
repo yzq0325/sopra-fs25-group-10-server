@@ -95,7 +95,6 @@ public class GameController {
     List<UserGetDTO> allPlayerDTOs  = gameService.getGamePlayers(gameId);
     messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/players", allPlayerDTOs);
     return allPlayerDTOs;
-    
   }
 
   @PutMapping("/start/{gameId}")
