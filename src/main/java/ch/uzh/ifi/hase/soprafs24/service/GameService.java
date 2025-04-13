@@ -231,4 +231,39 @@ public class GameService {
           })
           .collect(Collectors.toList());
     }
+
+    public List<GameGetDTO> getLeaderboard() {
+      List<Game> allGames = gameRepository.findAll();
+      Map<Long, Integer> userScoreMap = new HashMap<>();
+  
+      for (Game game : allGames) {
+          if (game.getEndTime() == null || game.getScoreBoard() == null) {
+              continue;
+          }
+          for (Map.Entry<Long, Integer> entry : game.getScoreBoard().entrySet()) {
+              Long userId = entry.getKey();
+              Integer score = entry.getValue();
+              userScoreMap.put(userId, userScoreMap.getOrDefault(userId, 0) + score);
+          }
+      }
+  
+      List<GameGetDTO> leaderboard = new ArrayList<>();
+      for (Map.Entry<Long, Integer> entry : userScoreMap.entrySet()) {
+          Long userId = entry.getKey();
+          Integer totalScore = entry.getValue();
+  
+          User user = userRepository.findById(userId)
+              .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+  
+          GameGetDTO dto = new GameGetDTO();
+          dto.setUserId(userId);
+          dto.setUsername(user.getUsername());
+          dto.setTotalScore(totalScore);
+          leaderboard.add(dto);
+      }
+
+      leaderboard.sort((a, b) -> b.getTotalScore().compareTo(a.getTotalScore()));
+  
+      return leaderboard;
+    }
 }

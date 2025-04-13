@@ -121,4 +121,11 @@ public class GameController {
   public List<GameGetDTO> getUserGameHistory(@PathVariable Long userId) {
     return gameService.getGamesByUser(userId);
   }
+
+  @GetMapping("/leaderboard")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public List<GameGetDTO> getLeaderboard() {
+    return gameService.getLeaderboard();
+  }
 }
