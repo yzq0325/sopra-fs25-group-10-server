@@ -9,7 +9,7 @@ public class GameGetDTO {
 
     private Long gameId;
 
-    private Map<String, String> scoreBoard;
+    private Map<Long, String> scoreBoard;
 
     private String gameName;
 
@@ -89,11 +89,11 @@ public class GameGetDTO {
         this.realPlayersNumber = realPlayersNumber;
     }   
 
-    public Map<String, String> getScoreBoard() {
+    public Map<Long, String> getScoreBoard() {
         return scoreBoard;
     }
 
-    public void setScoreBoard(Map<String, String> scoreBoard) {
+    public void setScoreBoard(Map<Long, String> scoreBoard) {
         this.scoreBoard = scoreBoard;
     }
 

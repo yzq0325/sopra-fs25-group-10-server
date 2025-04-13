@@ -180,7 +180,7 @@ public class GameService {
       }
     }
   
-    public void submitScores(Long gameId,Map<String, Integer> scoreMap, Map<String, Integer> correctAnswersMap, Map<String, Integer> totalQuestionsMap) {
+    public void submitScores(Long gameId,Map<Long, Integer> scoreMap, Map<Long, Integer> correctAnswersMap, Map<Long, Integer> totalQuestionsMap) {
       Game game = gameRepository.findBygameId(gameId);
 
       if (game == null) {
@@ -188,16 +188,16 @@ public class GameService {
       }
   
       // update all users
-      for (String username : scoreMap.keySet()) {
-        Integer score = scoreMap.get(username);
-        Integer correct = correctAnswersMap.getOrDefault(username, 0);
-        Integer total = totalQuestionsMap.getOrDefault(username, 0);
+      for (Long userId : scoreMap.keySet()) {
+        Integer score = scoreMap.get(userId);
+        Integer correct = correctAnswersMap.getOrDefault(userId, 0);
+        Integer total = totalQuestionsMap.getOrDefault(userId, 0);
         String summary = correct + " of " + total + " correct";
 
-        game.updateScore(username, score);
-        game.getCorrectAnswersMap().put(username, correct);
-        game.getTotalQuestionsMap().put(username, total);
-        game.getResultSummaryMap().put(username, summary);
+        game.updateScore(userId, score);
+        game.getCorrectAnswersMap().put(userId, correct);
+        game.getTotalQuestionsMap().put(userId, total);
+        game.getResultSummaryMap().put(userId, summary);
 
       }
 

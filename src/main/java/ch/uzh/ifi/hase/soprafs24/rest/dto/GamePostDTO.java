@@ -11,7 +11,7 @@ public class GamePostDTO {
 
     private Long ownerId;
 
-    private List<String> players;
+    private List<Long> players;
     
     private int playersNumber;
 
@@ -23,11 +23,11 @@ public class GamePostDTO {
 
     private String password;
 
-    private Map<String, Integer> scoreMap;
+    private Map<Long, Integer> scoreMap;
 
-    private Map<String, Integer> correctAnswersMap;
+    private Map<Long, Integer> correctAnswersMap;
 
-    private Map<String, Integer> totalQuestionsMap;
+    private Map<Long, Integer> totalQuestionsMap;
 
     public Long getGameId() {
         return gameId;
@@ -53,11 +53,11 @@ public class GamePostDTO {
         this.ownerId = ownerId;
     }
 
-    public List<String> getPlayers() {
+    public List<Long> getPlayers() {
         return players;
     }
 
-    public void setPlayers(List<String> players) {
+    public void setPlayers(List<Long> players) {
         this.players = players;
     }
 
@@ -102,27 +102,27 @@ public class GamePostDTO {
         this.password = password;
       }
 
-      public Map<String, Integer> getScoreMap() {
+      public Map<Long, Integer> getScoreMap() {
         return scoreMap;
       }
     
-      public void setScoreMap(Map<String, Integer> scoreMap) {
+      public void setScoreMap(Map<Long, Integer> scoreMap) {
         this.scoreMap = scoreMap;
       }
     
-      public Map<String, Integer> getCorrectAnswersMap() {
+      public Map<Long, Integer> getCorrectAnswersMap() {
         return correctAnswersMap;
       }
     
-      public void setCorrectAnswersMap(Map<String, Integer> correctAnswersMap) {
+      public void setCorrectAnswersMap(Map<Long, Integer> correctAnswersMap) {
         this.correctAnswersMap = correctAnswersMap;
       }
     
-      public Map<String, Integer> getTotalQuestionsMap() {
+      public Map<Long, Integer> getTotalQuestionsMap() {
         return totalQuestionsMap;
       }
     
-      public void setTotalQuestionsMap(Map<String, Integer> totalQuestionsMap) {
+      public void setTotalQuestionsMap(Map<Long, Integer> totalQuestionsMap) {
         this.totalQuestionsMap = totalQuestionsMap;
       }
 }

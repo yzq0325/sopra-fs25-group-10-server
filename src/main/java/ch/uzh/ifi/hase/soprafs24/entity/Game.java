@@ -74,21 +74,21 @@ public class Game implements Serializable {
   
   @ElementCollection
   @CollectionTable(name = "correct_answers", joinColumns = @JoinColumn(name = "gameId"))
-  @MapKeyColumn(name = "username")
+  @MapKeyColumn(name = "userId")
   @Column(name = "correct")
-  private Map<String, Integer> correctAnswersMap = new HashMap<>();
+  private Map<Long, Integer> correctAnswersMap = new HashMap<>();
   
   @ElementCollection
   @CollectionTable(name = "total_questions", joinColumns = @JoinColumn(name = "gameId"))
-  @MapKeyColumn(name = "username")
+  @MapKeyColumn(name = "userId")
   @Column(name = "total")
-  private Map<String, Integer> totalQuestionsMap = new HashMap<>();
+  private Map<Long, Integer> totalQuestionsMap = new HashMap<>();
   
   @ElementCollection
   @CollectionTable(name = "result_summaries", joinColumns = @JoinColumn(name = "gameId"))
-  @MapKeyColumn(name = "username")
+  @MapKeyColumn(name = "userId")
   @Column(name = "summary")
-  private Map<String, String> resultSummaryMap = new HashMap<>();
+  private Map<Long, String> resultSummaryMap = new HashMap<>();
 
   public Long getGameId() {
     return gameId;
@@ -230,27 +230,27 @@ public class Game implements Serializable {
     this.finalScore = finalScore;
   }
 
-  public Map<String, String> getResultSummaryMap() {
+  public Map<Long, String> getResultSummaryMap() {
     return resultSummaryMap;
   }
 
-  public void setResultSummaryMap(Map<String, String> resultSummaryMap) {
+  public void setResultSummaryMap(Map<Long, String> resultSummaryMap) {
     this.resultSummaryMap = resultSummaryMap;
   }
 
-  public Map<String, Integer> getTotalQuestionsMap() {
+  public Map<Long, Integer> getTotalQuestionsMap() {
     return totalQuestionsMap;
   }
 
-  public void setTotalQuestionsMap(Map<String, Integer> totalQuestionsMap) {
+  public void setTotalQuestionsMap(Map<Long, Integer> totalQuestionsMap) {
     this.totalQuestionsMap = totalQuestionsMap;
   }
 
-  public Map<String, Integer> getCorrectAnswersMap() {
+  public Map<Long, Integer> getCorrectAnswersMap() {
     return correctAnswersMap;
   }
 
-  public void setCorrectAnswersMap(Map<String, Integer> correctAnswersMap) {
+  public void setCorrectAnswersMap(Map<Long, Integer> correctAnswersMap) {
     this.correctAnswersMap = correctAnswersMap;
   }
 }
