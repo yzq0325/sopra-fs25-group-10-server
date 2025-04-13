@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 
 public class GameGetDTO {
 
+    private String ownerName;
+
     private Long ownerId;
 
     private Long gameId;
@@ -33,6 +35,8 @@ public class GameGetDTO {
 
     private Integer correctAnswers;
 
+    private Map<Integer, String> hints;
+
     public Long getGameId() {
         return gameId;
     }
@@ -55,6 +59,14 @@ public class GameGetDTO {
     
     public void setOwnerId(Long ownerId) {
         this.ownerId = ownerId;
+    }
+
+    public String getOwnerName() {
+        return ownerName;
+    }
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
     }
 
     public int getPlayersNumber() {
@@ -151,6 +163,10 @@ public class GameGetDTO {
     
     public void setCorrectAnswers(Integer correctAnswers) {
         this.correctAnswers = correctAnswers;
+    }
+
+    public void setHints(Map<Integer, String> hints){
+        this.hints = hints;
     }
 }
 
