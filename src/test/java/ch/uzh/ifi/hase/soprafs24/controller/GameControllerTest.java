@@ -98,7 +98,7 @@ public class GameControllerTest {
 
     @Test
     public void exitGame_success() throws Exception {
-        doNothing().when(gameService).userExitGame(any(), eq(1L));
+        doNothing().when(gameService).userExitGame(eq(1L));
 
         mockMvc.perform(put("/lobbyOut/1")
                 .contentType(MediaType.APPLICATION_JSON)

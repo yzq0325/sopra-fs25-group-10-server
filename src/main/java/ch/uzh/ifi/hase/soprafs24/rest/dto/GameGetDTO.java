@@ -206,7 +206,7 @@ public class GameGetDTO {
         this.totalScore = totalScore;
     }
       
-    public void setHints(Map<Integer, String> hints){
+    public void setHints(List<Map<String, Object>> hints){
         this.hints = hints;
     }
   
