@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 public class GameGetDTO {
 
-    private String owner;
+    private Long ownerId;
 
     private Long gameId;
 
@@ -49,12 +49,12 @@ public class GameGetDTO {
         this.gameName = gameName;
     }
 
-    public String getOwner() {
-        return owner;
+    public Long getOwnerId() {
+        return ownerId;
     }
     
-    public void setOwner(String owner) {
-        this.owner = owner;
+    public void setOwnerId(Long ownerId) {
+        this.ownerId = ownerId;
     }
 
     public int getPlayersNumber() {

@@ -9,7 +9,7 @@ public class GamePostDTO {
 
     private String gameName;
 
-    private String owner;
+    private Long ownerId;
 
     private List<String> players;
     
@@ -45,12 +45,12 @@ public class GamePostDTO {
         this.gameName = gameName;
     }
 
-    public String getOwner() {
-        return owner;
+    public Long getOwnerId() {
+        return ownerId;
       }
     
-    public void setOwner(String owner) {
-        this.owner = owner;
+    public void setOwnerId(Long ownerId) {
+        this.ownerId = ownerId;
     }
 
     public List<String> getPlayers() {

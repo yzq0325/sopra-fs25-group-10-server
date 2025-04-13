@@ -5,7 +5,9 @@ import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 
@@ -14,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -46,6 +49,7 @@ public class GameService {
     private final UserRepository userRepository;
 
     @Autowired
+
     public GameService(
             @Qualifier("gameRepository") GameRepository gameRepository,
             @Qualifier("userRepository") UserRepository userRepository) {
@@ -60,12 +64,12 @@ public class GameService {
     public Game createGame(Game gameToCreate) {
       Game gameCreated = new Game();
 
-      List<String> players = new ArrayList<>();
-      Map<String, Integer> scoreBoard = new HashMap<>();
+      List<Long> players = new ArrayList<>();
+      Map<Long, Integer> scoreBoard = new HashMap<>();
 
-      checkIfOwnerNameExists(gameToCreate.getOwner());
-      checkIfGameHaveSameOwner(gameToCreate.getOwner());
-      gameCreated.setOwner(gameToCreate.getOwner());
+      checkIfOwnerExists(gameToCreate.getOwnerId());
+      checkIfGameHaveSameOwner(gameToCreate.getOwnerId());
+      gameCreated.setOwnerId(gameToCreate.getOwnerId());
 
       gameCreated.setScoreBoard(scoreBoard);
       gameCreated.setPlayers(players);
@@ -86,7 +90,7 @@ public class GameService {
       gameCreated = gameRepository.save(gameCreated);
       gameRepository.flush();
 
-      User owner = userRepository.findByUsername(gameToCreate.getOwner());
+      User owner = userRepository.findByUserId(gameToCreate.getOwnerId());
       owner.setGame(gameCreated);
       userRepository.save(owner);
       userRepository.flush();
@@ -121,14 +125,14 @@ public class GameService {
       (userRepository.findByUserId(userId)).setGame(null);
     }
 
-    public void checkIfOwnerNameExists(String username){
-      User userwithUsername = userRepository.findByUsername(username);
-      if(userwithUsername == null){
+    public void checkIfOwnerExists(Long userId){
+      User userwithUserId = userRepository.findByUserId(userId);
+      if(userwithUserId == null){
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner doesn't exists! Please try an existed ownername");
       }
     }
-    public void checkIfGameHaveSameOwner(String username){
-      Game gameWithSameOwner = gameRepository.findByowner(username);
+    public void checkIfGameHaveSameOwner(Long userId){
+      Game gameWithSameOwner = gameRepository.findByownerId(userId);
       if(gameWithSameOwner != null){
         throw new ResponseStatusException(HttpStatus.CONFLICT, "This owner have already create a game! Please use another one!");
       }
@@ -139,6 +143,23 @@ public class GameService {
         throw new ResponseStatusException(HttpStatus.CONFLICT, "GameName exists! Please try a new one!");
       }
     }
+
+    public List<UserGetDTO> getGamePlayers(Long gameId){
+      Game gameJoined = gameRepository.findBygameId(gameId);
+      User owner = userRepository.findByUserId(gameJoined.getOwnerId());
+      List<Long> allPlayers = gameJoined.getPlayers();
+
+      List<UserGetDTO> allPlayersDTOs = new ArrayList<>();
+
+      allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(owner));
+      for (Long userId : allPlayers) {
+        allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(userRepository.findByUserId(userId)));
+      }
+      return allPlayersDTOs;
+
+    }
+
+
     public void startGame(Long gameId){
       Game gameToStart = gameRepository.findBygameId(gameId);
 
@@ -149,23 +170,23 @@ public class GameService {
 
       //set scoreBoard
 
-      (gameToStart.getScoreBoard()).put(gameToStart.getOwner(), 0);
-      for (String username : gameToStart.getPlayers()) {
-        User player = userRepository.findByUsername(username);
+      (gameToStart.getScoreBoard()).put(gameToStart.getOwnerId(), 0);
+      for (Long userId : gameToStart.getPlayers()) {
+        User player = userRepository.findByUserId(userId);
         if (player == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, username + " is not found");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
         }
-        (gameToStart.getScoreBoard()).put(username, 0); 
+        (gameToStart.getScoreBoard()).put(userId, 0); 
       }
     }
-
+  
     public void submitScores(Long gameId,Map<String, Integer> scoreMap, Map<String, Integer> correctAnswersMap, Map<String, Integer> totalQuestionsMap) {
       Game game = gameRepository.findBygameId(gameId);
 
       if (game == null) {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found");
       }
-
+  
       // update all users
       for (String username : scoreMap.keySet()) {
         Integer score = scoreMap.get(username);
@@ -177,6 +198,7 @@ public class GameService {
         game.getCorrectAnswersMap().put(username, correct);
         game.getTotalQuestionsMap().put(username, total);
         game.getResultSummaryMap().put(username, summary);
+
       }
 
       // end

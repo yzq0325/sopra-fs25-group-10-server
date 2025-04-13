@@ -32,18 +32,18 @@ public class Game implements Serializable {
   private String gameName;
 
   @Column(nullable = false, unique = true)
-  private String owner;
+  private Long ownerId;
 
   @ElementCollection
   @CollectionTable(name = "gameplayers", joinColumns = @JoinColumn(name = "gameId"))
-  @Column(name = "username")
-  private List<String> players = new ArrayList<>();
+  @Column(name = "userId")
+  private List<Long> players = new ArrayList<>();
   
   @ElementCollection
   @CollectionTable(name = "scoreboard", joinColumns = @JoinColumn(name = "gameId"))
-  @MapKeyColumn(name = "username")
+  @MapKeyColumn(name = "userId")
   @Column(name = "userscore")
-  private Map<String, Integer> scoreBoard = new HashMap<>();
+  private Map<Long, Integer> scoreBoard = new HashMap<>();
   
   @Column(nullable = false)
   private int hintsNumber;
@@ -106,56 +106,56 @@ public class Game implements Serializable {
     this.gameName = gameName;
   }
 
-  public String getOwner() {
-    return owner;
+  public Long getOwnerId() {
+    return ownerId;
   }
 
-  public void setOwner(String owner) {
-    this.owner = owner;
+  public void setOwnerId(Long ownerId) {
+    this.ownerId = ownerId;
   }
 
-  public List<String> getPlayers() {
+  public List<Long> getPlayers() {
     return players;
   }
 
-  public void setPlayers(List<String> players) {
+  public void setPlayers(List<Long> players) {
     this.players = players;
   }
   
   //add player
   public void addPlayer(User player) {
-    players.add(player.getUsername());
+    players.add(player.getUserId());
     player.setGame(this); 
   }
 
   //remove player
   public void removePlayer(User player) {
-      players.remove(player.getUsername());
+      players.remove(player.getUserId());
       player.setGame(null); 
   }
 
   //get scoreBoard
-  public Map<String, Integer> getScoreBoard() {
+  public Map<Long, Integer> getScoreBoard() {
       return scoreBoard;
   }
 
-  public void setScoreBoard(Map<String, Integer> scoreBoard) {
+  public void setScoreBoard(Map<Long, Integer> scoreBoard) {
       this.scoreBoard = scoreBoard;
   }
 
   // update scoreBoard
-  public void updateScore(String username, int score) {
-      scoreBoard.put(username, score);
+  public void updateScore(Long userId, int score) {
+      scoreBoard.put(userId, score);
   }
 
   // get specific user's score
-  public Integer getScore(String username) {
-      return scoreBoard.get(username);
+  public Integer getScore(Long userId) {
+      return scoreBoard.get(userId);
   }
 
   // remove specific user's score
-  public Integer removeScore(String username) {
-      return scoreBoard.remove(username);
+  public Integer removeScore(Long userId) {
+      return scoreBoard.remove(userId);
   }
 
   public int getHintsNumber() {

@@ -42,7 +42,7 @@ public interface DTOMapper {
 
   // Game mappings
   @Mapping(source = "gameId", target = "gameId")
-  @Mapping(source = "owner", target = "owner")
+  @Mapping(source = "ownerId", target = "ownerId")
   @Mapping(source = "players", target = "players")
   @Mapping(source = "gameName", target = "gameName") 
   @Mapping(source = "playersNumber", target = "playersNumber")
@@ -51,7 +51,7 @@ public interface DTOMapper {
   @Mapping(source = "password", target = "password")  
   Game convertGamePostDTOtoGameEntity(GamePostDTO gamePostDTO);
 
-  @Mapping(source = "owner", target = "owner")
+  @Mapping(source = "ownerId", target = "ownerId")
   @Mapping(source = "scoreBoard", target = "scoreBoard")
   @Mapping(source = "gameName", target = "gameName") 
   @Mapping(source = "playersNumber", target = "playersNumber")
