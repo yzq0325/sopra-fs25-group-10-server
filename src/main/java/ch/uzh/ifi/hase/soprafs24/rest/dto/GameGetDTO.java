@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 import java.util.Map;
+import java.time.LocalDateTime;
 
 public class GameGetDTO {
 
@@ -21,6 +22,16 @@ public class GameGetDTO {
     private String password;
 
     private String modeType;
+
+    private LocalDateTime endTime;
+
+    private Integer finalScore;
+
+    private String resultSummary;
+
+    private Integer totalQuestions;
+
+    private Integer correctAnswers;
 
     public Long getGameId() {
         return gameId;
@@ -100,6 +111,46 @@ public class GameGetDTO {
     
     public void setModeType(String modeType) {
         this.modeType = modeType;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+    
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+    
+    public Integer getFinalScore() {
+        return finalScore;
+    }
+    
+    public void setFinalScore(Integer finalScore) {
+        this.finalScore = finalScore;
+    }
+    
+    public String getResultSummary() {
+        return resultSummary;
+    }
+    
+    public void setResultSummary(String resultSummary) {
+        this.resultSummary = resultSummary;
+    }
+    
+    public Integer getTotalQuestions() {
+        return totalQuestions;
+    }
+    
+    public void setTotalQuestions(Integer totalQuestions) {
+        this.totalQuestions = totalQuestions;
+    }
+    
+    public Integer getCorrectAnswers() {
+        return correctAnswers;
+    }
+    
+    public void setCorrectAnswers(Integer correctAnswers) {
+        this.correctAnswers = correctAnswers;
     }
 }
 
