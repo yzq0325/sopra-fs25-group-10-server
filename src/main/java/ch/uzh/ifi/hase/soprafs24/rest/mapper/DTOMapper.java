@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
@@ -9,6 +10,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserProfileDTO;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * DTOMapper
@@ -22,6 +24,7 @@ import org.mapstruct.factory.Mappers;
  * creating information (POST).
  */
 @Mapper
+(componentModel = "spring", uses = {UserRepository.class})
 public interface DTOMapper {
 
   DTOMapper INSTANCE = Mappers.getMapper(DTOMapper.class);
@@ -52,7 +55,7 @@ public interface DTOMapper {
   Game convertGamePostDTOtoGameEntity(GamePostDTO gamePostDTO);
 
   @Mapping(source = "ownerId", target = "ownerId")
-  @Mapping(target = "ownerName", expression = "java(userRepository.findByUserId(game.getOwnerId()).getUsername())")
+//  @Mapping(target = "ownerName", expression = "java(userRepository.findByUserId(game.getOwnerId()).getUsername())")
   @Mapping(source = "scoreBoard", target = "scoreBoard")
   @Mapping(source = "gameName", target = "gameName") 
   @Mapping(source = "playersNumber", target = "playersNumber")

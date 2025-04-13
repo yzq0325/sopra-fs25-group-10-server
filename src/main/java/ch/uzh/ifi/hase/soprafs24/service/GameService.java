@@ -49,6 +49,7 @@ public class GameService {
     private final UserRepository userRepository;
 
     @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     public GameService(
             @Qualifier("gameRepository") GameRepository gameRepository,
@@ -106,11 +107,22 @@ public class GameService {
     }
 
     public void userJoinGame(Game gameToBeJoined, Long userId){
-      if((gameRepository.findBygameId(gameToBeJoined.getGameId())).getRealPlayersNumber() == (gameRepository.findBygameId(gameToBeJoined.getGameId())).getPlayersNumber()){
-        if(gameToBeJoined.getPassword().equals((gameRepository.findBygameId(gameToBeJoined.getGameId())).getPassword())){
-          (gameRepository.findBygameId(gameToBeJoined.getGameId())).addPlayer(userRepository.findByUserId(userId));
-          (gameRepository.findBygameId(gameToBeJoined.getGameId())).setRealPlayersNumber((gameRepository.findBygameId(gameToBeJoined.getGameId())).getRealPlayersNumber()+1);
-          (userRepository.findByUserId(userId)).setGame(gameToBeJoined);
+      Game targetGame = gameRepository.findBygameId(gameToBeJoined.getGameId());
+      if(targetGame.getRealPlayersNumber() != targetGame.getPlayersNumber()){
+        if(gameToBeJoined.getPassword().equals(targetGame.getPassword())){
+          targetGame.addPlayer(userRepository.findByUserId(userId));
+          targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber()+1);
+          gameRepository.save(targetGame);
+          gameRepository.flush();
+
+          User targetUser = userRepository.findByUserId(userId);
+          targetUser.setGame(gameToBeJoined);
+          userRepository.save(targetUser);
+          userRepository.flush();
+
+          List<User> players = getGamePlayers(gameToBeJoined.getGameId());
+          messagingTemplate.convertAndSend("/topic/ready/" + gameToBeJoined.getGameId() + "/players", players);
+          log.info("websocket send!");
         }
         else{
           throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!"); 
@@ -122,9 +134,21 @@ public class GameService {
     }
 
     public void userExitGame(Long userId){
-      (gameRepository.findBygameId(((userRepository.findByUserId(userId)).getGame()).getGameId())).removePlayer(userRepository.findByUserId(userId));
-      (gameRepository.findBygameId(((userRepository.findByUserId(userId)).getGame()).getGameId())).setRealPlayersNumber((gameRepository.findBygameId(((userRepository.findByUserId(userId)).getGame()).getGameId())).getRealPlayersNumber()-1);
-      (userRepository.findByUserId(userId)).setGame(null);
+      Game targetGame = userRepository.findByUserId(userId).getGame();
+      log.info("gameId: ", targetGame.getGameId());
+      targetGame.removePlayer(userRepository.findByUserId(userId));
+      targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber()-1);
+      gameRepository.save(targetGame);
+      gameRepository.flush();
+
+      User targetUser = userRepository.findByUserId(userId);
+      targetUser.setGame(null);
+      userRepository.save(targetUser);
+      userRepository.flush();
+
+      List<User> players = getGamePlayers(targetGame.getGameId());
+      messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
+      log.info("websocket send!");
     }
 
     public void checkIfOwnerExists(Long userId){
@@ -146,16 +170,22 @@ public class GameService {
       }
     }
 
-    public List<UserGetDTO> getGamePlayers(Long gameId){
+    public List<User> getGamePlayers(Long gameId){
       Game gameJoined = gameRepository.findBygameId(gameId);
       List<Long> allPlayers = gameJoined.getPlayers();
 
-      List<UserGetDTO> allPlayersDTOs = new ArrayList<>();
-
+      List<User> players = new ArrayList<>();
       for (Long userId : allPlayers) {
-        allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(userRepository.findByUserId(userId)));
+          players.add(userRepository.findByUserId(userId));
       }
-      return allPlayersDTOs;
+      return players;
+//
+//      List<UserGetDTO> allPlayersDTOs = new ArrayList<>();
+//
+//      for (Long userId : allPlayers) {
+//        allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(userRepository.findByUserId(userId)));
+//      }
+//      return allPlayersDTOs;
 
     }
 

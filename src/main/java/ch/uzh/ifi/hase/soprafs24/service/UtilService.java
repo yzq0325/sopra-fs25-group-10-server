@@ -26,11 +26,11 @@ public class UtilService {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public Map<String, List<Map<String, Object>>> generateClues() {
+    public Map<String, List<Map<String, Object>>> generateClues(int clueNumber) {
         try {
             Country[] countries = Country.values();
             Country targetCountry = countries[new Random().nextInt(countries.length)];
-            String prompt = buildPrompt(targetCountry);
+            String prompt = buildPrompt(targetCountry, clueNumber);
             String payload = buildPayloadJson(prompt);
 
             HttpRequest request = HttpRequest.newBuilder()
@@ -52,22 +52,22 @@ public class UtilService {
         }
     }
 
-    private String buildPrompt(Country country) {
+    private String buildPrompt(Country country, int clueNumber) {
         return """
                 You are an AI that generates **single-sentence** geography quiz clues for a game.
 
                 ### **Task**
-                Given the country: %s, generate **ten different geography clues** that **do not directly mention the country's name and any information provided below**. IMPORTANT: AVOID GENERATING ANYTHING RELATED TO POLITICS AND HISTORY. 
-                Each clue should have a difficulty score from **1 to 10**, increasing progressively.
+                Given the country: %s, generate **%d different geography clues** that **do not directly mention the country's name and any information provided below**. IMPORTANT: AVOID GENERATING ANYTHING RELATED TO POLITICS AND HISTORY. 
+                Each clue should have a difficulty score from **1 to %d**, increasing progressively.
 
                 ### **Strict Output Format**
-                Return **exactly** 10 clues in the following format, NEVER include any other words or characters!!:
+                Return **exactly** %d clues in the following format, NEVER include any other words or characters!!:
                 1. Clue: [Provide a single-sentence clue] - Difficulty: 1
                 ...
-                10. Clue: [Provide a single-sentence clue] - Difficulty: 10
+                %d. Clue: [Provide a single-sentence clue] - Difficulty: %d
                 Do not miss any line.
                 """.formatted(
-                country
+                country, clueNumber, clueNumber, clueNumber, clueNumber, clueNumber
         );
     }
 

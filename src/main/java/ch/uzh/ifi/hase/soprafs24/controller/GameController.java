@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * User Controller
@@ -89,10 +90,14 @@ public class GameController {
   @GetMapping("/ready/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public List<UserGetDTO> getGamePlayers(Long gameId) {
-    List<UserGetDTO> allPlayerDTOs  = gameService.getGamePlayers(gameId);
-    messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/players", allPlayerDTOs);
-    return allPlayerDTOs;
+  public List<UserGetDTO> getGamePlayers(@PathVariable Long gameId) {
+    List<User> players = gameService.getGamePlayers(gameId);
+
+    List<UserGetDTO> allPlayersDTOs = new ArrayList<>();
+    for (User player : players) {
+      allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(player));
+    }
+    return allPlayersDTOs;
   }
 
   @PutMapping("/start/{gameId}")
