@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
+import ch.uzh.ifi.hase.soprafs24.constant.Country;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +23,10 @@ public class GamePostDTO {
     private String lockType;
 
     private String password;
+
+    private int hintUsingNumber;
+
+    private Country submitAnswer;
 
     private Map<Long, Integer> scoreMap;
 
@@ -96,6 +101,22 @@ public class GamePostDTO {
     
       public String getPassword() {
         return password;
+      }
+    
+      public void setHintUsingNumber(int hintUsingNumber) {
+        this.hintUsingNumber = hintUsingNumber;
+      }
+
+      public int getHintUsingNumber() {
+        return hintUsingNumber;
+      }
+
+      public void setSubmitAnswer(Country submitAnswer) {
+        this.submitAnswer = submitAnswer;
+      }
+
+      public Country getSubmitAnswer() {
+        return submitAnswer;
       }
     
       public void setPassword(String password) {

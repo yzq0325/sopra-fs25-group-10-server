@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.*;
+import ch.uzh.ifi.hase.soprafs24.constant.Country;
 
 public class UtilServiceTest {
 
@@ -18,12 +19,12 @@ public class UtilServiceTest {
 
     @Test
     void testGenerateClues_validOutput_returns5Clues() {
-        Map<String, List<Map<String, Object>>> result = utilService.generateClues(5);
+        Map<Country, List<Map<String, Object>>> result = utilService.generateClues(5);
 
         // one country only
         assertEquals(1, result.size(), "Result should contain exactly one country");
 
-        String country = result.keySet().iterator().next();
+        Country country = result.keySet().iterator().next();
         List<Map<String, Object>> clues = result.get(country);
 
         // the number of clues should be 10
@@ -57,7 +58,7 @@ public class UtilServiceTest {
 
         for (int i = 0; i < totalRuns; i++) {
             try {
-                Map<String, List<Map<String, Object>>> result = utilService.generateClues(5);
+                Map<Country, List<Map<String, Object>>> result = utilService.generateClues(5);
 
                 assertEquals(1, result.size(), "Should contain exactly one country");
                 List<Map<String, Object>> clues = result.values().iterator().next();

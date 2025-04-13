@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+import ch.uzh.ifi.hase.soprafs24.constant.Country;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
@@ -11,6 +12,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.UtilService;
+import ch.uzh.ifi.hase.soprafs24.constant.Country;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,9 +51,8 @@ public class GameService {
     private final GameRepository gameRepository;
     private final UserRepository userRepository;
 
-    private Map<String, List<Map<String, Object>>> generatedHintsA;
-    private Map<String, List<Map<String, Object>>> generatedHintsB;
-    private String submitAnswer;
+    private Map<Country, List<Map<String, Object>>> generatedHintsA;
+    private Map<Country, List<Map<String, Object>>> generatedHintsB;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -229,7 +230,7 @@ public class GameService {
     }
 
 
-    public GameGetDTO startGame(Long gameId){
+    public void startGame(Long gameId){
       Game gameToStart = gameRepository.findBygameId(gameId);
 
       //set time
@@ -256,13 +257,55 @@ public class GameService {
       gameHintDTO.setHints(generatedHintsA.values().iterator().next());
       gameHintDTO.setTime(gameToStart.getTime());
 
-      return gameHintDTO;
+      messagingTemplate.convertAndSend("/topic/start/" + gameId + "/hints", gameHintDTO);
+        log.info("websocket send!");
+
     }
 
-    // public void processingAnswer(){
+    public GameGetDTO processingAnswer(GamePostDTO gamePostDTO, Long userId){
       
+      //judge right or wrong and update game
+      Game targetGame = gameRepository.findBygameId(gamePostDTO.getGameId());
+      //sum up total questions
+      Map<Long, Integer> totalQuestionsMap = targetGame.getTotalQuestionsMap();
+      if (totalQuestionsMap.containsKey(userId)) {
+          int totalQuestions = totalQuestionsMap.get(userId);
+          totalQuestionsMap.put(userId, totalQuestions + 1);
+          targetGame.setTotalQuestionsMap(totalQuestionsMap); 
+      } else {
+        totalQuestionsMap.put(userId, 1);
+        targetGame.setTotalQuestionsMap(totalQuestionsMap); 
+      }
+      
+      if(gamePostDTO.getSubmitAnswer() == generatedHintsA.keySet().iterator().next()){
+        //sum up correct answers
+        Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
+        if (currentCorrectAnswersMap.containsKey(userId)) {
+          int currentCorrect = currentCorrectAnswersMap.get(userId);
+          currentCorrectAnswersMap.put(userId, currentCorrect + 1); 
+          targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
+        } else {
+          currentCorrectAnswersMap.put(userId, 1);
+          targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
+        }
+        //sum up total score
+        Map<Long, Integer> scoreBoardMap = targetGame.getScoreBoard();
+          int currentscore = scoreBoardMap.get(userId);
+          scoreBoardMap.put(userId, currentscore + (100-(gamePostDTO.getHintUsingNumber()-1))); 
+          targetGame.setScoreBoard(scoreBoardMap);
+      } 
+      gameRepository.save(targetGame);
+      gameRepository.flush();
 
-    // }
+      generatedHintsA=generatedHintsB;
+      generatedHintsB = utilService.generateClues(targetGame.getHintsNumber());
+      
+      GameGetDTO gameHintDTO = new GameGetDTO();
+      
+      gameHintDTO.setHints(generatedHintsA.values().iterator().next());
+      return gameHintDTO; 
+
+    }
   
     public void submitScores(Long gameId,Map<Long, Integer> scoreMap, Map<Long, Integer> correctAnswersMap, Map<Long, Integer> totalQuestionsMap) {
       Game game = gameRepository.findBygameId(gameId);
