@@ -4,10 +4,14 @@ import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.GameService;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -21,10 +25,14 @@ import java.util.List;
  * The controller will receive the request and delegate the execution to the
  * UserService and finally return the result.
  */
+
 @RestController
 public class GameController {
 
   private final GameService gameService;
+
+  @Autowired
+  private SimpMessagingTemplate messagingTemplate;
 
   GameController(GameService gameService) {
       this.gameService = gameService;
@@ -80,11 +88,14 @@ public class GameController {
     gameService.userExitGame(gameToBeExited, userId);
   }
 
-  @GetMapping("/start/{gameId}")
+  @GetMapping("/ready/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public void getGamePlayers(Long gameId) {
-    gameService.getGamePlayers(gameId);
+  public List<UserGetDTO> getGamePlayers(Long gameId) {
+    List<UserGetDTO> allPlayerDTOs  = gameService.getGamePlayers(gameId);
+    messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/players", allPlayerDTOs);
+    return allPlayerDTOs;
+    
   }
 
   @PutMapping("/start/{gameId}")
@@ -96,7 +107,7 @@ public class GameController {
 
   @PutMapping("/games/{gameId}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void submitScores(@PathVariable Long gameId, @RequestBody Map<String, Integer> scores) {
+  public void submitScores(@PathVariable Long gameId, @RequestBody Map<Long, Integer> scores) {
       gameService.submitScores(gameId, scores);
   }
 }
