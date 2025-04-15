@@ -304,6 +304,12 @@ public class GameService {
           gameHintDTO.setHints(generatedHintsA.values().iterator().next());
           return ResponseEntity.ok(gameHintDTO);
       }else{
+        Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
+        if (currentCorrectAnswersMap.containsKey(userId)) {} 
+        else {
+          currentCorrectAnswersMap.put(userId, 0);
+          targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
+        }
         GameGetDTO gameHintDTO = new GameGetDTO(); 
         gameHintDTO.setHints(generatedHintsA.values().iterator().next());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(gameHintDTO);
