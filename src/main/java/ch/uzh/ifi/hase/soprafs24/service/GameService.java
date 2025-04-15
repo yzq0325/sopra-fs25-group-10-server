@@ -267,8 +267,6 @@ public class GameService {
       
       //judge right or wrong and update hints
       Game targetGame = gameRepository.findBygameId(gamePostDTO.getGameId());
-      generatedHintsA=generatedHintsB;
-      generatedHintsB = utilService.generateClues(targetGame.getHintsNumber());
       //sum up total questions
       Map<Long, Integer> totalQuestionsMap = targetGame.getTotalQuestionsMap();
       if (totalQuestionsMap.containsKey(userId)) {
@@ -298,9 +296,11 @@ public class GameService {
           targetGame.setScoreBoard(scoreBoardMap);
           gameRepository.save(targetGame);
           gameRepository.flush();
-          
+
+          generatedHintsA=generatedHintsB;
+          generatedHintsB = utilService.generateClues(targetGame.getHintsNumber());
+
           GameGetDTO gameHintDTO = new GameGetDTO();
-          
           gameHintDTO.setHints(generatedHintsA.values().iterator().next());
           return ResponseEntity.ok(gameHintDTO);
       }else{
@@ -310,6 +310,10 @@ public class GameService {
           currentCorrectAnswersMap.put(userId, 0);
           targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
         }
+
+        generatedHintsA=generatedHintsB;
+        generatedHintsB = utilService.generateClues(targetGame.getHintsNumber());
+        
         GameGetDTO gameHintDTO = new GameGetDTO(); 
         gameHintDTO.setHints(generatedHintsA.values().iterator().next());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(gameHintDTO);
