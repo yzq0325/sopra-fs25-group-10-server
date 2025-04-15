@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -262,10 +263,12 @@ public class GameService {
 
     }
 
-    public GameGetDTO processingAnswer(GamePostDTO gamePostDTO, Long userId){
+    public ResponseEntity<?> processingAnswer(GamePostDTO gamePostDTO, Long userId){
       
-      //judge right or wrong and update game
+      //judge right or wrong and update hints
       Game targetGame = gameRepository.findBygameId(gamePostDTO.getGameId());
+      generatedHintsA=generatedHintsB;
+      generatedHintsB = utilService.generateClues(targetGame.getHintsNumber());
       //sum up total questions
       Map<Long, Integer> totalQuestionsMap = targetGame.getTotalQuestionsMap();
       if (totalQuestionsMap.containsKey(userId)) {
@@ -293,18 +296,18 @@ public class GameService {
           int currentscore = scoreBoardMap.get(userId);
           scoreBoardMap.put(userId, currentscore + (100-(gamePostDTO.getHintUsingNumber()-1))); 
           targetGame.setScoreBoard(scoreBoardMap);
-      } 
-      gameRepository.save(targetGame);
-      gameRepository.flush();
-
-      generatedHintsA=generatedHintsB;
-      generatedHintsB = utilService.generateClues(targetGame.getHintsNumber());
-      
-      GameGetDTO gameHintDTO = new GameGetDTO();
-      
-      gameHintDTO.setHints(generatedHintsA.values().iterator().next());
-      return gameHintDTO; 
-
+          gameRepository.save(targetGame);
+          gameRepository.flush();
+          
+          GameGetDTO gameHintDTO = new GameGetDTO();
+          
+          gameHintDTO.setHints(generatedHintsA.values().iterator().next());
+          return ResponseEntity.ok(gameHintDTO);
+      }else{
+        GameGetDTO gameHintDTO = new GameGetDTO(); 
+        gameHintDTO.setHints(generatedHintsA.values().iterator().next());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(gameHintDTO);
+      }
     }
   
     public void submitScores(Long gameId,Map<Long, Integer> scoreMap, Map<Long, Integer> correctAnswersMap, Map<Long, Integer> totalQuestionsMap) {

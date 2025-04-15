@@ -11,6 +11,7 @@ import ch.uzh.ifi.hase.soprafs24.service.GameService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -130,5 +131,12 @@ public class GameController {
   @ResponseBody
   public List<GameGetDTO> getLeaderboard() {
     return gameService.getLeaderboard();
+  }
+
+  @PutMapping("/submit/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public ResponseEntity<?> answerProcessing(@PathVariable Long userId, @RequestBody GamePostDTO gamePostDTO) {
+    return gameService.processingAnswer(gamePostDTO,userId);
   }
 }
