@@ -136,7 +136,7 @@ public class GameController {
   @PutMapping("/submit/{userId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public ResponseEntity<?> answerProcessing(@PathVariable Long userId, @RequestBody GamePostDTO gamePostDTO) {
+  public GameGetDTO answerProcessing(@PathVariable Long userId, @RequestBody GamePostDTO gamePostDTO) {
     return gameService.processingAnswer(gamePostDTO,userId);
   }
 }

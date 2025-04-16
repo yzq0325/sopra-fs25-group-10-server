@@ -263,7 +263,7 @@ public class GameService {
 
     }
 
-    public ResponseEntity<?> processingAnswer(GamePostDTO gamePostDTO, Long userId){
+    public GameGetDTO processingAnswer(GamePostDTO gamePostDTO, Long userId){
       
       //judge right or wrong and update hints
       Game targetGame = gameRepository.findBygameId(gamePostDTO.getGameId());
@@ -302,21 +302,24 @@ public class GameService {
 
           GameGetDTO gameHintDTO = new GameGetDTO();
           gameHintDTO.setHints(generatedHintsA.values().iterator().next());
-          return ResponseEntity.ok(gameHintDTO);
+          gameHintDTO.setJudgement(true);
+          return gameHintDTO;
       }else{
         Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
-        if (currentCorrectAnswersMap.containsKey(userId)) {} 
-        else {
+        if (!currentCorrectAnswersMap.containsKey(userId)) {
           currentCorrectAnswersMap.put(userId, 0);
           targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
-        }
+        } 
+        gameRepository.save(targetGame);
+        gameRepository.flush();
 
         generatedHintsA=generatedHintsB;
         generatedHintsB = utilService.generateClues(targetGame.getHintsNumber());
         
         GameGetDTO gameHintDTO = new GameGetDTO(); 
+        gameHintDTO.setJudgement(false);
         gameHintDTO.setHints(generatedHintsA.values().iterator().next());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(gameHintDTO);
+        return gameHintDTO;
       }
     }
   

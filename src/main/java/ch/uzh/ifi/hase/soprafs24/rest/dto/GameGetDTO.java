@@ -46,6 +46,8 @@ public class GameGetDTO {
 
     private List<Map<String, Object>> hints;
 
+    private boolean judgement;
+
     public Long getGameId() {
         return gameId;
     }
@@ -212,6 +214,13 @@ public class GameGetDTO {
   
     public List<Map<String, Object>> getHints(){
         return hints;
+    }
+    public void setJudgement(boolean judgement){
+        this.judgement = judgement;
+    }
+  
+    public boolean getJudgement(){
+        return judgement;
     }
 }
 
