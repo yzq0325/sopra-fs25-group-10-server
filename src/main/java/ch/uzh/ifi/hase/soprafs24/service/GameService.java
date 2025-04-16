@@ -262,7 +262,7 @@ public class GameService {
 
     }
 
-    public void processingAnswer(GamePostDTO gamePostDTO, Long userId){
+    public GameGetDTO processingAnswer(GamePostDTO gamePostDTO, Long userId){
       
       //judge right or wrong and update hints
       Game targetGame = gameRepository.findBygameId(gamePostDTO.getGameId());
@@ -307,9 +307,10 @@ public class GameService {
             int score = (targetGame.getScoreBoard()).get(userid);
             scoreBoardFront.put(username,score);
           }
-          gameHintDTO.setScoreBoard(scoreBoardFront);
-          messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", gameHintDTO);
+          messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", scoreBoardFront);
           log.info("websocket send!");
+
+          return gameHintDTO;
       }else{
         Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
         if (!currentCorrectAnswersMap.containsKey(userId)) {
@@ -330,9 +331,10 @@ public class GameService {
             int score = (targetGame.getScoreBoard()).get(userid);
             scoreBoardFront.put(username,score);
           }
-          gameHintDTO.setScoreBoard(scoreBoardFront);
-          messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", gameHintDTO);
+          messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", scoreBoardFront);
           log.info("websocket send!");
+
+          return gameHintDTO;
       }
 
     }
