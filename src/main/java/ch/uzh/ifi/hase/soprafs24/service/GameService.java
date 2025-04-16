@@ -56,7 +56,6 @@ public class GameService {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-
     UtilService utilService = new UtilService();
 
     public GameService(
@@ -76,12 +75,16 @@ public class GameService {
       List<Long> players = new ArrayList<>();
       players.add(gameToCreate.getOwnerId());
       Map<Long, Integer> scoreBoard = new HashMap<>();
+      Map<Long, Integer> correctAnswersMap = new HashMap<>();
+      Map<Long, Integer> totalQuestionsMap = new HashMap<>();
 
       checkIfOwnerExists(gameToCreate.getOwnerId());
       checkIfGameHaveSameOwner(gameToCreate.getOwnerId());
       gameCreated.setOwnerId(players.get(0));
 
       gameCreated.setScoreBoard(scoreBoard);
+      gameCreated.setCorrectAnswersMap(correctAnswersMap);
+      gameCreated.setTotalQuestionsMap(totalQuestionsMap);
       gameCreated.setPlayers(players);
       gameCreated.setHintsNumber(5);
       checkIfGameNameExists(gameToCreate.getGameName());
@@ -89,6 +92,7 @@ public class GameService {
       gameCreated.setTime(gameToCreate.getTime());
       gameCreated.setPlayersNumber(gameToCreate.getPlayersNumber());
       gameCreated.setRealPlayersNumber(1);
+      gameCreated.setGameRunning(false);
 
       String mode = gameToCreate.getModeType();
       if (mode == null || (!mode.equals("solo") && !mode.equals("combat"))) {
@@ -116,29 +120,34 @@ public class GameService {
 
     public void userJoinGame(Game gameToBeJoined, Long userId){
       Game targetGame = gameRepository.findBygameId(gameToBeJoined.getGameId());
-      if(targetGame.getRealPlayersNumber() != targetGame.getPlayersNumber()){
-        if(gameToBeJoined.getPassword().equals(targetGame.getPassword())){
-          targetGame.addPlayer(userRepository.findByUserId(userId));
-          targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber()+1);
-          gameRepository.save(targetGame);
-          gameRepository.flush();
-
-          User targetUser = userRepository.findByUserId(userId);
-          targetUser.setGame(gameToBeJoined);
-          userRepository.save(targetUser);
-          userRepository.flush();
-
-          List<User> players = getGamePlayers(gameToBeJoined.getGameId());
-          messagingTemplate.convertAndSend("/topic/ready/" + gameToBeJoined.getGameId() + "/players", players);
-          log.info("websocket send!");
+      if(targetGame.getGameRunning().equals(false)){
+        if(targetGame.getRealPlayersNumber() != targetGame.getPlayersNumber()){
+          if(gameToBeJoined.getPassword().equals(targetGame.getPassword())){
+            targetGame.addPlayer(userRepository.findByUserId(userId));
+            targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber()+1);
+            gameRepository.save(targetGame);
+            gameRepository.flush();
+  
+            User targetUser = userRepository.findByUserId(userId);
+            targetUser.setGame(gameToBeJoined);
+            userRepository.save(targetUser);
+            userRepository.flush();
+  
+            List<User> players = getGamePlayers(gameToBeJoined.getGameId());
+            messagingTemplate.convertAndSend("/topic/ready/" + gameToBeJoined.getGameId() + "/players", players);
+            log.info("websocket send!");
+          }
+          else{
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!"); 
+          }
         }
         else{
-          throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!"); 
+          throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't join this game because this game is full!");
         }
+      }else{
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "This game is running! You can't join the game! Please try again!");
       }
-      else{
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't join this game because this game is full!");
-      }
+      
     }
 
     public void userExitGame(Long userId){
@@ -239,15 +248,35 @@ public class GameService {
       gameToStart.setGameCreationDate(now.format(formatter));
 
       //set scoreBoard
-
-      (gameToStart.getScoreBoard()).put(gameToStart.getOwnerId(), 0);
+      gameToStart.updateScore(gameToStart.getOwnerId(), 0);
       for (Long userId : gameToStart.getPlayers()) {
         User player = userRepository.findByUserId(userId);
         if (player == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
         }
-        (gameToStart.getScoreBoard()).put(userId, 0); 
+        gameToStart.updateScore(userId, 0);
       }
+
+      //set correctAnwersMap
+      gameToStart.updateCorrectAnswers(gameToStart.getOwnerId(), 0);
+      for (Long userId : gameToStart.getPlayers()) {
+        User player = userRepository.findByUserId(userId);
+        if (player == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+        }
+        gameToStart.updateCorrectAnswers(userId, 0);
+      }
+      //set totalQuestionsMap
+      gameToStart.updateTotalQuestions(gameToStart.getOwnerId(), 0);
+      for (Long userId : gameToStart.getPlayers()) {
+        User player = userRepository.findByUserId(userId);
+        if (player == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+        }
+        gameToStart.updateTotalQuestions(userId, 0);
+      }
+
+      gameToStart.setGameRunning(true);
 
       gameRepository.save(gameToStart);
       gameRepository.flush();
@@ -267,32 +296,35 @@ public class GameService {
       //judge right or wrong and update hints
       Game targetGame = gameRepository.findBygameId(gamePostDTO.getGameId());
       //sum up total questions
-      Map<Long, Integer> totalQuestionsMap = targetGame.getTotalQuestionsMap();
-      if (totalQuestionsMap.containsKey(userId)) {
-          int totalQuestions = totalQuestionsMap.get(userId);
-          totalQuestionsMap.put(userId, totalQuestions + 1);
-          targetGame.setTotalQuestionsMap(totalQuestionsMap); 
-      } else {
-        totalQuestionsMap.put(userId, 1);
-        targetGame.setTotalQuestionsMap(totalQuestionsMap); 
-      }
+      // Map<Long, Integer> totalQuestionsMap = targetGame.getTotalQuestionsMap();
+      // if (totalQuestionsMap.containsKey(userId)) {
+      //     int totalQuestions = totalQuestionsMap.get(userId);
+      //     totalQuestionsMap.put(userId, totalQuestions + 1);
+      //     targetGame.setTotalQuestionsMap(totalQuestionsMap); 
+      // } else {
+      //   totalQuestionsMap.put(userId, 1);
+      //   targetGame.setTotalQuestionsMap(totalQuestionsMap); 
+      // }
+      targetGame.updateTotalQuestions(userId,targetGame.getTotalQuestions(userId)+1);
       
       if(gamePostDTO.getSubmitAnswer() == generatedHints.keySet().iterator().next()){
         //sum up correct answers
-        Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
-        if (currentCorrectAnswersMap.containsKey(userId)) {
-          int currentCorrect = currentCorrectAnswersMap.get(userId);
-          currentCorrectAnswersMap.put(userId, currentCorrect + 1); 
-          targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
-        } else {
-          currentCorrectAnswersMap.put(userId, 1);
-          targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
-        }
+        // Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
+        // if (currentCorrectAnswersMap.containsKey(userId)) {
+        //   int currentCorrect = currentCorrectAnswersMap.get(userId);
+        //   currentCorrectAnswersMap.put(userId, currentCorrect + 1); 
+        //   targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
+        // } else {
+        //   currentCorrectAnswersMap.put(userId, 1);
+        //   targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
+        // }
+        targetGame.updateCorrectAnswers(userId,targetGame.getCorrectAnswers(userId)+1);
         //sum up total score
-        Map<Long, Integer> scoreBoardMap = targetGame.getScoreBoard();
-          int currentscore = scoreBoardMap.get(userId);
-          scoreBoardMap.put(userId, currentscore + (100-(gamePostDTO.getHintUsingNumber()-1)*20)); 
-          targetGame.setScoreBoard(scoreBoardMap);
+        // Map<Long, Integer> scoreBoardMap = targetGame.getScoreBoard();
+        //   int currentscore = scoreBoardMap.get(userId);
+        //   scoreBoardMap.put(userId, currentscore + (100-(gamePostDTO.getHintUsingNumber()-1)*20)); 
+        //   targetGame.setScoreBoard(scoreBoardMap);
+          targetGame.updateScore(userId, targetGame.getScore(userId)+(100-(gamePostDTO.getHintUsingNumber()-1)*20));
           gameRepository.save(targetGame);
           gameRepository.flush();
           // 
@@ -304,7 +336,7 @@ public class GameService {
           Map<String, Integer> scoreBoardFront = new HashMap<>();
           for(Long userid: targetGame.getPlayers()){
             String username = (userRepository.findByUserId(userid)).getUsername();
-            int score = (targetGame.getScoreBoard()).get(userid);
+            int score = targetGame.getScore(userid);
             scoreBoardFront.put(username,score);
           }
           messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", scoreBoardFront);
@@ -312,11 +344,11 @@ public class GameService {
 
           return gameHintDTO;
       }else{
-        Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
-        if (!currentCorrectAnswersMap.containsKey(userId)) {
-          currentCorrectAnswersMap.put(userId, 0);
-          targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
-        } 
+        // Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
+        // if (!currentCorrectAnswersMap.containsKey(userId)) {
+        //   currentCorrectAnswersMap.put(userId, 0);
+        //   targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
+        // } 
         gameRepository.save(targetGame);
         gameRepository.flush();
 
@@ -420,4 +452,25 @@ public class GameService {
   
       return leaderboard;
     }
+    public void giveupGame(Long userId){
+      Game targetGame = (userRepository.findByUserId(userId)).getGame();
+
+      if(targetGame.getOwnerId().equals(userId)){
+        targetGame.removePlayer(userRepository.findByUserId(userId));
+        targetGame.setOwnerId(targetGame.getPlayers().get(0));
+        targetGame.updateScore(userId, 0);
+      }else{
+      targetGame.removePlayer(userRepository.findByUserId(userId));
+      targetGame.updateScore(userId, 0);
+      }
+      targetGame.updateCorrectAnswers(userId, 0);
+      targetGame.updateTotalQuestions(userId, 0);
+
+      gameRepository.save(targetGame);
+      gameRepository.flush();
+
+      messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", targetGame.getPlayers());
+      log.info("websocket send!");
+    }
+
 }

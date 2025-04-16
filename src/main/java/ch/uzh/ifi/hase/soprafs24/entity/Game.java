@@ -61,6 +61,9 @@ public class Game implements Serializable {
   private String gameCreationDate;
 
   @Column(nullable = false)
+  private boolean gameRunning;
+
+  @Column(nullable = false)
   private String modeType;
 
   @Column(nullable = true)
@@ -154,9 +157,9 @@ public class Game implements Serializable {
   }
 
   // remove specific user's score
-  public Integer removeScore(Long userId) {
-      return scoreBoard.remove(userId);
-  }
+  // public Integer removeScore(Long userId) {
+  //     return scoreBoard.remove(userId);
+  // }
 
   public int getHintsNumber() {
     return hintsNumber;
@@ -196,6 +199,14 @@ public class Game implements Serializable {
 
   public void setGameCreationDate(String gameCreationDate) {
     this.gameCreationDate = gameCreationDate;
+  }
+
+  public Boolean getGameRunning() {
+    return gameRunning;
+  }
+
+  public void setGameRunning(boolean gameRunning) {
+    this.gameRunning = gameRunning;
   }
 
   public String getModeType() {
@@ -246,11 +257,27 @@ public class Game implements Serializable {
     this.totalQuestionsMap = totalQuestionsMap;
   }
 
+  public void updateTotalQuestions(Long userId, int number) {
+    totalQuestionsMap.put(userId, number);
+  }
+
+  public Integer getTotalQuestions(Long userId) {
+      return totalQuestionsMap.get(userId);
+  }
+
   public Map<Long, Integer> getCorrectAnswersMap() {
     return correctAnswersMap;
   }
 
   public void setCorrectAnswersMap(Map<Long, Integer> correctAnswersMap) {
     this.correctAnswersMap = correctAnswersMap;
+  }
+
+  public void updateCorrectAnswers(Long userId, int number) {
+    correctAnswersMap.put(userId, number);
+  }
+
+  public Integer getCorrectAnswers(Long userId) {
+      return correctAnswersMap.get(userId);
   }
 }
