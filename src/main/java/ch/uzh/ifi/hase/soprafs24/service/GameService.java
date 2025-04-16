@@ -21,15 +21,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
-import java.util.Map;
+import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
@@ -46,7 +43,6 @@ import java.time.format.DateTimeFormatter;
 @Transactional
 public class GameService {
 
-    
     private final Logger log = LoggerFactory.getLogger(GameService.class);
 
     private final GameRepository gameRepository;
@@ -56,7 +52,10 @@ public class GameService {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-    UtilService utilService = new UtilService();
+
+    @Autowired
+    private UtilService utilService;
+
 
     public GameService(
             @Qualifier("gameRepository") GameRepository gameRepository,
@@ -282,7 +281,8 @@ public class GameService {
       gameRepository.flush();
 
       GameGetDTO gameHintDTO = new GameGetDTO();
-      
+
+      generatedHints = getHintsOfOneCountry();
       gameHintDTO.setHints(generatedHints.values().iterator().next());
       gameHintDTO.setTime(gameToStart.getTime());
 
@@ -295,6 +295,8 @@ public class GameService {
       
       //judge right or wrong and update hints
       Game targetGame = gameRepository.findBygameId(gamePostDTO.getGameId());
+      generatedHints = getHintsOfOneCountry();
+
       //sum up total questions
       // Map<Long, Integer> totalQuestionsMap = targetGame.getTotalQuestionsMap();
       // if (totalQuestionsMap.containsKey(userId)) {
@@ -342,6 +344,7 @@ public class GameService {
           messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", scoreBoardFront);
           log.info("websocket send!");
 
+          gameHintDTO.setHints(generatedHints.values().iterator().next());
           return gameHintDTO;
       }else{
         // Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
@@ -366,6 +369,7 @@ public class GameService {
           messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", scoreBoardFront);
           log.info("websocket send!");
 
+          gameHintDTO.setHints(generatedHints.values().iterator().next());
           return gameHintDTO;
       }
 
@@ -452,6 +456,16 @@ public class GameService {
   
       return leaderboard;
     }
+
+    public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry() {
+        System.out.println("hintCache size: " + utilService.getHintCache().size());
+        Map<Country, List<Map<String, Object>>> hint = utilService.getHintCache().poll();
+        if (utilService.getHintCache().size() < 20) {
+            utilService.refillAsync();
+        }
+        return hint;
+    }
+
     public void giveupGame(Long userId){
       Game targetGame = (userRepository.findByUserId(userId)).getGame();
 
