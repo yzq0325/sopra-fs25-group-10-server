@@ -285,6 +285,13 @@ public class GameService {
       generatedHints = getHintsOfOneCountry();
       gameHintDTO.setHints(generatedHints.values().iterator().next());
       gameHintDTO.setTime(gameToStart.getTime());
+      Map<String, Integer> scoreBoardFront = new HashMap<>();
+        for(Long userid: gameToStart.getPlayers()){
+            String username = (userRepository.findByUserId(userid)).getUsername();
+            int score = gameToStart.getScore(userid);
+            scoreBoardFront.put(username,score);
+        }
+      gameHintDTO.setScoreBoard(scoreBoardFront);
 
       messagingTemplate.convertAndSend("/topic/start/" + gameId + "/hints", gameHintDTO);
         log.info("websocket send!");
@@ -295,7 +302,6 @@ public class GameService {
       
       //judge right or wrong and update hints
       Game targetGame = gameRepository.findBygameId(gamePostDTO.getGameId());
-      generatedHints = getHintsOfOneCountry();
 
       //sum up total questions
       // Map<Long, Integer> totalQuestionsMap = targetGame.getTotalQuestionsMap();
@@ -332,6 +338,7 @@ public class GameService {
           // 
 
           GameGetDTO gameHintDTO = new GameGetDTO();
+          generatedHints = getHintsOfOneCountry();
           gameHintDTO.setHints(generatedHints.values().iterator().next());
           gameHintDTO.setJudgement(true);
 
@@ -341,7 +348,7 @@ public class GameService {
             int score = targetGame.getScore(userid);
             scoreBoardFront.put(username,score);
           }
-          messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", scoreBoardFront);
+          messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
           log.info("websocket send!");
 
           gameHintDTO.setHints(generatedHints.values().iterator().next());
@@ -358,7 +365,8 @@ public class GameService {
         // 
 
         GameGetDTO gameHintDTO = new GameGetDTO();
-        gameHintDTO.setHints(generatedHints.values().iterator().next()); 
+        generatedHints = getHintsOfOneCountry();
+        gameHintDTO.setHints(generatedHints.values().iterator().next());
         gameHintDTO.setJudgement(false);
         Map<String, Integer> scoreBoardFront = new HashMap<>();
           for(Long userid: targetGame.getPlayers()){
@@ -366,7 +374,7 @@ public class GameService {
             int score = (targetGame.getScoreBoard()).get(userid);
             scoreBoardFront.put(username,score);
           }
-          messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", scoreBoardFront);
+          messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
           log.info("websocket send!");
 
           gameHintDTO.setHints(generatedHints.values().iterator().next());
