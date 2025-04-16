@@ -52,8 +52,7 @@ public class GameService {
     private final GameRepository gameRepository;
     private final UserRepository userRepository;
 
-    private Map<Country, List<Map<String, Object>>> generatedHintsA;
-    private Map<Country, List<Map<String, Object>>> generatedHintsB;
+    private Map<Country, List<Map<String, Object>>> generatedHints;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -250,12 +249,12 @@ public class GameService {
         (gameToStart.getScoreBoard()).put(userId, 0); 
       }
 
-      generatedHintsA = utilService.generateClues(gameToStart.getHintsNumber());
-      generatedHintsB = utilService.generateClues(gameToStart.getHintsNumber());
+      gameRepository.save(gameToStart);
+      gameRepository.flush();
 
       GameGetDTO gameHintDTO = new GameGetDTO();
       
-      gameHintDTO.setHints(generatedHintsA.values().iterator().next());
+      gameHintDTO.setHints(generatedHints.values().iterator().next());
       gameHintDTO.setTime(gameToStart.getTime());
 
       messagingTemplate.convertAndSend("/topic/start/" + gameId + "/hints", gameHintDTO);
@@ -263,7 +262,7 @@ public class GameService {
 
     }
 
-    public GameGetDTO processingAnswer(GamePostDTO gamePostDTO, Long userId){
+    public void processingAnswer(GamePostDTO gamePostDTO, Long userId){
       
       //judge right or wrong and update hints
       Game targetGame = gameRepository.findBygameId(gamePostDTO.getGameId());
@@ -278,7 +277,7 @@ public class GameService {
         targetGame.setTotalQuestionsMap(totalQuestionsMap); 
       }
       
-      if(gamePostDTO.getSubmitAnswer() == generatedHintsA.keySet().iterator().next()){
+      if(gamePostDTO.getSubmitAnswer() == generatedHints.keySet().iterator().next()){
         //sum up correct answers
         Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
         if (currentCorrectAnswersMap.containsKey(userId)) {
@@ -292,18 +291,25 @@ public class GameService {
         //sum up total score
         Map<Long, Integer> scoreBoardMap = targetGame.getScoreBoard();
           int currentscore = scoreBoardMap.get(userId);
-          scoreBoardMap.put(userId, currentscore + (100-(gamePostDTO.getHintUsingNumber()-1))); 
+          scoreBoardMap.put(userId, currentscore + (100-(gamePostDTO.getHintUsingNumber()-1)*20)); 
           targetGame.setScoreBoard(scoreBoardMap);
           gameRepository.save(targetGame);
           gameRepository.flush();
-
-          generatedHintsA=generatedHintsB;
-          generatedHintsB = utilService.generateClues(targetGame.getHintsNumber());
+          // 
 
           GameGetDTO gameHintDTO = new GameGetDTO();
-          gameHintDTO.setHints(generatedHintsA.values().iterator().next());
+          gameHintDTO.setHints(generatedHints.values().iterator().next());
           gameHintDTO.setJudgement(true);
-          return gameHintDTO;
+
+          Map<String, Integer> scoreBoardFront = new HashMap<>();
+          for(Long userid: targetGame.getPlayers()){
+            String username = (userRepository.findByUserId(userid)).getUsername();
+            int score = (targetGame.getScoreBoard()).get(userid);
+            scoreBoardFront.put(username,score);
+          }
+          gameHintDTO.setScoreBoard(scoreBoardFront);
+          messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", gameHintDTO);
+          log.info("websocket send!");
       }else{
         Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
         if (!currentCorrectAnswersMap.containsKey(userId)) {
@@ -313,16 +319,24 @@ public class GameService {
         gameRepository.save(targetGame);
         gameRepository.flush();
 
-        generatedHintsA=generatedHintsB;
-        generatedHintsB = utilService.generateClues(targetGame.getHintsNumber());
-        
-        GameGetDTO gameHintDTO = new GameGetDTO(); 
+        // 
+
+        GameGetDTO gameHintDTO = new GameGetDTO();
+        gameHintDTO.setHints(generatedHints.values().iterator().next()); 
         gameHintDTO.setJudgement(false);
-        gameHintDTO.setHints(generatedHintsA.values().iterator().next());
-        return gameHintDTO;
+        Map<String, Integer> scoreBoardFront = new HashMap<>();
+          for(Long userid: targetGame.getPlayers()){
+            String username = (userRepository.findByUserId(userid)).getUsername();
+            int score = (targetGame.getScoreBoard()).get(userid);
+            scoreBoardFront.put(username,score);
+          }
+          gameHintDTO.setScoreBoard(scoreBoardFront);
+          messagingTemplate.convertAndSend("/topic/user/" + userId + "/scoreBoard", gameHintDTO);
+          log.info("websocket send!");
       }
+
     }
-  
+
     public void submitScores(Long gameId,Map<Long, Integer> scoreMap, Map<Long, Integer> correctAnswersMap, Map<Long, Integer> totalQuestionsMap) {
       Game game = gameRepository.findBygameId(gameId);
 
