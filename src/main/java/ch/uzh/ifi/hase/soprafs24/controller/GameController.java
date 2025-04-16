@@ -139,4 +139,11 @@ public class GameController {
   public GameGetDTO answerProcessing(@PathVariable Long userId, @RequestBody GamePostDTO gamePostDTO) {
     return gameService.processingAnswer(gamePostDTO,userId);
   }
+
+  @PutMapping("/giveup/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void giveupGame(@PathVariable Long userId){
+    gameService.giveupGame(userId);
+  }
 }

@@ -48,6 +48,8 @@ public class GameGetDTO {
 
     private boolean judgement;
 
+    private boolean gameRunning;
+
     public Long getGameId() {
         return gameId;
     }
@@ -221,6 +223,14 @@ public class GameGetDTO {
   
     public boolean getJudgement(){
         return judgement;
+    }
+
+    public void setGameRunning(boolean gameRunning){
+        this.gameRunning = gameRunning;
+    }
+  
+    public boolean getGameRunning(){
+        return gameRunning;
     }
 }
 
