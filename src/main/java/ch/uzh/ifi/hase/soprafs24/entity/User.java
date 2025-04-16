@@ -3,7 +3,17 @@ package ch.uzh.ifi.hase.soprafs24.entity;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 
 import javax.persistence.*;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Internal User Representation
@@ -20,6 +30,42 @@ import java.io.Serializable;
 public class User implements Serializable {
 
   private static final long serialVersionUID = 1L;
+
+  @Embeddable 
+  public class GameQuickSave{
+    @Column(name = "score", nullable = false)
+    private int score;
+
+    @Column(name = "correctanswers", nullable = false)
+    private int correctAnswers;
+
+    @Column(name = "totalQuestions", nullable = false)
+    private int totalQuestions;
+
+    public int getScore() {
+      return score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
+    }
+
+    public int getCorrectAnswers() {
+        return correctAnswers;
+    }
+
+    public void setCorrectAnswers(int correctAnswers) {
+        this.correctAnswers = correctAnswers;
+    }
+
+    public int getTotalQuestions() {
+        return totalQuestions;
+    }
+
+    public void setTotalQuestions(int totalQuestions) {
+        this.totalQuestions = totalQuestions;
+    }
+  }
 
   @Id
   @GeneratedValue
@@ -52,6 +98,14 @@ public class User implements Serializable {
   @ManyToOne
   @JoinColumn(name = "gameId", nullable = true)
   private Game game;
+
+  @Column(precision = 3, scale = 1) // 总位数3，小数位1（如10.5）
+  private BigDecimal level;
+
+  @ElementCollection
+  @CollectionTable(name = "userGameHistory",joinColumns = @JoinColumn(name = "userId"))
+  @MapKeyColumn(name = "gameName") 
+  private Map<String, GameQuickSave> gameHistory = new HashMap<>();
 
   public Long getUserId() {
     return userId;
@@ -131,5 +185,33 @@ public class User implements Serializable {
 
   public void setGame(Game game) {
       this.game = game;
+  }
+
+  public BigDecimal getLevel(){
+    return level;
+  }
+
+  public void setLevel(BigDecimal level){
+    this.level = level;
+  }
+
+  public void setGameHistory(String gameName, int score, int correct, int total) {
+      GameQuickSave gameQuickSave = new GameQuickSave();
+      gameQuickSave.setScore(score);
+      gameQuickSave.setCorrectAnswers(correct);
+      gameQuickSave.setTotalQuestions(total);
+      gameHistory.put(gameName, gameQuickSave);
+  }
+
+  public int getGameScore(String gameName) {
+      return gameHistory.get(gameName).getScore();
+  }
+
+  public int getGameCorrectAnswer(String gameName) {
+    return gameHistory.get(gameName).getCorrectAnswers();
+  }
+
+  public int getGameTotalQuestions(String gameName) {
+    return gameHistory.get(gameName).getTotalQuestions();
   }
 }

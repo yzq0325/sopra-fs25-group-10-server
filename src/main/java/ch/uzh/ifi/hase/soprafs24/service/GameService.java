@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -227,13 +226,6 @@ public class GameService {
           players.add(userRepository.findByUserId(userId));
       }
       return players;
-//
-//      List<UserGetDTO> allPlayersDTOs = new ArrayList<>();
-//
-//      for (Long userId : allPlayers) {
-//        allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(userRepository.findByUserId(userId)));
-//      }
-//      return allPlayersDTOs;
 
     }
 
@@ -303,82 +295,49 @@ public class GameService {
       //judge right or wrong and update hints
       Game targetGame = gameRepository.findBygameId(gamePostDTO.getGameId());
 
-      //sum up total questions
-      // Map<Long, Integer> totalQuestionsMap = targetGame.getTotalQuestionsMap();
-      // if (totalQuestionsMap.containsKey(userId)) {
-      //     int totalQuestions = totalQuestionsMap.get(userId);
-      //     totalQuestionsMap.put(userId, totalQuestions + 1);
-      //     targetGame.setTotalQuestionsMap(totalQuestionsMap); 
-      // } else {
-      //   totalQuestionsMap.put(userId, 1);
-      //   targetGame.setTotalQuestionsMap(totalQuestionsMap); 
-      // }
       targetGame.updateTotalQuestions(userId,targetGame.getTotalQuestions(userId)+1);
       
       if(gamePostDTO.getSubmitAnswer() == generatedHints.keySet().iterator().next()){
-        //sum up correct answers
-        // Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
-        // if (currentCorrectAnswersMap.containsKey(userId)) {
-        //   int currentCorrect = currentCorrectAnswersMap.get(userId);
-        //   currentCorrectAnswersMap.put(userId, currentCorrect + 1); 
-        //   targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
-        // } else {
-        //   currentCorrectAnswersMap.put(userId, 1);
-        //   targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
-        // }
         targetGame.updateCorrectAnswers(userId,targetGame.getCorrectAnswers(userId)+1);
-        //sum up total score
-        // Map<Long, Integer> scoreBoardMap = targetGame.getScoreBoard();
-        //   int currentscore = scoreBoardMap.get(userId);
-        //   scoreBoardMap.put(userId, currentscore + (100-(gamePostDTO.getHintUsingNumber()-1)*20)); 
-        //   targetGame.setScoreBoard(scoreBoardMap);
-          targetGame.updateScore(userId, targetGame.getScore(userId)+(100-(gamePostDTO.getHintUsingNumber()-1)*20));
-          gameRepository.save(targetGame);
-          gameRepository.flush();
-          // 
-
-          GameGetDTO gameHintDTO = new GameGetDTO();
-          generatedHints = getHintsOfOneCountry();
-          gameHintDTO.setHints(generatedHints.values().iterator().next());
-          gameHintDTO.setJudgement(true);
-
-          Map<String, Integer> scoreBoardFront = new HashMap<>();
-          for(Long userid: targetGame.getPlayers()){
-            String username = (userRepository.findByUserId(userid)).getUsername();
-            int score = targetGame.getScore(userid);
-            scoreBoardFront.put(username,score);
-          }
-          messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
-          log.info("websocket send!");
-
-          gameHintDTO.setHints(generatedHints.values().iterator().next());
-          return gameHintDTO;
-      }else{
-        // Map<Long, Integer> currentCorrectAnswersMap = targetGame.getCorrectAnswersMap();
-        // if (!currentCorrectAnswersMap.containsKey(userId)) {
-        //   currentCorrectAnswersMap.put(userId, 0);
-        //   targetGame.setCorrectAnswersMap(currentCorrectAnswersMap);
-        // } 
+        targetGame.updateScore(userId, targetGame.getScore(userId)+(100-(gamePostDTO.getHintUsingNumber()-1)*20));
         gameRepository.save(targetGame);
         gameRepository.flush();
 
-        // 
+        GameGetDTO gameHintDTO = new GameGetDTO();
+        generatedHints = getHintsOfOneCountry();
+        gameHintDTO.setHints(generatedHints.values().iterator().next());
+        gameHintDTO.setJudgement(true);
+
+        Map<String, Integer> scoreBoardFront = new HashMap<>();
+        for(Long userid: targetGame.getPlayers()){
+          String username = (userRepository.findByUserId(userid)).getUsername();
+          int score = targetGame.getScore(userid);
+          scoreBoardFront.put(username,score);
+        }
+        messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
+        log.info("websocket send!");
+
+        gameHintDTO.setHints(generatedHints.values().iterator().next());
+        return gameHintDTO;
+      }else{
+        gameRepository.save(targetGame);
+        gameRepository.flush();
 
         GameGetDTO gameHintDTO = new GameGetDTO();
         generatedHints = getHintsOfOneCountry();
         gameHintDTO.setHints(generatedHints.values().iterator().next());
         gameHintDTO.setJudgement(false);
         Map<String, Integer> scoreBoardFront = new HashMap<>();
-          for(Long userid: targetGame.getPlayers()){
-            String username = (userRepository.findByUserId(userid)).getUsername();
-            int score = (targetGame.getScoreBoard()).get(userid);
-            scoreBoardFront.put(username,score);
-          }
-          messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
-          log.info("websocket send!");
+        for(Long userid: targetGame.getPlayers()){
+          String username = (userRepository.findByUserId(userid)).getUsername();
+          int score = (targetGame.getScoreBoard()).get(userid);
+          scoreBoardFront.put(username,score);
+        }
+        messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
+        log.info("websocket send!");
 
-          gameHintDTO.setHints(generatedHints.values().iterator().next());
-          return gameHintDTO;
+        gameHintDTO.setHints(generatedHints.values().iterator().next());
+        return gameHintDTO;
       }
 
     }
@@ -477,22 +436,33 @@ public class GameService {
     public void giveupGame(Long userId){
       Game targetGame = (userRepository.findByUserId(userId)).getGame();
 
-      if(targetGame.getOwnerId().equals(userId)){
+      if(targetGame.getPlayers().size() == 1){
         targetGame.removePlayer(userRepository.findByUserId(userId));
-        targetGame.setOwnerId(targetGame.getPlayers().get(0));
         targetGame.updateScore(userId, 0);
+        gameRepository.deleteByGameId(targetGame.getGameId());
+
+        messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", targetGame.getPlayers());
+        log.info("websocket send!");
       }else{
-      targetGame.removePlayer(userRepository.findByUserId(userId));
-      targetGame.updateScore(userId, 0);
+        if(targetGame.getOwnerId().equals(userId)){
+          targetGame.removePlayer(userRepository.findByUserId(userId));
+          targetGame.setOwnerId(targetGame.getPlayers().get(0));
+          targetGame.updateScore(userId, 0);
+        }else{
+        targetGame.removePlayer(userRepository.findByUserId(userId));
+        targetGame.updateScore(userId, 0);
+        }
+        targetGame.updateCorrectAnswers(userId, 0);
+        targetGame.updateTotalQuestions(userId, 0);
+  
+        gameRepository.save(targetGame);
+        gameRepository.flush();
+  
+        messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", targetGame.getPlayers());
+        log.info("websocket send!");
       }
-      targetGame.updateCorrectAnswers(userId, 0);
-      targetGame.updateTotalQuestions(userId, 0);
 
-      gameRepository.save(targetGame);
-      gameRepository.flush();
 
-      messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", targetGame.getPlayers());
-      log.info("websocket send!");
     }
 
 }
