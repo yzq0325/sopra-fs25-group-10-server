@@ -71,22 +71,6 @@ public class GameControllerTest {
     }
 
     @Test
-    public void getGameLobby_success() throws Exception {
-        given(gameService.getAllGames()).willReturn(List.of(game));
-
-        mockMvc.perform(get("/lobby"))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    public void getGameReady_validId_success() throws Exception {
-        given(gameService.getGameByGameId(1L)).willReturn(game);
-
-        mockMvc.perform(get("/game/1"))
-                .andExpect(status().isOk());
-    }
-
-    @Test
     public void joinGame_success() throws Exception {
         doNothing().when(gameService).userJoinGame(any(), eq(1L));
 

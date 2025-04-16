@@ -28,6 +28,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -61,10 +62,6 @@ public class GameService {
             @Qualifier("userRepository") UserRepository userRepository) {
         this.gameRepository = gameRepository;
         this.userRepository = userRepository;
-    }
-
-    public List<Game> getAllGames() {
-      return this.gameRepository.findAll();
     }
 
     public Game createGame(Game gameToCreate) {
@@ -112,8 +109,15 @@ public class GameService {
       return gameCreated;
     }
 
-    public Game getGameByGameId(Long gameId){
-      return gameRepository.findBygameId(gameId);
+    public void getGameLobby(){
+      List<Game> allGames = gameRepository.findAll();
+
+      List<GameGetDTO> gameLobbyGetDTOs = new ArrayList<>();
+      for (Game game : allGames) {
+        gameLobbyGetDTOs.add(DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game));
+    }
+      messagingTemplate.convertAndSend("/topic/lobby", gameLobbyGetDTOs);
+      log.info("websocket send!");
     }
 
     public void userJoinGame(Game gameToBeJoined, Long userId){
@@ -434,35 +438,54 @@ public class GameService {
     }
 
     public void giveupGame(Long userId){
-      Game targetGame = (userRepository.findByUserId(userId)).getGame();
+      Game gameToEnd = (userRepository.findByUserId(userId)).getGame();
 
-      if(targetGame.getPlayers().size() == 1){
-        targetGame.removePlayer(userRepository.findByUserId(userId));
-        targetGame.updateScore(userId, 0);
-        gameRepository.deleteByGameId(targetGame.getGameId());
+      if(gameToEnd.getPlayers().size() == 1){
+        gameToEnd.removePlayer(userRepository.findByUserId(userId));
+        gameToEnd.updateScore(userId, 0);
+        gameRepository.deleteByGameId(gameToEnd.getGameId());
 
-        messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", targetGame.getPlayers());
+        messagingTemplate.convertAndSend("/topic/ready/" + gameToEnd.getGameId() + "/players", gameToEnd.getPlayers());
         log.info("websocket send!");
       }else{
-        if(targetGame.getOwnerId().equals(userId)){
-          targetGame.removePlayer(userRepository.findByUserId(userId));
-          targetGame.setOwnerId(targetGame.getPlayers().get(0));
-          targetGame.updateScore(userId, 0);
+        if(gameToEnd.getOwnerId().equals(userId)){
+          gameToEnd.removePlayer(userRepository.findByUserId(userId));
+          gameToEnd.setOwnerId(gameToEnd.getPlayers().get(0));
+          gameToEnd.updateScore(userId, 0);
         }else{
-        targetGame.removePlayer(userRepository.findByUserId(userId));
-        targetGame.updateScore(userId, 0);
+          gameToEnd.removePlayer(userRepository.findByUserId(userId));
+          gameToEnd.updateScore(userId, 0);
         }
-        targetGame.updateCorrectAnswers(userId, 0);
-        targetGame.updateTotalQuestions(userId, 0);
+        gameToEnd.updateCorrectAnswers(userId, 0);
+        gameToEnd.updateTotalQuestions(userId, 0);
   
-        gameRepository.save(targetGame);
+        gameRepository.save(gameToEnd);
         gameRepository.flush();
   
-        messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", targetGame.getPlayers());
-        log.info("websocket send!");
       }
+    }
+    public void saveGame(Long gameId){
+      Game gameToSave = gameRepository.findBygameId(gameId);
 
+      Map<String, Integer> scoreBoardFront = new HashMap<>();
+        for(Long userid: gameToSave.getPlayers()){
+          String username = (userRepository.findByUserId(userid)).getUsername();
+          int score = (gameToSave.getScoreBoard()).get(userid);
+          scoreBoardFront.put(username,score);
+        }
+        messagingTemplate.convertAndSend("/topic/end/scoreBoard", scoreBoardFront);
+        log.info("websocket send!");
 
+      List<Long> playersToSave = gameToSave.getPlayers();
+      for(Long userId : playersToSave){
+        User player = userRepository.findByUserId(userId);
+        player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId),gameToSave.getCorrectAnswers(userId), gameToSave.getTotalQuestions(userId));
+        player.setLevel(BigDecimal.valueOf(gameToSave.getScore(userId)/100));
+        player.setGame(null);
+        userRepository.save(player);
+        userRepository.flush();
+      }
+      gameRepository.deleteByGameId(gameId);
     }
 
 }

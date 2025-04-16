@@ -54,22 +54,8 @@ public class GameController {
   @GetMapping("/lobby")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public List<GameGetDTO> getGameLobby() {
-      List<Game> allGames = gameService.getAllGames();
-
-      List<GameGetDTO> gameLobbyGetDTOs = new ArrayList<>();
-      for (Game game : allGames) {
-        gameLobbyGetDTOs.add(DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game));
-    }
-    return gameLobbyGetDTOs;
-  }
-
-  @GetMapping("/game/{gameId}")
-  @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
-  public GameGetDTO getGameReady(Long gameId) {
-    Game gameSelected = gameService.getGameByGameId(gameId);
-    return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(gameSelected);
+  public void getGameLobby() {
+    gameService.getGameLobby();
   }
 
   @PutMapping("/lobbyIn/{userId}")
@@ -150,6 +136,8 @@ public class GameController {
   @PutMapping("/save/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public void saveGame(@PathVariable Long gameId){}
+  public void saveGame(@PathVariable Long gameId){
+    gameService.saveGame(gameId);
+  }
     
 }
