@@ -1,7 +1,14 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.constant.Country;
+import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.cglib.core.internal.LoadingCache;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,17 +21,62 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 @Service
 @Transactional
 public class UtilService {
-    private static final String GEMINI_API_KEY = "AIzaSyDOukvhZmaQlP38T1bdTGGnc5X-TYRr_Gc";
+    private static final int FILL_SIZE = 20;
+    private static final int HINT_NUMBER = 5;
 
+    private static final String GEMINI_API_KEY = "AIzaSyDOukvhZmaQlP38T1bdTGGnc5X-TYRr_Gc";
     private static final String MODEL_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Queue<Map<Country, List<Map<String, Object>>>> hintCache = new ConcurrentLinkedDeque<>();
+
+    public Queue<Map<Country, List<Map<String, Object>>>> getHintCache() {
+        return hintCache;
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void preloadHints() {
+        System.out.println("Preloading hints...");
+        refillCache();
+        System.out.println("Preloading hints done! Cache size: " + hintCache.size());
+    }
+
+    public void refillCache() {
+        int missing = FILL_SIZE - hintCache.size();
+        int attempts = 0;
+
+        while (hintCache.size() < FILL_SIZE && attempts < FILL_SIZE * 2) {
+            try {
+                Map<Country, List<Map<String, Object>>> newHint = generateClues(HINT_NUMBER);
+                if (newHint != null && !newHint.isEmpty()) {
+                    hintCache.add(newHint);
+                }
+                Thread.sleep(1500);
+            } catch (Exception e) {
+                System.err.println("Failed to generate hint (attempt " + (attempts + 1) + "): " + e.getMessage());
+            }
+            attempts++;
+        }
+
+        System.out.println("Cache preloaded with " + hintCache.size() + " hints");
+    }
+
+    @Async
+    public void refillAsync() {
+        System.out.println("Async refill running on thread: " + Thread.currentThread().getName());
+
+        Map<Country, List<Map<String, Object>>> hint = generateClues(HINT_NUMBER);
+        if (hint != null && !hint.isEmpty()) {
+            hintCache.add(hint);
+        }
+    }
 
     //<country, clue, difficulty(int)>
     public Map<Country, List<Map<String, Object>>> generateClues(int clueNumber) {
