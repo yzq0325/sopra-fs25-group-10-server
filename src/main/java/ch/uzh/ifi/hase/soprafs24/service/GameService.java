@@ -318,6 +318,13 @@ public class GameService {
           int score = targetGame.getScore(userid);
           scoreBoardFront.put(username,score);
         }
+        scoreBoardFront.entrySet().stream().sorted(Map.Entry.comparingByValue())
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (oldValue, newValue) -> oldValue,
+            LinkedHashMap::new
+        ));
         messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
         log.info("websocket send!");
 
@@ -337,6 +344,13 @@ public class GameService {
           int score = (targetGame.getScoreBoard()).get(userid);
           scoreBoardFront.put(username,score);
         }
+        scoreBoardFront.entrySet().stream().sorted(Map.Entry.comparingByValue())
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (oldValue, newValue) -> oldValue,
+            LinkedHashMap::new
+        ));
         messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
         log.info("websocket send!");
 
@@ -473,6 +487,13 @@ public class GameService {
           int score = (gameToSave.getScoreBoard()).get(userid);
           scoreBoardFront.put(username,score);
         }
+        scoreBoardFront.entrySet().stream().sorted(Map.Entry.comparingByValue())
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (oldValue, newValue) -> oldValue,
+            LinkedHashMap::new
+        ));
         messagingTemplate.convertAndSend("/topic/end/scoreBoard", scoreBoardFront);
         log.info("websocket send!");
 
