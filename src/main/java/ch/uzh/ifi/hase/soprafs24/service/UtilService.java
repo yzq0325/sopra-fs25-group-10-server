@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cglib.core.internal.LoadingCache;
 import org.springframework.context.event.EventListener;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,12 @@ public class UtilService {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Queue<Map<Country, List<Map<String, Object>>>> hintCache = new ConcurrentLinkedDeque<>();
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
+    private GameService gameService;
 
     public Queue<Map<Country, List<Map<String, Object>>>> getHintCache() {
         return hintCache;
@@ -76,6 +83,23 @@ public class UtilService {
         if (hint != null && !hint.isEmpty()) {
             hintCache.add(hint);
         }
+    }
+
+    @Async
+    public void timingCounter(int seconds, Long gameId) {
+      while(seconds>=0)
+        {
+            seconds = seconds -1;
+            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", gameService.formatTime(seconds));
+            try {
+              Thread.sleep(999);
+          } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+              break;
+          }
+        }
+        messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", "timesup!");
     }
 
     //<country, clue, difficulty(int)>

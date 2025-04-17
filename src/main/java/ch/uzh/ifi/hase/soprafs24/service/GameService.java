@@ -57,7 +57,7 @@ public class GameService {
   @Autowired
   private UtilService utilService;
 
-  private String formatTime(int totalSeconds) {
+  public String formatTime(int totalSeconds) {
     int minutes = totalSeconds / 60;
     int seconds = totalSeconds % 60;
     return String.format("%02d分:%02d秒", minutes, seconds);
@@ -281,6 +281,21 @@ public class GameService {
     gameRepository.save(gameToStart);
     gameRepository.flush();
 
+    int readycounter=5;
+
+    while(readycounter>=0)
+        {
+          readycounter = readycounter -1;
+            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", formatTime(readycounter));
+            try {
+              Thread.sleep(999);
+          } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+              break;
+          }
+        }
+        messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", "gamestart!");
     // GameGetDTO gameHintDTO = new GameGetDTO();
 
     // generatedHints = getHintsOfOneCountry();
@@ -306,7 +321,7 @@ public class GameService {
 
     generatedHints = getHintsOfOneCountry();
     gameHintDTO.setHints(generatedHints.values().iterator().next());
-    gameHintDTO.setTime(gameToBegin.getTime());
+    // gameHintDTO.setTime(gameToBegin.getTime());
     Map<String, Integer> scoreBoardFront = new HashMap<>();
       for(Long userid: gameToBegin.getPlayers()){
           String username = (userRepository.findByUserId(userid)).getUsername();
@@ -318,26 +333,9 @@ public class GameService {
     messagingTemplate.convertAndSend("/topic/start/" + gameId + "/hints", gameHintDTO);
     log.info("websocket send!");
     
-    messagingTemplate.convertAndSend("/topic/start/" + gameId + "/time", formatTime((gameToBegin.getTime())*60));
-    timingCounter((gameToBegin.getTime())*60, gameId);
-  }
-
-  @Async
-  private void timingCounter(int seconds, Long gameId) {
-    while(seconds>=0)
-      {
-          seconds = seconds -1;
-          messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", formatTime(seconds));
-          try {
-            Thread.sleep(999);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-            break;
-        }
-      }
-      messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", "timesup!");
-      saveGame(gameId);
+    messagingTemplate.convertAndSend("/topic/start/" + gameId + "/formatted-time", formatTime((gameToBegin.getTime())*60));
+    utilService.timingCounter((gameToBegin.getTime())*60, gameId);
+    saveGame(gameId);
   }
   
 
