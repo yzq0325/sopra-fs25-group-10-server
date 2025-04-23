@@ -20,7 +20,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
               //after development, this will be set to real URL.
-              .setAllowedOriginPatterns("*")
+              .setAllowedOriginPatterns("http://localhost:3000", "https://sopra-fs25-group-10-client.vercel.app/")
               .withSockJS();
     }
 }
