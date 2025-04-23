@@ -305,12 +305,7 @@ public class GameService {
 
         Game finalGameToStart = gameToStart;
         Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, gameId));
-        try {
-            timingThread.join();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("Countdown thread interrupted");
-        }
+        timingThread.start();
     }
 
     public void saveGame(Long gameId) {
