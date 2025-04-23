@@ -51,7 +51,7 @@ public class GameController {
       return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(createdGame);
   }
 
-  @GetMapping("/lobby")
+  @PutMapping("/lobby")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public void getGameLobby() {

@@ -1,5 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -12,9 +14,12 @@ public class UtilServiceTest {
 
     private UtilService utilService;
 
+    private GameRepository gameRepository;
+    private UserRepository userRepository;
+
     @BeforeEach
     public void setup() {
-        utilService = new UtilService();
+        utilService = new UtilService(gameRepository, userRepository);
     }
 
     @Test
@@ -51,7 +56,7 @@ public class UtilServiceTest {
     // pressure test
     @Test
     void testGenerateClues_multipleRuns() {
-        UtilService utilService = new UtilService();
+        UtilService utilService = new UtilService(gameRepository, userRepository);
 
         int success = 0;
         int totalRuns = 20;

@@ -1,9 +1,14 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.constant.Country;
+import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cglib.core.internal.LoadingCache;
 import org.springframework.context.event.EventListener;
@@ -23,6 +28,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -37,12 +43,20 @@ public class UtilService {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Queue<Map<Country, List<Map<String, Object>>>> hintCache = new ConcurrentLinkedDeque<>();
+    private final Logger log = LoggerFactory.getLogger(UtilService.class);
+
+    private final GameRepository gameRepository;
+    private final UserRepository userRepository;
+
+    public UtilService(
+            @Qualifier("gameRepository") GameRepository gameRepository,
+            @Qualifier("userRepository") UserRepository userRepository) {
+        this.gameRepository = gameRepository;
+        this.userRepository = userRepository;
+    }
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-
-    @Autowired
-    private GameService gameService;
 
     public Queue<Map<Country, List<Map<String, Object>>>> getHintCache() {
         return hintCache;
@@ -66,7 +80,8 @@ public class UtilService {
                     hintCache.add(newHint);
                 }
                 Thread.sleep(1500);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 System.err.println("Failed to generate hint (attempt " + (attempts + 1) + "): " + e.getMessage());
             }
             attempts++;
@@ -85,21 +100,63 @@ public class UtilService {
         }
     }
 
-    @Async
+    public String formatTime(int totalSeconds) {
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        return String.format("%02d:%02d", minutes, seconds);
+    }
+
     public void timingCounter(int seconds, Long gameId) {
-      while(seconds>=0)
-        {
-            seconds = seconds -1;
-            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", gameService.formatTime(seconds));
+        while (seconds >= 0) {
+            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", formatTime(seconds));
+            log.info("websocket send rest time: {}", seconds);
+            seconds = seconds - 1;
             try {
-              Thread.sleep(999);
-          } catch (InterruptedException e) {
-              Thread.currentThread().interrupt();
-              messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-              break;
-          }
+                Thread.sleep(1000);
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+                break;
+            }
         }
         messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", "timesup!");
+
+        // return the scoreboard to frontend
+        Game resultGame = gameRepository.findBygameId(gameId);
+        Map<String, Integer> scoreBoardResult = new HashMap<>();
+        for (Long userid : resultGame.getPlayers()) {
+            String username = (userRepository.findByUserId(userid)).getUsername();
+            int score = (resultGame.getScoreBoard()).get(userid);
+            scoreBoardResult.put(username, score);
+        }
+        scoreBoardResult.entrySet().stream().sorted(Map.Entry.comparingByValue())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (oldValue, newValue) -> oldValue,
+                        LinkedHashMap::new
+                ));
+        messagingTemplate.convertAndSend("/topic/end/scoreBoard", scoreBoardResult);
+        log.info("websocket send: scoreBoard!");
+    }
+
+    public void countdown(Long gameId) {
+        int readycounter = 5;
+        while (readycounter >= 0) {
+            messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", formatTime(readycounter));
+            log.info("websocket send: formatted-time: {}", formatTime(readycounter));
+            readycounter = readycounter - 1;
+            try {
+                Thread.sleep(1000);
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+                break;
+            }
+        }
+        messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", "gamestart!");
     }
 
     //<country, clue, difficulty(int)>
@@ -120,10 +177,12 @@ public class UtilService {
 
             if (response.statusCode() == 200) {
                 return extractClues(response.body(), targetCountry);
-            } else {
+            }
+            else {
                 throw new RuntimeException("LLM API failed: " + response.body());
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Error generating clues", e);
         }
@@ -132,11 +191,11 @@ public class UtilService {
     private String buildPrompt(Country country, int clueNumber) {
         return """
                 You are an AI that generates **single-sentence** geography quiz clues for a game.
-
+                
                 ### **Task**
                 Given the country: %s, generate **%d different geography clues** that **do not directly mention the country's name and any information provided below**. IMPORTANT: AVOID GENERATING ANYTHING RELATED TO POLITICS AND HISTORY. 
                 Each clue should have a difficulty score from **1 to %d**, increasing progressively.
-
+                
                 ### **Strict Output Format**
                 Return **exactly** %d clues in the following format, NEVER include any other words or characters!!:
                 1. Clue: [Provide a single-sentence clue] - Difficulty: 1
