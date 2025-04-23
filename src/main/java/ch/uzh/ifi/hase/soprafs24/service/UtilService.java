@@ -33,10 +33,11 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class UtilService {
-    private static final int FILL_SIZE = 20;
+    private static final int FILL_SIZE = 10;
     private static final int HINT_NUMBER = 5;
 
-    private static final String GEMINI_API_KEY = "AIzaSyDOukvhZmaQlP38T1bdTGGnc5X-TYRr_Gc";
+//    private static final String GEMINI_API_KEY = "AIzaSyDOukvhZmaQlP38T1bdTGGnc5X-TYRr_Gc";
+    private static final String GEMINI_API_KEY = "AIzaSyDY8tpkqRT5UkmNP0U3NuOtfnR--O9_fps";
     private static final String MODEL_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY;
 
@@ -108,6 +109,8 @@ public class UtilService {
 
     public void timingCounter(int seconds, Long gameId) {
         while (seconds >= 0) {
+            if (gameRepository.findBygameId(gameId).getPlayers().isEmpty()) { return; }
+
             messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", formatTime(seconds));
             log.info("websocket send rest time: {}", seconds);
             seconds = seconds - 1;
@@ -120,7 +123,6 @@ public class UtilService {
                 break;
             }
         }
-        messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", "timesup!");
 
         // return the scoreboard to frontend
         Game resultGame = gameRepository.findBygameId(gameId);
@@ -141,10 +143,10 @@ public class UtilService {
         log.info("websocket send: scoreBoard!");
     }
 
-    public void countdown(Long gameId) {
+    public void countdown(Long gameId, int time) {
         int readycounter = 5;
-        while (readycounter >= 0) {
-            messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", formatTime(readycounter));
+        while (readycounter > 0) {
+            messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", readycounter);
             log.info("websocket send: formatted-time: {}", formatTime(readycounter));
             readycounter = readycounter - 1;
             try {
@@ -156,7 +158,7 @@ public class UtilService {
                 break;
             }
         }
-        messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", "gamestart!");
+        messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", formatTime(time * 60));
     }
 
     //<country, clue, difficulty(int)>

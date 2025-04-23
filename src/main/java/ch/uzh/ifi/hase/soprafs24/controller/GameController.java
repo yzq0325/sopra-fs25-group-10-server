@@ -138,7 +138,7 @@ public class GameController {
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public void saveGame(@PathVariable Long gameId){
-    gameService.saveGame(gameId);
+      gameService.saveGame(gameId);
   }
     
 }
