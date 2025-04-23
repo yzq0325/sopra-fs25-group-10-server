@@ -84,6 +84,7 @@ public class GameController {
     for (User player : players) {
       allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(player));
     }
+
     return allPlayersDTOs;
   }
 
