@@ -66,13 +66,19 @@ sonar {
         property "sonar.projectKey", "T0hsakaR1n126_sopra-fs25-group-10-server"
         property "sonar.organization", "t0hsakar1n126"
         property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
     }
 }
 
 jacocoTestReport {
     reports {
         xml.enabled true
+        html.enabled true
     }
+}
+
+tasks.named('sonar').configure {
+    dependsOn jacocoTestReport
 }
 
 test {
