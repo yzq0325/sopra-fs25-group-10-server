@@ -328,7 +328,8 @@ public class GameService {
         }
         for (Long userId : gameToSave.getScoreBoard().keySet()) {
             User player = userRepository.findByUserId(userId);
-            player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), gameToSave.getTotalQuestions(userId));
+            player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
+            gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime());
             player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
             player.setGame(null);
             userRepository.save(player);
@@ -457,19 +458,6 @@ public class GameService {
     }
 
     public List<UserGetDTO> getLeaderboard() {
-        // List<Game> allGames = gameRepository.findAll();
-        // Map<Long, Integer> userScoreMap = new HashMap<>();
-
-        // for (Game game : allGames) {
-        //     if (game.getEndTime() == null || game.getScoreBoard() == null) {
-        //         continue;
-        //     }
-        //     for (Map.Entry<Long, Integer> entry : game.getScoreBoard().entrySet()) {
-        //         Long userId = entry.getKey();
-        //         Integer score = entry.getValue();
-        //         userScoreMap.put(userId, userScoreMap.getOrDefault(userId, 0) + score);
-        //     }
-        // }
 
         List<User> allUsers = userRepository.findAll();
         List<UserGetDTO> leaderBoard = new ArrayList<>(); 
@@ -482,19 +470,6 @@ public class GameService {
             leaderBoard.add(userGetDTO);
         }
         leaderBoard.sort(Comparator.comparing(UserGetDTO::getLevel).reversed());
-        // ));
-        //     User user = userRepository.findById(userId)
-        //             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
-        //     GameGetDTO dto = new GameGetDTO();
-        //     dto.setUserId(userId);
-        //     dto.setUsername(user.getUsername());
-        //     dto.setTotalScore(totalScore);
-        //     leaderboard.add(dto);
-        // }
-
-        // leaderboard.sort((a, b) -> b.getTotalScore().compareTo(a.getTotalScore()));
-
         return leaderBoard;
     }
 
@@ -514,7 +489,8 @@ public class GameService {
             gameToEnd.updateScore(userId, -1);
             User playerToEnd = userRepository.findByUserId(userId);
             gameToEnd.updateScore(userId, -1);
-            playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), gameToEnd.getTotalQuestions(userId ));
+            playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId), 
+            gameToEnd.getTotalQuestions(userId), gameToEnd.getGameCreationDate(), gameToEnd.getTime());
             playerToEnd.setGame(null);
             userRepository.save(playerToEnd);
             userRepository.flush();
@@ -528,7 +504,8 @@ public class GameService {
                 gameToEnd.setOwnerId(gameToEnd.getPlayers().get(0));
                 messagingTemplate.convertAndSend("/topic/game"+gameToEnd.getGameId()+"/owner", gameToEnd.getOwnerId());
                 gameToEnd.updateScore(userId, -1);
-                playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), gameToEnd.getTotalQuestions(userId ));
+                playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
+                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime());
                 playerToEnd.setGame(null);
                 userRepository.save(playerToEnd);
                 userRepository.flush();
@@ -539,7 +516,8 @@ public class GameService {
                 User playerToEnd = userRepository.findByUserId(userId);
                 gameToEnd.removePlayer(playerToEnd);
                 gameToEnd.updateScore(userId, -1);
-                playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), gameToEnd.getTotalQuestions(userId ));
+                playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
+                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime());
                 playerToEnd.setGame(null);
                 userRepository.save(playerToEnd);
                 userRepository.flush();

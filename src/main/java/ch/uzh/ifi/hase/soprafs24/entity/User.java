@@ -46,6 +46,12 @@ public class User implements Serializable {
         @Column(name = "totalQuestions", nullable = false)
         private int totalQuestions;
 
+        @Column(name = "gameCreationDate", nullable = false)
+        private String gameCreationDate;
+
+        @Column(name = "gameTime", nullable = false)
+        private int gameTime;
+
         public int getScore() {
             return score;
         }
@@ -68,6 +74,22 @@ public class User implements Serializable {
 
         public void setTotalQuestions(int totalQuestions) {
             this.totalQuestions = totalQuestions;
+        }
+
+        public String getGameCreationDate() {
+            return gameCreationDate;
+        }
+        
+        public void setGameCreationDate(String gameCreationDate) {
+            this.gameCreationDate = gameCreationDate;
+        }
+
+        public int getGameTime() {
+            return gameTime;
+        }
+        
+        public void setGameTime(int gameTime) {
+            this.gameTime = gameTime;
         }
     }
 
@@ -199,11 +221,13 @@ public class User implements Serializable {
         this.level = level;
     }
 
-    public void setGameHistory(String gameName, int score, int correct, int total) {
+    public void setGameHistory(String gameName, int score, int correct, int total, String gameCreationDate, int gameTime) {
         GameQuickSave gameQuickSave = new GameQuickSave();
         gameQuickSave.setScore(score);
         gameQuickSave.setCorrectAnswers(correct);
         gameQuickSave.setTotalQuestions(total);
+        gameQuickSave.setGameCreationDate(gameCreationDate);
+        gameQuickSave.setGameTime(gameTime);
         gameHistory.put(gameName, gameQuickSave);
     }
 
