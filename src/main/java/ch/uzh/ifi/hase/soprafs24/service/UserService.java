@@ -55,6 +55,7 @@ public class UserService {
     checkIfUserExists(newUser);
     // saves the given entity but data is only persisted in the database once
     // flush() is called
+    newUser.setAvatar(VALID_AVATARS.iterator().next());
     newUser = userRepository.save(newUser);
     userRepository.flush();
 
@@ -138,6 +139,7 @@ public class UserService {
     }
 
     userInDB.setUsername(updatedInfo.getUsername());
+    userInDB.setName(updatedInfo.getName());
     userInDB.setAvatar(updatedInfo.getAvatar());
     userInDB.setEmail(updatedInfo.getEmail());
     userInDB.setBio(updatedInfo.getBio());
