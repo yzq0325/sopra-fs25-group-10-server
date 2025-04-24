@@ -103,7 +103,7 @@ public class User implements Serializable {
     @JoinColumn(name = "gameId", nullable = true)
     private Game game;
 
-    @Column(precision = 3, scale = 1) // 总位数3，小数位1（如10.5）
+    @Column(precision = 8, scale = 1) 
     private BigDecimal level = new BigDecimal("0.0");
 
     @ElementCollection
