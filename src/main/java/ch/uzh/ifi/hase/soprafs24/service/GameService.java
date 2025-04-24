@@ -326,10 +326,10 @@ public class GameService {
         if (gameToSave == null) {
             return;
         }
-        for (Long userid : gameToSave.getScoreBoard().keySet()) {
-            User player = userRepository.findByUserId(userid);
-            player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userid), gameToSave.getCorrectAnswers(userid), gameToSave.getTotalQuestions(userid));
-            player.setLevel((BigDecimal.valueOf(gameToSave.getScore(userid) / 100)).add(player.getLevel()));
+        for (Long userId : gameToSave.getScoreBoard().keySet()) {
+            User player = userRepository.findByUserId(userId);
+            player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), gameToSave.getTotalQuestions(userId));
+            player.setLevel((BigDecimal.valueOf(gameToSave.getScore(userId) / 100)).add(player.getLevel()));
             player.setGame(null);
             userRepository.save(player);
             userRepository.flush();

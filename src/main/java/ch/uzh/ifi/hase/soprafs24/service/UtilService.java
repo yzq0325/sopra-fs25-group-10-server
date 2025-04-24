@@ -132,13 +132,20 @@ public class UtilService {
             int score = (resultGame.getScoreBoard()).get(userid);
             scoreBoardResult.put(username, score);
         }
-        scoreBoardResult.entrySet().stream().sorted(Map.Entry.<String,Integer>comparingByValue(Comparator.reverseOrder()))
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (oldValue, newValue) -> oldValue,
-                        LinkedHashMap::new
-                ));
+        // scoreBoardResult.entrySet().stream().sorted(Map.Entry.<String,Integer>comparingByValue(Comparator.reverseOrder()))
+        //         .collect(Collectors.toMap(
+        //                 Map.Entry::getKey,
+        //                 Map.Entry::getValue,
+        //                 (oldValue, newValue) -> oldValue,
+        //                 LinkedHashMap::new
+        //         ));
+        scoreBoardResult.entrySet().stream().sorted(Map.Entry.comparingByValue())
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            Map.Entry::getValue,
+                            (oldValue, newValue) -> oldValue,
+                            LinkedHashMap::new
+                    ));
         messagingTemplate.convertAndSend("/topic/end/scoreBoard", scoreBoardResult);
         log.info("websocket send: scoreBoard!");
     }
