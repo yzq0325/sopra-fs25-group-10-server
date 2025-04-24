@@ -29,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Collections;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -454,39 +455,59 @@ public class GameService {
                 .collect(Collectors.toList());
     }
 
-    public List<GameGetDTO> getLeaderboard() {
-        List<Game> allGames = gameRepository.findAll();
-        Map<Long, Integer> userScoreMap = new HashMap<>();
+    public List<UserGetDTO> getLeaderboard() {
+        // List<Game> allGames = gameRepository.findAll();
+        // Map<Long, Integer> userScoreMap = new HashMap<>();
 
-        for (Game game : allGames) {
-            if (game.getEndTime() == null || game.getScoreBoard() == null) {
-                continue;
-            }
-            for (Map.Entry<Long, Integer> entry : game.getScoreBoard().entrySet()) {
-                Long userId = entry.getKey();
-                Integer score = entry.getValue();
-                userScoreMap.put(userId, userScoreMap.getOrDefault(userId, 0) + score);
-            }
+        // for (Game game : allGames) {
+        //     if (game.getEndTime() == null || game.getScoreBoard() == null) {
+        //         continue;
+        //     }
+        //     for (Map.Entry<Long, Integer> entry : game.getScoreBoard().entrySet()) {
+        //         Long userId = entry.getKey();
+        //         Integer score = entry.getValue();
+        //         userScoreMap.put(userId, userScoreMap.getOrDefault(userId, 0) + score);
+        //     }
+        // }
+
+        List<User> allUsers = userRepository.findAll();
+        List<UserGetDTO> leaderBoard = new ArrayList<>(); 
+
+        for (User user : allUsers) {
+            UserGetDTO userGetDTO = new UserGetDTO();
+            userGetDTO.setLevel(user.getLevel().intValue());
+            userGetDTO.setUsername(user.getUsername());
+            userGetDTO.setAvatar(user.getAvatar());
+            leaderBoard.add(userGetDTO);
         }
+        Collections.sort(leaderBoard,new Comparator<UserGetDTO>() {
+            @Override
+            public int compare(UserGetDTO user1, UserGetDTO user2){
+                if(user1.getLevel()> user2.getLevel()){
+                    return 1;
+                }
+                else if(user1.getLevel() == user2.getLevel()){
+                    return 0;
+                }
+                else{
+                    return -1;
+                }
+            }
+        });
+        // ));
+        //     User user = userRepository.findById(userId)
+        //             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        List<GameGetDTO> leaderboard = new ArrayList<>();
-        for (Map.Entry<Long, Integer> entry : userScoreMap.entrySet()) {
-            Long userId = entry.getKey();
-            Integer totalScore = entry.getValue();
+        //     GameGetDTO dto = new GameGetDTO();
+        //     dto.setUserId(userId);
+        //     dto.setUsername(user.getUsername());
+        //     dto.setTotalScore(totalScore);
+        //     leaderboard.add(dto);
+        // }
 
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        // leaderboard.sort((a, b) -> b.getTotalScore().compareTo(a.getTotalScore()));
 
-            GameGetDTO dto = new GameGetDTO();
-            dto.setUserId(userId);
-            dto.setUsername(user.getUsername());
-            dto.setTotalScore(totalScore);
-            leaderboard.add(dto);
-        }
-
-        leaderboard.sort((a, b) -> b.getTotalScore().compareTo(a.getTotalScore()));
-
-        return leaderboard;
+        return leaderBoard;
     }
 
     public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry() {

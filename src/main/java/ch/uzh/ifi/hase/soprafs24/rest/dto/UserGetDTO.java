@@ -1,5 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
+import java.math.BigDecimal;
+
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 
 public class UserGetDTO {
@@ -12,6 +14,7 @@ public class UserGetDTO {
   private String avatar;
   private String email;
   private String bio;
+  private int level;
 
   public Long getUserId() {
     return userId;
@@ -75,5 +78,13 @@ public class UserGetDTO {
 
   public void setBio(String bio) {
     this.bio = bio;
+  }
+
+  public int getLevel() {
+    return level;
+  }
+
+  public void setLevel(int level) {
+    this.level = level;
   }
 }

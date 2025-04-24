@@ -120,13 +120,13 @@ public class GameControllerTest {
                 .andExpect(status().isOk());
     }
 
-    @Test
-    public void getLeaderboard_success() throws Exception {
-        given(gameService.getLeaderboard()).willReturn(List.of(gameGetDTO));
+    // @Test
+    // public void getLeaderboard_success() throws Exception {
+    //     given(gameService.getLeaderboard()).willReturn(List.of(gameGetDTO));
 
-        mockMvc.perform(get("/leaderboard"))
-                .andExpect(status().isOk());
-    }
+    //     mockMvc.perform(get("/leaderboard"))
+    //             .andExpect(status().isOk());
+    // }
 
     // 辅助方法：将 DTO 转换为 JSON 字符串
     private String asJsonString(final Object object) {

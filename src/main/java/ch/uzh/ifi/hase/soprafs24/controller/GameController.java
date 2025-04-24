@@ -116,7 +116,7 @@ public class GameController {
   @GetMapping("/leaderboard")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public List<GameGetDTO> getLeaderboard() {
+  public List<UserGetDTO> getLeaderboard() {
     return gameService.getLeaderboard();
   }
 
