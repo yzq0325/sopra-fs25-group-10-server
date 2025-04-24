@@ -321,16 +321,16 @@ public class GameService {
         timingThread.start();
     }
 
-    public void saveGame(Long gameId) {
+    public void saveGame(Long gameId, Long userId) {
         Game gameToSave = gameRepository.findBygameId(gameId);
         if (gameToSave == null) {
             return;
         }
-
-        for (Long userId : gameToSave.getScoreBoard().keySet()) {
-            User player = userRepository.findByUserId(userId);
-            player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), gameToSave.getTotalQuestions(userId));
-            player.setLevel((BigDecimal.valueOf(gameToSave.getScore(userId) / 100)).add(player.getLevel()));
+        if(gameToSave.getOwnerId() != userId){return;}
+        for (Long userid : gameToSave.getScoreBoard().keySet()) {
+            User player = userRepository.findByUserId(userid);
+            player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userid), gameToSave.getCorrectAnswers(userid), gameToSave.getTotalQuestions(userid));
+            player.setLevel((BigDecimal.valueOf(gameToSave.getScore(userid) / 100)).add(player.getLevel()));
             player.setGame(null);
             userRepository.save(player);
             userRepository.flush();
@@ -480,7 +480,7 @@ public class GameService {
             userGetDTO.setAvatar(user.getAvatar());
             leaderBoard.add(userGetDTO);
         }
-        leaderBoard.sort(Comparator.comparing(UserGetDTO::getLevel));
+        leaderBoard.sort(Comparator.comparing(UserGetDTO::getLevel).reversed());
         // ));
         //     User user = userRepository.findById(userId)
         //             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
