@@ -145,9 +145,9 @@ public class UtilService {
 
     public void countdown(Long gameId, int time) {
         int readycounter = 5;
-        while (readycounter > 0) {
+        while (readycounter >= 0) {
             messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", readycounter);
-            log.info("websocket send: formatted-time: {}", formatTime(readycounter));
+            log.info("websocket send: ready-time: {}", readycounter);
             readycounter = readycounter - 1;
             try {
                 Thread.sleep(1000);

@@ -234,6 +234,7 @@ public class GameService {
             players.add(userRepository.findByUserId(userId));
         }
         messagingTemplate.convertAndSend("/topic/playersNumber", gameJoined.getPlayersNumber());
+        messagingTemplate.convertAndSend("/topic/gametime", utilService.formatTime(gameJoined.getTime()*60));
         return players;
 
     }
@@ -283,7 +284,15 @@ public class GameService {
         gameRepository.flush();
 
         // countdown
-        utilService.countdown(gameId, gameToStart.getTime());
+        // utilService.countdown(gameId, gameToStart.getTime());
+        messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", 5);
+        try {
+            Thread.sleep(7000);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+        }
 
         // push hints
         GameGetDTO gameHintDTO = new GameGetDTO();
@@ -321,7 +330,7 @@ public class GameService {
         for (Long userId : playersToSave) {
             User player = userRepository.findByUserId(userId);
             player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), gameToSave.getTotalQuestions(userId));
-            player.setLevel(BigDecimal.valueOf(gameToSave.getScore(userId) / 100));
+            player.setLevel((BigDecimal.valueOf(gameToSave.getScore(userId) / 100)).add(player.getLevel()));
             player.setGame(null);
             userRepository.save(player);
             userRepository.flush();
@@ -493,9 +502,17 @@ public class GameService {
     public void giveupGame(Long userId) {
         Game gameToEnd = (userRepository.findByUserId(userId)).getGame();
 
-        if (gameToEnd.getPlayers().size() == 1) {
+        if (gameToEnd.getRealPlayersNumber() == 1) {
             gameToEnd.updateScore(userId, -1);
-            gameRepository.deleteByGameId(gameToEnd.getGameId());
+            List<Long> playersToSave = gameToEnd.getPlayers();
+            for (Long userid : playersToSave) {
+            User player = userRepository.findByUserId(userid );
+            player.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userid ), gameToEnd.getCorrectAnswers(userid ), gameToEnd.getTotalQuestions(userid ));
+            player.setGame(null);
+            userRepository.save(player);
+            userRepository.flush();
+        }
+        gameRepository.deleteByGameId(gameToEnd.getGameId());
         }
         else {
             if (gameToEnd.getOwnerId().equals(userId)) {
@@ -531,8 +548,8 @@ public class GameService {
             gameToEnd.removePlayer(userRepository.findByUserId(userId));
             gameRepository.save(gameToEnd);
             gameRepository.flush();
-
         }
+
     }
 
 
