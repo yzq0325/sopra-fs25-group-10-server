@@ -10,6 +10,7 @@ import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,17 +61,17 @@ public class UserController {
   }
     
 
-  @PutMapping("/users/pwd")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void changePassword(@RequestBody UserPasswordDTO userPasswordDTO) {
-      // verification
-      User userInput = new User();
-      userInput.setToken(userPasswordDTO.getToken());
-      User authenticatedUser = userService.userAuthenticate(userInput);
+  // @PutMapping("/users/pwd")
+  // @ResponseStatus(HttpStatus.NO_CONTENT)
+  // public void changePassword(@RequestBody UserPasswordDTO userPasswordDTO) {
+  //     // verification
+  //     User userInput = new User();
+  //     userInput.setToken(userPasswordDTO.getToken());
+  //     User authenticatedUser = userService.userAuthenticate(userInput);
   
-      // change password
-      userService.changePassword(authenticatedUser.getUserId(), userPasswordDTO.getCurrentPassword(), userPasswordDTO.getNewPassword());
-  }
+  //     // change password
+  //     userService.changePassword(authenticatedUser.getUserId(), userPasswordDTO.getCurrentPassword(), userPasswordDTO.getNewPassword());
+  // }
 
   @PostMapping("/auth")
   @ResponseStatus(HttpStatus.OK)
@@ -105,8 +106,7 @@ public class UserController {
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public UserGetDTO getUserProfile(@PathVariable("userId") Long userId) {
-    User user = userService.findUserById(userId);
-    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
+    return userService.getUser(userId);
   }
 
   @PutMapping("/users/{userId}")
