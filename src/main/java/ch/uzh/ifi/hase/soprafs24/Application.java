@@ -28,14 +28,4 @@ public class Application {
     public void redirectToSwagger(HttpServletResponse response) throws IOException {
         response.sendRedirect("/swagger-ui/index.html"); // or "/swagger-ui.html" depending on your setup
     }
-    
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**").allowedOrigins("*").allowedMethods("*");
-            }
-        };
-    }
 }
