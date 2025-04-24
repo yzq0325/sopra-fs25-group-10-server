@@ -32,11 +32,12 @@ public class UserService {
   private final UserRepository userRepository;
 
   private static final Set<String> VALID_AVATARS = Set.of(
-    "avatar1.png",
-    "avatar2.png",
-    "avatar3.png",
-    "avatar4.png",
-    "avatar5.png"
+    "/avatar_1.png",
+    "/avatar_2.png",
+    "/avatar_3.png",
+    "/avatar_4.png",
+    "/avatar_5.png",
+    "/avatar_6.png"    
   );
 
   @Autowired
