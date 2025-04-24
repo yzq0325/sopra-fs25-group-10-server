@@ -475,25 +475,12 @@ public class GameService {
 
         for (User user : allUsers) {
             UserGetDTO userGetDTO = new UserGetDTO();
-            userGetDTO.setLevel(user.getLevel().intValue());
+            userGetDTO.setLevel((user.getLevel().multiply(new BigDecimal(100))).intValue());
             userGetDTO.setUsername(user.getUsername());
             userGetDTO.setAvatar(user.getAvatar());
             leaderBoard.add(userGetDTO);
         }
-        Collections.sort(leaderBoard,new Comparator<UserGetDTO>() {
-            @Override
-            public int compare(UserGetDTO user1, UserGetDTO user2){
-                if(user1.getLevel()> user2.getLevel()){
-                    return 1;
-                }
-                else if(user1.getLevel() == user2.getLevel()){
-                    return 0;
-                }
-                else{
-                    return -1;
-                }
-            }
-        });
+        leaderBoard.sort(Comparator.comparing(UserGetDTO::getLevel));
         // ));
         //     User user = userRepository.findById(userId)
         //             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
