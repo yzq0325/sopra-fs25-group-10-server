@@ -345,7 +345,6 @@ public class GameService {
 
         targetGame.updateTotalQuestions(userId, targetGame.getTotalQuestions(userId) + 1);
 
-//        if (gamePostDTO.getSubmitAnswer() == generatedHints.keySet().iterator().next()) {
         if (gamePostDTO.getSubmitAnswer() == answers.get(userId)) {
             targetGame.updateCorrectAnswers(userId, targetGame.getCorrectAnswers(userId) + 1);
             targetGame.updateScore(userId, targetGame.getScore(userId) + (100 - (gamePostDTO.getHintUsingNumber() - 1) * 20));
@@ -428,7 +427,6 @@ public class GameService {
             game.getCorrectAnswersMap().put(userId, correct);
             game.getTotalQuestionsMap().put(userId, total);
             game.getResultSummaryMap().put(userId, summary);
-
         }
 
         // end
