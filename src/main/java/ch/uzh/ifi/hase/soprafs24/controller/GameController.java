@@ -51,7 +51,7 @@ public class GameController {
       return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(createdGame);
   }
 
-  @GetMapping("/lobby")
+  @PutMapping("/lobby")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public void getGameLobby() {
@@ -84,6 +84,7 @@ public class GameController {
     for (User player : players) {
       allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(player));
     }
+
     return allPlayersDTOs;
   }
 
@@ -137,7 +138,7 @@ public class GameController {
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public void saveGame(@PathVariable Long gameId){
-    gameService.saveGame(gameId);
+      gameService.saveGame(gameId);
   }
     
 }

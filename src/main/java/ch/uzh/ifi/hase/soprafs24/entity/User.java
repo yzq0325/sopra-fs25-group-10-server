@@ -29,189 +29,193 @@ import java.util.Map;
 @Table(name = "USER")
 public class User implements Serializable {
 
-  private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-  @Embeddable 
-  public class GameQuickSave{
-    @Column(name = "score", nullable = false)
-    private int score;
+    @Embeddable
+    public static class GameQuickSave {
 
-    @Column(name = "correctanswers", nullable = false)
-    private int correctAnswers;
+        public GameQuickSave() {
+        }
 
-    @Column(name = "totalQuestions", nullable = false)
-    private int totalQuestions;
+        @Column(name = "score", nullable = false)
+        private int score;
 
-    public int getScore() {
-      return score;
+        @Column(name = "correctanswers", nullable = false)
+        private int correctAnswers;
+
+        @Column(name = "totalQuestions", nullable = false)
+        private int totalQuestions;
+
+        public int getScore() {
+            return score;
+        }
+
+        public void setScore(int score) {
+            this.score = score;
+        }
+
+        public int getCorrectAnswers() {
+            return correctAnswers;
+        }
+
+        public void setCorrectAnswers(int correctAnswers) {
+            this.correctAnswers = correctAnswers;
+        }
+
+        public int getTotalQuestions() {
+            return totalQuestions;
+        }
+
+        public void setTotalQuestions(int totalQuestions) {
+            this.totalQuestions = totalQuestions;
+        }
     }
 
-    public void setScore(int score) {
-        this.score = score;
+    @Id
+    @GeneratedValue
+    private Long userId;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false, unique = true)
+    private String username;
+
+    @Column(nullable = false, unique = true)
+    private String token;
+
+    @Column(nullable = false)
+    private UserStatus status;
+
+    @Column(nullable = false)
+    private String password;
+
+    @Column
+    private String avatar;
+
+    @Column
+    private String email;
+
+    @Column
+    private String bio;
+
+    @ManyToOne
+    @JoinColumn(name = "gameId", nullable = true)
+    private Game game;
+
+    @Column(precision = 3, scale = 1) // 总位数3，小数位1（如10.5）
+    private BigDecimal level;
+
+    @ElementCollection
+    @CollectionTable(name = "userGameHistory", joinColumns = @JoinColumn(name = "userId"))
+    @MapKeyColumn(name = "gameName")
+    private Map<String, GameQuickSave> gameHistory = new HashMap<>();
+
+    public Long getUserId() {
+        return userId;
     }
 
-    public int getCorrectAnswers() {
-        return correctAnswers;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
-    public void setCorrectAnswers(int correctAnswers) {
-        this.correctAnswers = correctAnswers;
+    public String getName() {
+        return name;
     }
 
-    public int getTotalQuestions() {
-        return totalQuestions;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public void setTotalQuestions(int totalQuestions) {
-        this.totalQuestions = totalQuestions;
+    public String getUsername() {
+        return username;
     }
-  }
 
-  @Id
-  @GeneratedValue
-  private Long userId;
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
-  @Column(nullable = false)
-  private String name;
+    public String getToken() {
+        return token;
+    }
 
-  @Column(nullable = false, unique = true)
-  private String username;
+    public void setToken(String token) {
+        this.token = token;
+    }
 
-  @Column(nullable = false, unique = true)
-  private String token;
+    public UserStatus getStatus() {
+        return status;
+    }
 
-  @Column(nullable = false)
-  private UserStatus status;
+    public void setStatus(UserStatus status) {
+        this.status = status;
+    }
 
-  @Column(nullable = false)
-  private String password;
+    public String getPassword() {
+        return password;
+    }
 
-  @Column
-  private String avatar;
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-  @Column
-  private String email;
+    public String getAvatar() {
+        return avatar;
+    }
 
-  @Column
-  private String bio;
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
+    }
 
-  @ManyToOne
-  @JoinColumn(name = "gameId", nullable = true)
-  private Game game;
+    public String getEmail() {
+        return email;
+    }
 
-  @Column(precision = 3, scale = 1) // 总位数3，小数位1（如10.5）
-  private BigDecimal level;
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-  @ElementCollection
-  @CollectionTable(name = "userGameHistory",joinColumns = @JoinColumn(name = "userId"))
-  @MapKeyColumn(name = "gameName") 
-  private Map<String, GameQuickSave> gameHistory = new HashMap<>();
+    public String getBio() {
+        return bio;
+    }
 
-  public Long getUserId() {
-    return userId;
-  }
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
 
-  public void setUserId(Long userId) {
-    this.userId = userId;
-  }
+    public Game getGame() {
+        return game;
+    }
 
-  public String getName() {
-    return name;
-  }
+    public void setGame(Game game) {
+        this.game = game;
+    }
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    public BigDecimal getLevel() {
+        return level;
+    }
 
-  public String getUsername() {
-    return username;
-  }
+    public void setLevel(BigDecimal level) {
+        this.level = level;
+    }
 
-  public void setUsername(String username) {
-    this.username = username;
-  }
+    public void setGameHistory(String gameName, int score, int correct, int total) {
+        GameQuickSave gameQuickSave = new GameQuickSave();
+        gameQuickSave.setScore(score);
+        gameQuickSave.setCorrectAnswers(correct);
+        gameQuickSave.setTotalQuestions(total);
+        gameHistory.put(gameName, gameQuickSave);
+    }
 
-  public String getToken() {
-    return token;
-  }
+    public int getGameScore(String gameName) {
+        return gameHistory.get(gameName).getScore();
+    }
 
-  public void setToken(String token) {
-    this.token = token;
-  }
+    public int getGameCorrectAnswer(String gameName) {
+        return gameHistory.get(gameName).getCorrectAnswers();
+    }
 
-  public UserStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(UserStatus status) {
-    this.status = status;
-  }
-
-  public String getPassword() {
-    return password;
-  }
-    
-  public void setPassword(String password) {
-    this.password = password;
-  }
-
-  public String getAvatar() {
-    return avatar;
-  }
-
-  public void setAvatar(String avatar) {
-    this.avatar = avatar;
-  }
-
-  public String getEmail() {
-    return email;
-  }
-
-  public void setEmail(String email) {
-    this.email = email;
-  }
-
-  public String getBio() {
-    return bio;
-  }
-
-  public void setBio(String bio) {
-    this.bio = bio;
-  }
-
-  public Game getGame() {
-    return game;
-  }
-
-  public void setGame(Game game) {
-      this.game = game;
-  }
-
-  public BigDecimal getLevel(){
-    return level;
-  }
-
-  public void setLevel(BigDecimal level){
-    this.level = level;
-  }
-
-  public void setGameHistory(String gameName, int score, int correct, int total) {
-      GameQuickSave gameQuickSave = new GameQuickSave();
-      gameQuickSave.setScore(score);
-      gameQuickSave.setCorrectAnswers(correct);
-      gameQuickSave.setTotalQuestions(total);
-      gameHistory.put(gameName, gameQuickSave);
-  }
-
-  public int getGameScore(String gameName) {
-      return gameHistory.get(gameName).getScore();
-  }
-
-  public int getGameCorrectAnswer(String gameName) {
-    return gameHistory.get(gameName).getCorrectAnswers();
-  }
-
-  public int getGameTotalQuestions(String gameName) {
-    return gameHistory.get(gameName).getTotalQuestions();
-  }
+    public int getGameTotalQuestions(String gameName) {
+        return gameHistory.get(gameName).getTotalQuestions();
+    }
 }
