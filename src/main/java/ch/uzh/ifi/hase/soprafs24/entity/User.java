@@ -207,6 +207,10 @@ public class User implements Serializable {
         gameHistory.put(gameName, gameQuickSave);
     }
 
+    public Map<String, GameQuickSave> getGameHistory(){
+        return gameHistory;
+    }
+
     public int getGameScore(String gameName) {
         return gameHistory.get(gameName).getScore();
     }

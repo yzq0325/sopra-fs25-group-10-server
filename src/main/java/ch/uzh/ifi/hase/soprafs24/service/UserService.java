@@ -4,6 +4,8 @@ import ch.uzh.ifi.hase.soprafs24.constant.Country;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -147,6 +149,18 @@ public class UserService {
 
     userRepository.save(userInDB);
     return userInDB;
+  }
+
+  public UserGetDTO getHistory(Long userId) {
+    User userToGetHistory = userRepository.findByUserId(userId);
+    if (userToGetHistory == null) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Authenticated");
+    }
+    UserGetDTO userDTOwithHistory = new UserGetDTO();
+
+    userDTOwithHistory.setGameHistory(userToGetHistory.getGameHistory());
+
+    return userDTOwithHistory;
   }
 
   /**

@@ -117,4 +117,13 @@ public class UserController {
     User updatedUser = userService.updateUserProfile(userId, updatedInfo);
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
   }
+
+  @GetMapping("/history/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public UserGetDTO getHistory(@PathVariable Long userId){
+
+    return userService.getHistory(userId);
+
+  }
 }

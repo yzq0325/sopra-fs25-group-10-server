@@ -1,8 +1,10 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.User.GameQuickSave;
 
 public class UserGetDTO {
 
@@ -15,6 +17,7 @@ public class UserGetDTO {
   private String email;
   private String bio;
   private int level;
+  private Map<String, GameQuickSave> gameHistory;
 
   public Long getUserId() {
     return userId;
@@ -86,5 +89,13 @@ public class UserGetDTO {
 
   public void setLevel(int level) {
     this.level = level;
+  }
+
+  public void setGameHistory(Map<String,GameQuickSave> gameHistory){
+    this.gameHistory = gameHistory;
+  }
+
+  public Map<String,GameQuickSave> getGameHistory(){
+    return gameHistory;
   }
 }
