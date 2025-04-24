@@ -134,11 +134,11 @@ public class GameController {
     gameService.giveupGame(userId);
   }
 
-  @PutMapping("/save/{gameId}/{userId}")
+  @PutMapping("/save/{gameId}/")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public void saveGame(@PathVariable Long gameId, @PathVariable Long userId){
-      gameService.saveGame(gameId,userId);
+  public void saveGame(@PathVariable Long gameId){
+      gameService.saveGame(gameId);
   }
     
 }

@@ -127,12 +127,12 @@ public class UtilService {
         // return the scoreboard to frontend
         Game resultGame = gameRepository.findBygameId(gameId);
         Map<String, Integer> scoreBoardResult = new HashMap<>();
-        for (Long userid : resultGame.getPlayers()) {
+        for (Long userid : resultGame.getScoreBoard().keySet()) {
             String username = (userRepository.findByUserId(userid)).getUsername();
             int score = (resultGame.getScoreBoard()).get(userid);
             scoreBoardResult.put(username, score);
         }
-        scoreBoardResult.entrySet().stream().sorted(Map.Entry.comparingByValue())
+        scoreBoardResult.entrySet().stream().sorted(Map.Entry.<String,Integer>comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue,

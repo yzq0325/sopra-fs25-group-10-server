@@ -321,12 +321,11 @@ public class GameService {
         timingThread.start();
     }
 
-    public void saveGame(Long gameId, Long userId) {
+    public void saveGame(Long gameId) {
         Game gameToSave = gameRepository.findBygameId(gameId);
         if (gameToSave == null) {
             return;
         }
-        if(gameToSave.getOwnerId() != userId){return;}
         for (Long userid : gameToSave.getScoreBoard().keySet()) {
             User player = userRepository.findByUserId(userid);
             player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userid), gameToSave.getCorrectAnswers(userid), gameToSave.getTotalQuestions(userid));
@@ -525,6 +524,7 @@ public class GameService {
                 User playerToEnd = userRepository.findByUserId(userId);
                 gameToEnd.removePlayer(playerToEnd);
                 gameToEnd.setOwnerId(gameToEnd.getPlayers().get(0));
+                messagingTemplate.convertAndSend("/topic/game"+gameToEnd.getGameId()+"/owner", gameToEnd.getOwnerId());
                 gameToEnd.updateScore(userId, -1);
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), gameToEnd.getTotalQuestions(userId ));
                 playerToEnd.setGame(null);
