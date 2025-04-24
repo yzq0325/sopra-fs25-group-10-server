@@ -112,9 +112,18 @@ public class UserController {
   @PutMapping("/users/{userId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public UserGetDTO updateUserProfile(@PathVariable("userId") Long userId,@RequestBody UserProfileDTO userProfileDTO) {
-    User updatedInfo = DTOMapper.INSTANCE.convertUserProfileDTOtoEntity(userProfileDTO);
+  public UserGetDTO updateUserProfile(@PathVariable("userId") Long userId,@RequestBody UserPostDTO userPostDTO) {
+    User updatedInfo = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
     User updatedUser = userService.updateUserProfile(userId, updatedInfo);
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
+  }
+
+  @GetMapping("/history/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public UserGetDTO getHistory(@PathVariable Long userId){
+
+    return userService.getHistory(userId);
+
   }
 }

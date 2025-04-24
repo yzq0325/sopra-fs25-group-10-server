@@ -30,6 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -234,6 +235,7 @@ public class GameService {
             players.add(userRepository.findByUserId(userId));
         }
         messagingTemplate.convertAndSend("/topic/playersNumber", gameJoined.getPlayersNumber());
+        messagingTemplate.convertAndSend("/topic/gametime", utilService.formatTime(gameJoined.getTime()*60));
         return players;
 
     }
@@ -283,7 +285,15 @@ public class GameService {
         gameRepository.flush();
 
         // countdown
-        utilService.countdown(gameId, gameToStart.getTime());
+        // utilService.countdown(gameId, gameToStart.getTime());
+        messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", 5);
+        try {
+            Thread.sleep(7000);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+        }
 
         // push hints
         GameGetDTO gameHintDTO = new GameGetDTO();
@@ -316,12 +326,10 @@ public class GameService {
         if (gameToSave == null) {
             return;
         }
-
-        List<Long> playersToSave = gameToSave.getPlayers();
-        for (Long userId : playersToSave) {
+        for (Long userId : gameToSave.getScoreBoard().keySet()) {
             User player = userRepository.findByUserId(userId);
             player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), gameToSave.getTotalQuestions(userId));
-            player.setLevel(BigDecimal.valueOf(gameToSave.getScore(userId) / 100));
+            player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
             player.setGame(null);
             userRepository.save(player);
             userRepository.flush();
@@ -364,7 +372,7 @@ public class GameService {
                             (e1, e2) -> e1,
                             LinkedHashMap::new
                     ));
-            messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
+            messagingTemplate.convertAndSend("/topic/user/"+targetGame.getGameId()+"/scoreBoard", scoreBoardFront);
             log.info("websocket send!");
 
             return gameHintDTO;
@@ -384,14 +392,16 @@ public class GameService {
                 int score = (targetGame.getScoreBoard()).get(userid);
                 scoreBoardFront.put(username, score);
             }
-            scoreBoardFront.entrySet().stream().sorted(Map.Entry.comparingByValue())
+            scoreBoardFront.entrySet()
+                    .stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
                     .collect(Collectors.toMap(
                             Map.Entry::getKey,
                             Map.Entry::getValue,
-                            (oldValue, newValue) -> oldValue,
+                            (e1, e2) -> e1,
                             LinkedHashMap::new
                     ));
-            messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
+            messagingTemplate.convertAndSend("/topic/user/"+targetGame.getGameId()+"/scoreBoard", scoreBoardFront);
             log.info("websocket send!");
 
             return gameHintDTO;
@@ -446,39 +456,46 @@ public class GameService {
                 .collect(Collectors.toList());
     }
 
-    public List<GameGetDTO> getLeaderboard() {
-        List<Game> allGames = gameRepository.findAll();
-        Map<Long, Integer> userScoreMap = new HashMap<>();
+    public List<UserGetDTO> getLeaderboard() {
+        // List<Game> allGames = gameRepository.findAll();
+        // Map<Long, Integer> userScoreMap = new HashMap<>();
 
-        for (Game game : allGames) {
-            if (game.getEndTime() == null || game.getScoreBoard() == null) {
-                continue;
-            }
-            for (Map.Entry<Long, Integer> entry : game.getScoreBoard().entrySet()) {
-                Long userId = entry.getKey();
-                Integer score = entry.getValue();
-                userScoreMap.put(userId, userScoreMap.getOrDefault(userId, 0) + score);
-            }
+        // for (Game game : allGames) {
+        //     if (game.getEndTime() == null || game.getScoreBoard() == null) {
+        //         continue;
+        //     }
+        //     for (Map.Entry<Long, Integer> entry : game.getScoreBoard().entrySet()) {
+        //         Long userId = entry.getKey();
+        //         Integer score = entry.getValue();
+        //         userScoreMap.put(userId, userScoreMap.getOrDefault(userId, 0) + score);
+        //     }
+        // }
+
+        List<User> allUsers = userRepository.findAll();
+        List<UserGetDTO> leaderBoard = new ArrayList<>(); 
+
+        for (User user : allUsers) {
+            UserGetDTO userGetDTO = new UserGetDTO();
+            userGetDTO.setLevel((user.getLevel().multiply(new BigDecimal(100))).intValue());
+            userGetDTO.setUsername(user.getUsername());
+            userGetDTO.setAvatar(user.getAvatar());
+            leaderBoard.add(userGetDTO);
         }
+        leaderBoard.sort(Comparator.comparing(UserGetDTO::getLevel).reversed());
+        // ));
+        //     User user = userRepository.findById(userId)
+        //             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        List<GameGetDTO> leaderboard = new ArrayList<>();
-        for (Map.Entry<Long, Integer> entry : userScoreMap.entrySet()) {
-            Long userId = entry.getKey();
-            Integer totalScore = entry.getValue();
+        //     GameGetDTO dto = new GameGetDTO();
+        //     dto.setUserId(userId);
+        //     dto.setUsername(user.getUsername());
+        //     dto.setTotalScore(totalScore);
+        //     leaderboard.add(dto);
+        // }
 
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        // leaderboard.sort((a, b) -> b.getTotalScore().compareTo(a.getTotalScore()));
 
-            GameGetDTO dto = new GameGetDTO();
-            dto.setUserId(userId);
-            dto.setUsername(user.getUsername());
-            dto.setTotalScore(totalScore);
-            leaderboard.add(dto);
-        }
-
-        leaderboard.sort((a, b) -> b.getTotalScore().compareTo(a.getTotalScore()));
-
-        return leaderboard;
+        return leaderBoard;
     }
 
     public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry() {
@@ -493,47 +510,64 @@ public class GameService {
     public void giveupGame(Long userId) {
         Game gameToEnd = (userRepository.findByUserId(userId)).getGame();
 
-        if (gameToEnd.getPlayers().size() == 1) {
+        if (gameToEnd.getRealPlayersNumber() == 1) {
             gameToEnd.updateScore(userId, -1);
+            User playerToEnd = userRepository.findByUserId(userId);
+            gameToEnd.updateScore(userId, -1);
+            playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), gameToEnd.getTotalQuestions(userId ));
+            playerToEnd.setGame(null);
+            userRepository.save(playerToEnd);
+            userRepository.flush();
             gameRepository.deleteByGameId(gameToEnd.getGameId());
         }
         else {
             if (gameToEnd.getOwnerId().equals(userId)) {
                 gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
-                gameToEnd.setOwnerId(gameToEnd.getPlayers().get(1));
+                User playerToEnd = userRepository.findByUserId(userId);
+                gameToEnd.removePlayer(playerToEnd);
+                gameToEnd.setOwnerId(gameToEnd.getPlayers().get(0));
+                messagingTemplate.convertAndSend("/topic/game"+gameToEnd.getGameId()+"/owner", gameToEnd.getOwnerId());
                 gameToEnd.updateScore(userId, -1);
+                playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), gameToEnd.getTotalQuestions(userId ));
+                playerToEnd.setGame(null);
+                userRepository.save(playerToEnd);
+                userRepository.flush();
                 getGameLobby();
             }
             else {
                 gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
+                User playerToEnd = userRepository.findByUserId(userId);
+                gameToEnd.removePlayer(playerToEnd);
                 gameToEnd.updateScore(userId, -1);
+                playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), gameToEnd.getTotalQuestions(userId ));
+                playerToEnd.setGame(null);
+                userRepository.save(playerToEnd);
+                userRepository.flush();
                 getGameLobby();
             }
-//            gameToEnd.updateCorrectAnswers(userId, 0);
-//            gameToEnd.updateTotalQuestions(userId, 0);
-
-            Map<String, Integer> scoreBoardResult = new HashMap<>();
-            for (Long userid : gameToEnd.getPlayers()) {
+            Map<String, Integer> scoreBoardFront = new HashMap<>();
+            for (Long userid : gameToEnd.getScoreBoard().keySet()) {
                 String username = (userRepository.findByUserId(userid)).getUsername();
                 int score = (gameToEnd.getScoreBoard()).get(userid);
-                scoreBoardResult.put(username, score);
+                scoreBoardFront.put(username, score);
             }
-            scoreBoardResult.entrySet().stream().sorted(Map.Entry.comparingByValue())
+            scoreBoardFront.entrySet()
+                    .stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
                     .collect(Collectors.toMap(
                             Map.Entry::getKey,
                             Map.Entry::getValue,
-                            (oldValue, newValue) -> oldValue,
+                            (e1, e2) -> e1,
                             LinkedHashMap::new
                     ));
-            messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardResult);
+            messagingTemplate.convertAndSend("/topic/user/"+gameToEnd.getGameId()+"/scoreBoard", scoreBoardFront);
             log.info("websocket send: scoreBoard!");
 
             gameToEnd.removePlayer(userRepository.findByUserId(userId));
             gameRepository.save(gameToEnd);
             gameRepository.flush();
-
         }
-    }
 
+    }
 
 }

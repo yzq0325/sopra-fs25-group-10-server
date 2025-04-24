@@ -103,8 +103,8 @@ public class User implements Serializable {
     @JoinColumn(name = "gameId", nullable = true)
     private Game game;
 
-    @Column(precision = 3, scale = 1) // 总位数3，小数位1（如10.5）
-    private BigDecimal level;
+    @Column(precision = 8, scale = 1) 
+    private BigDecimal level = new BigDecimal("0.0");
 
     @ElementCollection
     @CollectionTable(name = "userGameHistory", joinColumns = @JoinColumn(name = "userId"))
@@ -205,6 +205,10 @@ public class User implements Serializable {
         gameQuickSave.setCorrectAnswers(correct);
         gameQuickSave.setTotalQuestions(total);
         gameHistory.put(gameName, gameQuickSave);
+    }
+
+    public Map<String, GameQuickSave> getGameHistory(){
+        return gameHistory;
     }
 
     public int getGameScore(String gameName) {
