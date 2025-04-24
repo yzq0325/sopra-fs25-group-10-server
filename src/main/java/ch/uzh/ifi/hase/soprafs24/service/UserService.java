@@ -102,7 +102,7 @@ public class UserService {
     }
 
     userInDB.setStatus(UserStatus.OFFLINE);
-    userInDB.setToken(null);
+    userInDB.setToken("");
     userRepository.save(userInDB);
   }
 
