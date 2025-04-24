@@ -1,29 +1,38 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+
 import ch.uzh.ifi.hase.soprafs24.constant.Country;
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Arrays;
-import java.util.Arrays;
-import java.util.Arrays;
-import java.lang.reflect.Field;
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@ExtendWith(MockitoExtension.class)
 
 public class GameServiceTest {
 
@@ -33,6 +42,12 @@ public class GameServiceTest {
     @Mock
     private UserRepository userRepository;
 
+
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
+
+    @Spy
+    
     @InjectMocks
     private GameService gameService;
 
@@ -41,65 +56,173 @@ public class GameServiceTest {
 
     @BeforeEach
     public void setup() {
-        MockitoAnnotations.openMocks(this);
-
-        // Initialize a game
+    
         testGame = new Game();
         testGame.setGameName("Test Game");
         testGame.setOwnerId(1L);
         testGame.setPlayersNumber(4);
         testGame.setTime(5);
         testGame.setModeType("solo");
+        testGame.setPassword("1234");
 
-        // Initialize a user
         owner = new User();
         owner.setUserId(1L);
-        owner.setUsername("owner");
 
-        // Mock user lookup
-        Mockito.when(userRepository.findByUserId(1L)).thenReturn(owner);
-        
-        // Mock game name and owner uniqueness checks
-        Mockito.when(gameRepository.findByownerId(1L)).thenReturn(null);
-        Mockito.when(gameRepository.findBygameName("Test Game")).thenReturn(null);
-        
-        // Mock saving the game
-        Mockito.when(gameRepository.save(Mockito.any())).thenAnswer(i -> i.getArguments()[0]);
+        when(userRepository.findByUserId(1L)).thenReturn(owner);
+        when(gameRepository.findByownerId(1L)).thenReturn(null);
+        when(gameRepository.findBygameName("Test Game")).thenReturn(null);
+        when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ReflectionTestUtils.setField(gameService, "messagingTemplate", messagingTemplate);
     }
 
     @Test
-    public void createGame_validInputs_success() {
-        // when
-        Game createdGame = gameService.createGame(testGame);
+    public void checkIfOwnerExists_ownerNotFound_throwsException() {
+        when(userRepository.findByUserId(99L)).thenReturn(null);
 
-        // then
-        assertNotNull(createdGame);
-        assertEquals("Test Game", createdGame.getGameName());
-        assertEquals(1L, createdGame.getOwnerId());
-        assertEquals(1, createdGame.getRealPlayersNumber());
-        assertFalse(createdGame.getGameRunning());
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.checkIfOwnerExists(99L);
+        });
+
+        assertTrue(exception.getReason().toLowerCase().contains("owner"));
+    }
+
+    @Test
+    public void checkIfGameHaveSameOwner_ownerHasGame_throwsException() {
+        when(gameRepository.findByownerId(1L)).thenReturn(new Game());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.checkIfGameHaveSameOwner(1L);
+        });
+
+        assertTrue(exception.getReason().toLowerCase().contains("already create a game"));
+    }
+
+    @Test
+    public void checkIfGameNameExists_duplicateName_throwsException() {
+        when(gameRepository.findBygameName("Test Game")).thenReturn(new Game());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.checkIfGameNameExists("Test Game");
+        });
+
+        assertTrue(exception.getReason().toLowerCase().contains("gamename"));
+
     }
 
     @Test
     public void createGame_invalidModeType_throwsException() {
-        // given
-        testGame.setModeType("invalidMode");
+        testGame.setModeType("invalid-mode");
 
-        // then
-        assertThrows(ResponseStatusException.class, () -> gameService.createGame(testGame));
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.createGame(testGame);
+        });
+
+        assertTrue(exception.getReason().toLowerCase().contains("invalid mode"));
     }
 
     @Test
-    public void createGame_duplicateGameName_throwsException() {
-        // given
-        Mockito.when(gameRepository.findBygameName("Test Game")).thenReturn(new Game());
+    public void createGame_validInput_success() {
+        Game result = gameService.createGame(testGame);
 
-        // then
-        assertThrows(ResponseStatusException.class, () -> gameService.createGame(testGame));
+        assertNotNull(result);
+        assertEquals("Test Game", result.getGameName());
+        assertEquals(1L, result.getOwnerId());
+        assertEquals(1, result.getRealPlayersNumber());
+    }
+    
+    @Test
+    public void userJoinGame_successfullyJoinsGame() {
+        Long userId = 2L;
+
+        Game mockGame = new Game();
+        mockGame.setGameId(100L);
+        mockGame.setPassword("pass123");
+        mockGame.setGameRunning(false);
+        mockGame.setPlayersNumber(4);
+        mockGame.setRealPlayersNumber(1);
+        mockGame.setPlayers(new ArrayList<>(List.of(1L)));
+
+        User mockUser = new User();
+        mockUser.setUserId(userId);
+        mockUser.setUsername("newPlayer");
+
+        Game incoming = new Game();
+        incoming.setGameId(100L);
+        incoming.setPassword("pass123");
+
+        // Mocks
+        when(gameRepository.findBygameId(100L)).thenReturn(mockGame);
+        when(userRepository.findByUserId(userId)).thenReturn(mockUser);
+        when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(messagingTemplate).convertAndSend(any(String.class), any(Object.class));
+        doReturn(List.of(mockUser)).when(gameService).getGamePlayers(100L); // Mocks getGamePlayers
+
+        // Act
+        gameService.userJoinGame(incoming, userId);
+
+        // Assert
+        assertEquals(2, mockGame.getRealPlayersNumber());
+        verify(gameRepository).save(any(Game.class));
+        verify(userRepository).save(any(User.class));
+        verify(messagingTemplate).convertAndSend(eq("/topic/ready/100/players"), any(Object.class));
     }
 
+    @Test
+    public void userJoinGame_gameRunning_throwsUnauthorized() {
+        Game runningGame = new Game();
+        runningGame.setGameId(100L);
+        runningGame.setGameRunning(true); // the game is running
 
+        when(gameRepository.findBygameId(100L)).thenReturn(runningGame);
 
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.userJoinGame(runningGame, 2L);
+        });
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
+        assertTrue(exception.getReason().contains("game is running"));
+    }
+
+    @Test
+    public void userJoinGame_gameFull_throwsBadRequest() {
+        Game fullGame = new Game();
+        fullGame.setGameId(100L);
+        fullGame.setGameRunning(false);
+        fullGame.setPlayersNumber(4);
+        fullGame.setRealPlayersNumber(4); // Max players reached
     
-  
+        when(gameRepository.findBygameId(100L)).thenReturn(fullGame);
+    
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.userJoinGame(fullGame, 2L);
+        });
+    
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertTrue(exception.getReason().contains("this game is full"));
+    }
+    
+    @Test
+    public void userJoinGame_wrongPassword_throwsUnauthorized() {
+        Game dbGame = new Game();
+        dbGame.setGameId(100L);
+        dbGame.setGameRunning(false);
+        dbGame.setPlayersNumber(4);
+        dbGame.setRealPlayersNumber(2);
+        dbGame.setPassword("correct123");
+
+        Game joinRequest = new Game();
+        joinRequest.setGameId(100L);
+        joinRequest.setPassword("wrongPassword");
+
+        when(gameRepository.findBygameId(100L)).thenReturn(dbGame);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.userJoinGame(joinRequest, 2L);
+        });
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
+        assertTrue(exception.getReason().contains("Wrong Password"));
+    }
 }
