@@ -29,7 +29,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Collections;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -372,7 +371,7 @@ public class GameService {
                             (e1, e2) -> e1,
                             LinkedHashMap::new
                     ));
-            messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
+            messagingTemplate.convertAndSend("/topic/user/"+targetGame.getGameId()+"/scoreBoard", scoreBoardFront);
             log.info("websocket send!");
 
             return gameHintDTO;
@@ -392,14 +391,16 @@ public class GameService {
                 int score = (targetGame.getScoreBoard()).get(userid);
                 scoreBoardFront.put(username, score);
             }
-            scoreBoardFront.entrySet().stream().sorted(Map.Entry.comparingByValue())
+            scoreBoardFront.entrySet()
+                    .stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
                     .collect(Collectors.toMap(
                             Map.Entry::getKey,
                             Map.Entry::getValue,
-                            (oldValue, newValue) -> oldValue,
+                            (e1, e2) -> e1,
                             LinkedHashMap::new
                     ));
-            messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardFront);
+            messagingTemplate.convertAndSend("/topic/user/"+targetGame.getGameId()+"/scoreBoard", scoreBoardFront);
             log.info("websocket send!");
 
             return gameHintDTO;
@@ -543,20 +544,22 @@ public class GameService {
                 userRepository.flush();
                 getGameLobby();
             }
-            Map<String, Integer> scoreBoardResult = new HashMap<>();
+            Map<String, Integer> scoreBoardFront = new HashMap<>();
             for (Long userid : gameToEnd.getScoreBoard().keySet()) {
                 String username = (userRepository.findByUserId(userid)).getUsername();
                 int score = (gameToEnd.getScoreBoard()).get(userid);
-                scoreBoardResult.put(username, score);
+                scoreBoardFront.put(username, score);
             }
-            scoreBoardResult.entrySet().stream().sorted(Map.Entry.comparingByValue())
+            scoreBoardFront.entrySet()
+                    .stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
                     .collect(Collectors.toMap(
                             Map.Entry::getKey,
                             Map.Entry::getValue,
-                            (oldValue, newValue) -> oldValue,
+                            (e1, e2) -> e1,
                             LinkedHashMap::new
                     ));
-            messagingTemplate.convertAndSend("/topic/user/scoreBoard", scoreBoardResult);
+            messagingTemplate.convertAndSend("/topic/user/"+gameToEnd.getGameId()+"/scoreBoard", scoreBoardFront);
             log.info("websocket send: scoreBoard!");
 
             gameToEnd.removePlayer(userRepository.findByUserId(userId));
