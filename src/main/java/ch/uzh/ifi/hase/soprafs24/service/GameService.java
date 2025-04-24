@@ -30,6 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -328,7 +329,7 @@ public class GameService {
         for (Long userId : gameToSave.getScoreBoard().keySet()) {
             User player = userRepository.findByUserId(userId);
             player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), gameToSave.getTotalQuestions(userId));
-            player.setLevel((BigDecimal.valueOf(gameToSave.getScore(userId) / 100)).add(player.getLevel()));
+            player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
             player.setGame(null);
             userRepository.save(player);
             userRepository.flush();
