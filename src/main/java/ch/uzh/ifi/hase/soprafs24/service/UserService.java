@@ -92,6 +92,9 @@ public class UserService {
     if (userInDB == null || !userInDB.getPassword().equals(loginUser.getPassword())) {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
     }
+    if(userInDB.getStatus().equals(UserStatus.OFFLINE)){
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This user has already logged in!");
+    }
 
     userInDB.setStatus(UserStatus.ONLINE);
     userInDB.setToken(UUID.randomUUID().toString());

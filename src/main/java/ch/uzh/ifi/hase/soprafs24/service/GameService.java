@@ -246,7 +246,7 @@ public class GameService {
 
         //set time
         LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy, HH:mm");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
         gameToStart.setGameCreationDate(now.format(formatter));
 
         //set scoreBoard
