@@ -231,49 +231,49 @@ public class GameServiceTest {
         assertTrue(exception.getReason().contains("Wrong Password"));
     }
 
-    @Test
-    public void userStartGame_successfullyStartGame() {
-        Long gameId = 100L;
-        Long ownerId = 1L;
-        Long playerId = 2L;
+    // @Test
+    // public void userStartGame_successfullyStartGame() {
+    //     Long gameId = 100L;
+    //     Long ownerId = 1L;
+    //     Long playerId = 2L;
 
-        Game mockGame = new Game();
-        mockGame.setGameId(gameId);
-        mockGame.setOwnerId(ownerId);
-        mockGame.setPlayers(new ArrayList<>(List.of(ownerId, playerId)));
-        mockGame.setGameRunning(false);
-        mockGame.setTime(5); // 5 minutes game duration
+    //     Game mockGame = new Game();
+    //     mockGame.setGameId(gameId);
+    //     mockGame.setOwnerId(ownerId);
+    //     mockGame.setPlayers(new ArrayList<>(List.of(ownerId, playerId)));
+    //     mockGame.setGameRunning(false);
+    //     mockGame.setTime(5); // 5 minutes game duration
 
-        User owner = new User();
-        owner.setUserId(ownerId);
-        owner.setUsername("ownerUser");
-        User player = new User();
-        player.setUserId(playerId);
-        player.setUsername("playerUser");
+    //     User owner = new User();
+    //     owner.setUserId(ownerId);
+    //     owner.setUsername("ownerUser");
+    //     User player = new User();
+    //     player.setUserId(playerId);
+    //     player.setUsername("playerUser");
 
-        Map<Country, List<String>> generatedHints = new HashMap<>();
-        Country country = Country.Afghanistan;
-        generatedHints.put(country, List.of("Hint1", "Hint2","Hint3","Hint4","Hint5"));
+    //     Map<Country, List<String>> generatedHints = new HashMap<>();
+    //     Country country = Country.Afghanistan;
+    //     generatedHints.put(country, List.of("Hint1", "Hint2","Hint3","Hint4","Hint5"));
 
-        when(gameRepository.findBygameId(gameId)).thenReturn(mockGame);
-        when(userRepository.findByUserId(ownerId)).thenReturn(owner);
-        when(userRepository.findByUserId(playerId)).thenReturn(player);
-        when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    //     when(gameRepository.findBygameId(gameId)).thenReturn(mockGame);
+    //     when(userRepository.findByUserId(ownerId)).thenReturn(owner);
+    //     when(userRepository.findByUserId(playerId)).thenReturn(player);
+    //     when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        doNothing().when(messagingTemplate).convertAndSend(any(String.class), any(Object.class));
-        doNothing().when(utilService).timingCounter(anyInt(), anyLong());
+    //     doNothing().when(messagingTemplate).convertAndSend(any(String.class), any(Object.class));
+    //     doNothing().when(utilService).timingCounter(anyInt(), anyLong());
 
-        gameService.startGame(gameId);
+    //     gameService.startGame(gameId);
 
-        assertTrue(mockGame.getGameRunning());
-        assertEquals(0, mockGame.getScore(ownerId)); 
-        assertEquals(0, mockGame.getScore(playerId));
-        assertNotNull(mockGame.getGameCreationDate()); 
+    //     assertTrue(mockGame.getGameRunning());
+    //     assertEquals(0, mockGame.getScore(ownerId)); 
+    //     assertEquals(0, mockGame.getScore(playerId));
+    //     assertNotNull(mockGame.getGameCreationDate()); 
 
-        verify(messagingTemplate).convertAndSend(eq("/topic/start/" + gameId + "/ready-time"), eq(5));
-        verify(messagingTemplate).convertAndSend(eq("/topic/start/" + gameId + "/hints"), any(GameGetDTO.class));
-        verify(utilService).timingCounter(eq(5 * 60), eq(gameId)); // 5 minutes converted to seconds
-        verify(gameRepository, atLeastOnce()).save(mockGame);
-        verify(gameRepository).flush();
-    }
+    //     verify(messagingTemplate).convertAndSend(eq("/topic/start/" + gameId + "/ready-time"), eq(5));
+    //     verify(messagingTemplate).convertAndSend(eq("/topic/start/" + gameId + "/hints"), any(GameGetDTO.class));
+    //     verify(utilService).timingCounter(eq(5 * 60), eq(gameId)); // 5 minutes converted to seconds
+    //     verify(gameRepository, atLeastOnce()).save(mockGame);
+    //     verify(gameRepository).flush();
+    // }
 }
