@@ -108,57 +108,19 @@ public class UtilService {
     }
 
     public void timingCounter(int seconds, Long gameId) {
-        while (seconds >= 0) {
-            if (gameRepository.findBygameId(gameId).getPlayers().isEmpty()) { return; }
-
-            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", formatTime(seconds));
-            log.info("websocket send rest time: {}", seconds);
-            seconds = seconds - 1;
-            try {
+        try {
+            if (gameRepository.findBygameId(gameId) == null) { return; }
+            while (seconds >= 0) {
+                if (gameRepository.findBygameId(gameId).getPlayers().isEmpty()) { return; }
+                messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", formatTime(seconds));
+                log.info("websocket send rest time: {}", seconds);
+                seconds = seconds - 1;
                 Thread.sleep(1000);
             }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-                break;
-            }
+        } catch (Exception e) {
+            Thread.currentThread().interrupt();
         }
-
-        // return the scoreboard to frontend
-        Game resultGame = gameRepository.findBygameId(gameId);
-        Map<String, Integer> scoreBoardResult = new HashMap<>();
-        for (Long userid : resultGame.getPlayers()) {
-            String username = (userRepository.findByUserId(userid)).getUsername();
-            int score = (resultGame.getScoreBoard()).get(userid);
-            scoreBoardResult.put(username, score);
-        }
-        scoreBoardResult.entrySet().stream().sorted(Map.Entry.comparingByValue())
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (oldValue, newValue) -> oldValue,
-                        LinkedHashMap::new
-                ));
-        messagingTemplate.convertAndSend("/topic/end/scoreBoard", scoreBoardResult);
-        log.info("websocket send: scoreBoard!");
-    }
-
-    public void countdown(Long gameId, int time) {
-        int readycounter = 5;
-        while (readycounter > 0) {
-            messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", readycounter);
-            log.info("websocket send: formatted-time: {}", formatTime(readycounter));
-            readycounter = readycounter - 1;
-            try {
-                Thread.sleep(1000);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-                break;
-            }
-        }
-        messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", formatTime(time * 60));
+        messagingTemplate.convertAndSend("/topic/end/"+gameId, "Game End!");
     }
 
     //<country, clue, difficulty(int)>

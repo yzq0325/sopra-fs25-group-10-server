@@ -4,6 +4,9 @@ import ch.uzh.ifi.hase.soprafs24.constant.Country;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 /**
@@ -32,11 +36,12 @@ public class UserService {
   private final UserRepository userRepository;
 
   private static final Set<String> VALID_AVATARS = Set.of(
-    "avatar1.png",
-    "avatar2.png",
-    "avatar3.png",
-    "avatar4.png",
-    "avatar5.png"
+    "/avatar_1.png",
+    "/avatar_2.png",
+    "/avatar_3.png",
+    "/avatar_4.png",
+    "/avatar_5.png",
+    "/avatar_6.png"    
   );
 
   @Autowired
@@ -50,10 +55,11 @@ public class UserService {
 
   public User createUser(User newUser) {
     newUser.setToken(UUID.randomUUID().toString());
-    newUser.setStatus(UserStatus.OFFLINE);
+    newUser.setStatus(UserStatus.ONLINE);
     checkIfUserExists(newUser);
     // saves the given entity but data is only persisted in the database once
     // flush() is called
+    newUser.setAvatar(VALID_AVATARS.iterator().next());
     newUser = userRepository.save(newUser);
     userRepository.flush();
 
@@ -86,6 +92,9 @@ public class UserService {
     if (userInDB == null || !userInDB.getPassword().equals(loginUser.getPassword())) {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
     }
+    if(userInDB.getStatus().equals(UserStatus.ONLINE)){
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This user has already logged in!");
+    }
 
     userInDB.setStatus(UserStatus.ONLINE);
     userInDB.setToken(UUID.randomUUID().toString());
@@ -100,6 +109,7 @@ public class UserService {
     }
 
     userInDB.setStatus(UserStatus.OFFLINE);
+    userInDB.setToken("");
     userRepository.save(userInDB);
   }
 
@@ -115,7 +125,14 @@ public class UserService {
     }
     return userVerified;
   }
-
+  
+  public UserGetDTO getUser(Long userId){
+    User user = findUserById(userId);
+    UserGetDTO userGetDTO = DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
+    userGetDTO.setLevel(((user.getLevel()).multiply(new BigDecimal(100))).intValue());
+    return userGetDTO;
+  }
+  
   public User updateUserProfile(Long userId, User updatedInfo) {
     User userInDB = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -137,12 +154,33 @@ public class UserService {
     }
 
     userInDB.setUsername(updatedInfo.getUsername());
+    userInDB.setName(updatedInfo.getName());
     userInDB.setAvatar(updatedInfo.getAvatar());
     userInDB.setEmail(updatedInfo.getEmail());
     userInDB.setBio(updatedInfo.getBio());
+    if(!((updatedInfo.getPassword()).equals(""))){ userInDB.setPassword(updatedInfo.getPassword());}
 
     userRepository.save(userInDB);
     return userInDB;
+  }
+
+  public UserGetDTO getHistory(Long userId) {
+    User userToGetHistory = userRepository.findByUserId(userId);
+    if (userToGetHistory == null) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Authenticated");
+    }
+    UserGetDTO userDTOwithHistory = new UserGetDTO();
+
+    userDTOwithHistory.setGameHistory(userToGetHistory.getGameHistory());
+
+    return userDTOwithHistory;
+  }
+
+  public UserGetDTO getLearningTracking(Long userId){
+    User targetUser = findUserById(userId);
+    UserGetDTO userGetDTO = new UserGetDTO();
+    userGetDTO.setLearningTracking(targetUser.getLearningTracking());
+    return userGetDTO;
   }
 
   /**

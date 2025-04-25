@@ -116,7 +116,7 @@ public class GameController {
   @GetMapping("/leaderboard")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public List<GameGetDTO> getLeaderboard() {
+  public List<UserGetDTO> getLeaderboard() {
     return gameService.getLeaderboard();
   }
 
@@ -139,6 +139,14 @@ public class GameController {
   @ResponseBody
   public void saveGame(@PathVariable Long gameId){
       gameService.saveGame(gameId);
+  }
+
+  @PostMapping("/startsolo")
+  @ResponseStatus(HttpStatus.CREATED)
+  @ResponseBody
+  public void startsoloGame(@RequestBody GamePostDTO gamePostDTO){
+    Game gameToStart = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
+    gameService.startSoloGame(gameToStart);
   }
     
 }

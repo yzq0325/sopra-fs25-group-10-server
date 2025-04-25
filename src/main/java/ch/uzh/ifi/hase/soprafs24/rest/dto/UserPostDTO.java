@@ -12,6 +12,12 @@ public class UserPostDTO {
 
   private Long userId;
 
+  private String avatar;
+  
+  private String email;
+  
+  private String bio;
+
   public String getName() {
     return name;
   }
@@ -49,5 +55,29 @@ public class UserPostDTO {
 
   public void setUserId(Long userId) {
     this.userId = userId;
+  }
+
+  public String getAvatar() {
+    return avatar;
+  }
+
+  public void setAvatar(String avatar) {
+    this.avatar = avatar;
+  }
+
+  public String getEmail() {
+    return email;
+  }
+
+  public void setEmail(String email) {
+    this.email = email;
+  }
+
+  public String getBio() {
+    return bio;
+  }
+
+  public void setBio(String bio) {
+    this.bio = bio;
   }
 }

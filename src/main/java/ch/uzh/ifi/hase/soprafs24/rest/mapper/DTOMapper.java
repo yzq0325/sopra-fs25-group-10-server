@@ -34,6 +34,9 @@ public interface DTOMapper {
   @Mapping(source = "username", target = "username")
   @Mapping(source = "token", target = "token")
   @Mapping(source = "password", target = "password")
+  @Mapping(source = "avatar", target = "avatar")
+  @Mapping(source = "email", target = "email")
+  @Mapping(source = "bio", target = "bio")
   User convertUserPostDTOtoEntity(UserPostDTO userPostDTO);
 
   @Mapping(source = "userId", target = "userId")
@@ -50,12 +53,11 @@ public interface DTOMapper {
   @Mapping(source = "gameName", target = "gameName") 
   @Mapping(source = "playersNumber", target = "playersNumber")
   @Mapping(source = "time", target = "time") 
-  // @Mapping(source = "modeType", target = "modeType") 
+  @Mapping(source = "modeType", target = "modeType") 
   @Mapping(source = "password", target = "password")  
   Game convertGamePostDTOtoGameEntity(GamePostDTO gamePostDTO);
 
   @Mapping(source = "ownerId", target = "ownerId")
-//  @Mapping(target = "ownerName", expression = "java(userRepository.findByUserId(game.getOwnerId()).getUsername())")
   @Mapping(source = "scoreBoard", target = "scoreBoard")
   @Mapping(source = "gameName", target = "gameName") 
   @Mapping(source = "playersNumber", target = "playersNumber")
@@ -67,10 +69,10 @@ public interface DTOMapper {
   GameGetDTO convertGameEntityToGameGetDTO(Game game);
 
   // Profile mappings
-  @Mapping(source = "username", target = "username")
-  @Mapping(source = "avatar", target = "avatar")
-  @Mapping(source = "email", target = "email")
-  @Mapping(source = "bio", target = "bio")
-  User convertUserProfileDTOtoEntity(UserProfileDTO userProfileDTO);
+  // @Mapping(source = "username", target = "username")
+  // @Mapping(source = "avatar", target = "avatar")
+  // @Mapping(source = "email", target = "email")
+  // @Mapping(source = "bio", target = "bio")
+  // User convertUserProfileDTOtoEntity(UserProfileDTO userProfileDTO);
 
 }

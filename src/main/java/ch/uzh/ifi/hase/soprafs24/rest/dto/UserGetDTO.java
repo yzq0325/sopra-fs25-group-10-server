@@ -1,6 +1,11 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
+import java.math.BigDecimal;
+import java.util.Map;
+
+import ch.uzh.ifi.hase.soprafs24.constant.Country;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.User.GameQuickSave;
 
 public class UserGetDTO {
 
@@ -12,6 +17,9 @@ public class UserGetDTO {
   private String avatar;
   private String email;
   private String bio;
+  private int level;
+  private Map<String, GameQuickSave> gameHistory;
+  private Map<Country, Integer> learningTracking;
 
   public Long getUserId() {
     return userId;
@@ -75,5 +83,29 @@ public class UserGetDTO {
 
   public void setBio(String bio) {
     this.bio = bio;
+  }
+
+  public int getLevel() {
+    return level;
+  }
+
+  public void setLevel(int level) {
+    this.level = level;
+  }
+
+  public void setGameHistory(Map<String,GameQuickSave> gameHistory){
+    this.gameHistory = gameHistory;
+  }
+
+  public Map<String,GameQuickSave> getGameHistory(){
+    return gameHistory;
+  }
+
+  public void setLearningTracking(Map<Country,Integer> learningTracking){
+    this.learningTracking = learningTracking;
+  }
+
+  public Map<Country,Integer> getLearningTracking(){
+    return learningTracking;
   }
 }

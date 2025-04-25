@@ -1,6 +1,8 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
+import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.service.GameService;
@@ -71,6 +73,14 @@ public class GameControllerTest {
     }
 
     @Test
+    public void getGameLobby_success() throws Exception {
+        doNothing().when(gameService).getGameLobby();
+    
+        mockMvc.perform(put("/lobby"))
+            .andExpect(status().isOk());
+    }
+
+    @Test
     public void joinGame_success() throws Exception {
         doNothing().when(gameService).userJoinGame(any(), eq(1L));
 
@@ -88,6 +98,19 @@ public class GameControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(asJsonString(gamePostDTO)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    public void getGamePlayers_validInput_success() throws Exception {
+        User user = new User();
+        user.setUsername("player1");
+        user.setUserId(1L);
+    
+        given(gameService.getGamePlayers(1L)).willReturn(List.of(user));
+    
+        mockMvc.perform(get("/ready/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].username").value("player1"));
     }
 
     @Test
@@ -122,13 +145,47 @@ public class GameControllerTest {
 
     @Test
     public void getLeaderboard_success() throws Exception {
-        given(gameService.getLeaderboard()).willReturn(List.of(gameGetDTO));
-
+        UserGetDTO userDTO = new UserGetDTO();
+        userDTO.setUsername("topPlayer");
+    
+        given(gameService.getLeaderboard()).willReturn(List.of(userDTO));
+    
         mockMvc.perform(get("/leaderboard"))
-                .andExpect(status().isOk());
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].username").value("topPlayer"));
     }
 
-    // 辅助方法：将 DTO 转换为 JSON 字符串
+    @Test
+    public void answerProcessing_success() throws Exception {
+        GameGetDTO responseDTO = new GameGetDTO();
+        responseDTO.setGameId(1L);
+    
+        given(gameService.processingAnswer(any(GamePostDTO.class), eq(1L)))
+            .willReturn(responseDTO);
+    
+        mockMvc.perform(put("/submit/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(gamePostDTO)))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    public void giveupGame_success() throws Exception {
+        doNothing().when(gameService).giveupGame(1L);
+    
+        mockMvc.perform(put("/giveup/1"))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    public void saveGame_success() throws Exception {
+        doNothing().when(gameService).saveGame(1L);
+    
+        mockMvc.perform(put("/save/1"))
+            .andExpect(status().isOk());
+    }
+
+
     private String asJsonString(final Object object) {
         try {
             return new ObjectMapper().writeValueAsString(object);
