@@ -242,7 +242,9 @@ public class GameService {
         List<Game> allGames = gameRepository.findAll();
         List<GameGetDTO> gameLobbyGetDTOs = new ArrayList<>();
         for (Game game : allGames) {
-            gameLobbyGetDTOs.add(DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game));
+            if(game.getModeType().equals("combat")){
+                gameLobbyGetDTOs.add(DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game));
+            }
         }
         messagingTemplate.convertAndSend("/topic/lobby", gameLobbyGetDTOs);
         log.info("websocket send: lobby!");
