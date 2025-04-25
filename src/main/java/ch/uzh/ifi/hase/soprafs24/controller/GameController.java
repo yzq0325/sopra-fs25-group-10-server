@@ -140,5 +140,13 @@ public class GameController {
   public void saveGame(@PathVariable Long gameId){
       gameService.saveGame(gameId);
   }
+
+  @PostMapping("/startsolo")
+  @ResponseStatus(HttpStatus.CREATED)
+  @ResponseBody
+  public void startsoloGame(GamePostDTO gamePostDTO){
+    Game gameToStart = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
+    gameService.startSoloGame(gameToStart);
+  }
     
 }

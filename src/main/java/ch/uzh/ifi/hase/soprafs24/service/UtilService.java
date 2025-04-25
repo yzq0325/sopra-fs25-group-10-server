@@ -121,50 +121,6 @@ public class UtilService {
             Thread.currentThread().interrupt();
         }
         messagingTemplate.convertAndSend("/topic/end/"+gameId, "Game End!");
-        // return the scoreboard to frontend
-//        Game resultGame = gameRepository.findBygameId(gameId);
-//        Map<String, Integer> scoreBoardResult = new HashMap<>();
-//        for (Long userid : resultGame.getScoreBoard().keySet()) {
-//            String username = (userRepository.findByUserId(userid)).getUsername();
-//            int score = (resultGame.getScoreBoard()).get(userid);
-//            scoreBoardResult.put(username, score);
-//        }
-//        // scoreBoardResult.entrySet().stream().sorted(Map.Entry.<String,Integer>comparingByValue(Comparator.reverseOrder()))
-//        //         .collect(Collectors.toMap(
-//        //                 Map.Entry::getKey,
-//        //                 Map.Entry::getValue,
-//        //                 (oldValue, newValue) -> oldValue,
-//        //                 LinkedHashMap::new
-//        //         ));
-//        scoreBoardResult.entrySet()
-//                    .stream()
-//                    .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
-//                    .collect(Collectors.toMap(
-//                            Map.Entry::getKey,
-//                            Map.Entry::getValue,
-//                            (e1, e2) -> e1,
-//                            LinkedHashMap::new
-//                    ));
-//        messagingTemplate.convertAndSend("/topic/end/"+gameId+"/scoreBoard", scoreBoardResult);
-//        log.info("websocket send: scoreBoard!");
-    }
-
-    public void countdown(Long gameId, int time) {
-        int readycounter = 5;
-        while (readycounter >= 0) {
-            messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", readycounter);
-            log.info("websocket send: ready-time: {}", readycounter);
-            readycounter = readycounter - 1;
-            try {
-                Thread.sleep(1000);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-                break;
-            }
-        }
-        messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", formatTime(time * 60));
     }
 
     //<country, clue, difficulty(int)>

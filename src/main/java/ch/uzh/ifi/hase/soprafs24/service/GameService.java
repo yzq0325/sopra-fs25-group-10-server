@@ -112,6 +112,124 @@ public class GameService {
         return gameCreated;
     }
 
+    public void startSoloGame(Game gameToStart){
+        Game gameCreated = new Game();
+
+        List<Long> players = new ArrayList<>();
+        players.add(gameToStart.getOwnerId());
+        Map<Long, Integer> scoreBoard = new HashMap<>();
+        Map<Long, Integer> correctAnswersMap = new HashMap<>();
+        Map<Long, Integer> totalQuestionsMap = new HashMap<>();
+
+        checkIfOwnerExists(gameToStart.getOwnerId());
+        checkIfGameHaveSameOwner(gameToStart.getOwnerId());
+        gameCreated.setOwnerId(players.get(0));
+
+        gameCreated.setScoreBoard(scoreBoard);
+        gameCreated.setCorrectAnswersMap(correctAnswersMap);
+        gameCreated.setTotalQuestionsMap(totalQuestionsMap);
+        gameCreated.setPlayers(players);
+        gameCreated.setHintsNumber(5);
+        checkIfGameNameExists(gameToStart.getGameName());
+        gameCreated.setGameName(gameToStart.getGameName());
+        gameCreated.setTime(gameToStart.getTime());
+        gameCreated.setPlayersNumber(gameToStart.getPlayersNumber());
+        gameCreated.setRealPlayersNumber(1);
+        gameCreated.setGameRunning(false);
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
+        gameCreated.setGameCreationDate(now.format(formatter));
+
+        String mode = gameToStart.getModeType();
+        if (mode == null || (!mode.equals("solo") && !mode.equals("combat"))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'");
+        }
+        gameCreated.setModeType(mode);
+
+        gameCreated.setPassword(gameToStart.getPassword());
+        gameCreated = gameRepository.save(gameCreated);
+        gameRepository.flush();
+
+        User owner = userRepository.findByUserId(gameToStart.getOwnerId());
+        owner.setGame(gameCreated);
+        userRepository.save(owner);
+        userRepository.flush();
+
+        messagingTemplate.convertAndSend("/topic/startsolo/" + gameCreated.getOwnerId() + "/gameId", gameCreated.getGameId());
+        log.info("websocket send: gameId!");
+
+
+        gameCreated.updateScore(gameCreated.getOwnerId(), 0);
+        for (Long userId : gameCreated.getPlayers()) {
+            User player = userRepository.findByUserId(userId);
+            if (player == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+            }
+            gameCreated.updateScore(userId, 0);
+        }
+
+        //set correctAnswersMap
+        gameCreated.updateCorrectAnswers(gameCreated.getOwnerId(), 0);
+        for (Long userId : gameCreated.getPlayers()) {
+            User player = userRepository.findByUserId(userId);
+            if (player == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+            }
+            gameCreated.updateCorrectAnswers(userId, 0);
+        }
+
+        //set totalQuestionsMap
+        gameCreated.updateTotalQuestions(gameCreated.getOwnerId(), 0);
+        for (Long userId : gameCreated.getPlayers()) {
+            User player = userRepository.findByUserId(userId);
+            if (player == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+            }
+            gameCreated.updateTotalQuestions(userId, 0);
+        }
+
+        gameCreated.setGameRunning(true);
+
+        gameCreated = gameRepository.save(gameCreated);
+        gameRepository.flush();
+
+        // push hints
+        GameGetDTO gameHintDTO = new GameGetDTO();
+        generatedHints = getHintsOfOneCountry();
+        gameHintDTO.setHints(generatedHints.values().iterator().next());
+        Country country = generatedHints.keySet().iterator().next();
+
+        // set sheet
+        for (Long userId : players) {
+            answers.put(userId, country);
+        }
+        
+        //set scoreboard
+        Map<String, Integer> scoreBoardFront = new HashMap<>();
+        for (Long userid : gameCreated.getPlayers()) {
+            String username = (userRepository.findByUserId(userid)).getUsername();
+            int score = gameCreated.getScore(userid);
+            scoreBoardFront.put(username, score);
+        }
+        gameHintDTO.setScoreBoard(scoreBoardFront);
+        messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
+        log.info("websocket send: hints!");
+
+        // countdown
+        // utilService.countdown(gameId, gameToStart.getTime());
+        messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
+        try {
+            Thread.sleep(6000);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+        }
+        Game finalGameToStart = gameCreated;
+        Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
+        timingThread.start();
+    }
+
     public void getGameLobby() {
         List<Game> allGames = gameRepository.findAll();
         List<GameGetDTO> gameLobbyGetDTOs = new ArrayList<>();
@@ -310,7 +428,7 @@ public class GameService {
         // utilService.countdown(gameId, gameToStart.getTime());
         messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", 5);
         try {
-            Thread.sleep(7000);
+            Thread.sleep(6000);
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
