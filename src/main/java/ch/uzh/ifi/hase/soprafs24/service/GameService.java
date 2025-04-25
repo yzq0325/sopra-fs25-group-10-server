@@ -155,6 +155,10 @@ public class GameService {
         userRepository.save(owner);
         userRepository.flush();
 
+        messagingTemplate.convertAndSend("/topic/startsolo/" + gameCreated.getOwnerId() + "/gameId", gameCreated.getGameId());
+        log.info("websocket send: gameId!");
+
+
         gameCreated.updateScore(gameCreated.getOwnerId(), 0);
         for (Long userId : gameCreated.getPlayers()) {
             User player = userRepository.findByUserId(userId);
