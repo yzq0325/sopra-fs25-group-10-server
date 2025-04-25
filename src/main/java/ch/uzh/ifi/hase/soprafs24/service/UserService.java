@@ -109,7 +109,7 @@ public class UserService {
     }
 
     userInDB.setStatus(UserStatus.OFFLINE);
-    // userInDB.setToken("");
+    userInDB.setToken(UUID.randomUUID().toString());
     userRepository.save(userInDB);
   }
 
