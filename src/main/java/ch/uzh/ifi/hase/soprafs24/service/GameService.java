@@ -158,6 +158,14 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/startsolo/" + gameCreated.getOwnerId() + "/gameId", gameCreated.getGameId());
         log.info("websocket send: gameId!");
 
+        try {
+            Thread.sleep(500);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+        }
+
 
         gameCreated.updateScore(gameCreated.getOwnerId(), 0);
         for (Long userId : gameCreated.getPlayers()) {
@@ -444,16 +452,30 @@ public class GameService {
         if (gameToSave == null) {
             return;
         }
-        for (Long userId : gameToSave.getScoreBoard().keySet()) {
-            User player = userRepository.findByUserId(userId);
-            player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
-            gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime());
-            player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
-            player.setGame(null);
-            userRepository.save(player);
-            userRepository.flush();
+        if(gameToSave.getModeType().equals("combat")){
+            for (Long userId : gameToSave.getScoreBoard().keySet()) {
+                User player = userRepository.findByUserId(userId);
+                player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
+                gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime());
+                player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
+                player.setGame(null);
+                userRepository.save(player);
+                userRepository.flush();
+            }
+            gameRepository.deleteByGameId(gameId);
         }
-        gameRepository.deleteByGameId(gameId);
+        else{
+            for (Long userId : gameToSave.getScoreBoard().keySet()) {
+                User player = userRepository.findByUserId(userId);
+                player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
+                gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime());
+                player.setGame(null);
+                userRepository.save(player);
+                userRepository.flush();
+            }
+            gameRepository.deleteByGameId(gameId);
+        }
+        
     }
 
     public GameGetDTO processingAnswer(GamePostDTO gamePostDTO, Long userId) {

@@ -144,7 +144,7 @@ public class GameController {
   @PostMapping("/startsolo")
   @ResponseStatus(HttpStatus.CREATED)
   @ResponseBody
-  public void startsoloGame(GamePostDTO gamePostDTO){
+  public void startsoloGame(@RequestBody GamePostDTO gamePostDTO){
     Game gameToStart = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
     gameService.startSoloGame(gameToStart);
   }
