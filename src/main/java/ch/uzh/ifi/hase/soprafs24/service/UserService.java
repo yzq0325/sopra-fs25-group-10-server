@@ -175,6 +175,13 @@ public class UserService {
     return userDTOwithHistory;
   }
 
+  public UserGetDTO getLearningTracking(Long userId){
+    User targetUser = findUserById(userId);
+    UserGetDTO userGetDTO = new UserGetDTO();
+    userGetDTO.setLearningTracking(targetUser.getLearningTracking());
+    return userGetDTO;
+  }
+
   /**
    * This is a helper method that will check the uniqueness criteria of the
    * username and the name

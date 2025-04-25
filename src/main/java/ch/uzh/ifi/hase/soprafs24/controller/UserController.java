@@ -122,8 +122,13 @@ public class UserController {
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public UserGetDTO getHistory(@PathVariable Long userId){
-
     return userService.getHistory(userId);
+  }
 
+  @GetMapping("/users/{userId}/statistics")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public UserGetDTO getStatistics(@PathVariable Long userId){
+    return userService.getLearningTracking(userId);
   }
 }

@@ -257,4 +257,8 @@ public class User implements Serializable {
     public void updateLearningTrack(Country country){
         learningTracking.merge(country, 1, Integer::sum);
     }
+
+    public Map<Country,Integer> getLearningTracking(){
+        return learningTracking;
+    }
 }
