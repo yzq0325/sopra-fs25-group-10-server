@@ -284,17 +284,6 @@ public class GameService {
         gameToStart = gameRepository.save(gameToStart);
         gameRepository.flush();
 
-        // countdown
-        // utilService.countdown(gameId, gameToStart.getTime());
-        messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", 5);
-        try {
-            Thread.sleep(7000);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-        }
-
         // push hints
         GameGetDTO gameHintDTO = new GameGetDTO();
         generatedHints = getHintsOfOneCountry();
@@ -316,6 +305,17 @@ public class GameService {
         gameHintDTO.setScoreBoard(scoreBoardFront);
         messagingTemplate.convertAndSend("/topic/start/" + gameId + "/hints", gameHintDTO);
         log.info("websocket send: hints!");
+
+        // countdown
+        // utilService.countdown(gameId, gameToStart.getTime());
+        messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", 5);
+        try {
+            Thread.sleep(7000);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+        }
 
         Game finalGameToStart = gameToStart;
         Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, gameId));
