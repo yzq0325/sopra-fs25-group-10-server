@@ -132,6 +132,7 @@ public class UserService {
     userGetDTO.setLevel(((user.getLevel()).multiply(new BigDecimal(100))).intValue());
     return userGetDTO;
   }
+  
   public User updateUserProfile(Long userId, User updatedInfo) {
     User userInDB = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));

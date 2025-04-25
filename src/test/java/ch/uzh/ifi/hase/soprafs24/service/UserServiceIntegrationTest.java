@@ -165,6 +165,7 @@ public class UserServiceIntegrationTest {
       updateInfo.setAvatar("/avatar_2.png");
       updateInfo.setEmail("new@example.com");
       updateInfo.setBio("New bio");
+      updateInfo.setPassword("password");
   
       User updatedUser = userService.updateUserProfile(testUser.getUserId(), updateInfo);
   
@@ -172,6 +173,7 @@ public class UserServiceIntegrationTest {
       assertEquals("/avatar_2.png", updatedUser.getAvatar());
       assertEquals("new@example.com", updatedUser.getEmail());
       assertEquals("New bio", updatedUser.getBio());
+      assertEquals("password", updatedUser.getPassword());
   }
 
 
