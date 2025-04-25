@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Internal User Representation
@@ -235,7 +236,11 @@ public class User implements Serializable {
         gameQuickSave.setTotalQuestions(total);
         gameQuickSave.setGameCreationDate(gameCreationDate);
         gameQuickSave.setGameTime(gameTime);
-        gameHistory.put(gameName, gameQuickSave);
+        if(gameHistory.containsKey(gameName)){
+            String uniqueName = gameName + UUID.randomUUID().toString().substring(0, 4);
+            gameHistory.put(uniqueName, gameQuickSave);
+        }
+        
     }
 
     public Map<String, GameQuickSave> getGameHistory(){
