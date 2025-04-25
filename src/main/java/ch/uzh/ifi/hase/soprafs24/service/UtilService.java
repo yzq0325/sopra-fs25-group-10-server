@@ -108,48 +108,45 @@ public class UtilService {
     }
 
     public void timingCounter(int seconds, Long gameId) {
-        while (seconds >= 0) {
-            if (gameRepository.findBygameId(gameId).getPlayers().isEmpty()) { return; }
-
-            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", formatTime(seconds));
-            log.info("websocket send rest time: {}", seconds);
-            seconds = seconds - 1;
-            try {
+        try {
+            if (gameRepository.findBygameId(gameId) == null) { return; }
+            while (seconds >= 0) {
+                if (gameRepository.findBygameId(gameId).getPlayers().isEmpty()) { return; }
+                messagingTemplate.convertAndSend("/topic/game/" + gameId + "/formatted-time", formatTime(seconds));
+                log.info("websocket send rest time: {}", seconds);
+                seconds = seconds - 1;
                 Thread.sleep(1000);
             }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-                break;
-            }
+        } catch (Exception e) {
+            Thread.currentThread().interrupt();
         }
-
+        messagingTemplate.convertAndSend("/topic/end/"+gameId, "Game End!");
         // return the scoreboard to frontend
-        Game resultGame = gameRepository.findBygameId(gameId);
-        Map<String, Integer> scoreBoardResult = new HashMap<>();
-        for (Long userid : resultGame.getScoreBoard().keySet()) {
-            String username = (userRepository.findByUserId(userid)).getUsername();
-            int score = (resultGame.getScoreBoard()).get(userid);
-            scoreBoardResult.put(username, score);
-        }
-        // scoreBoardResult.entrySet().stream().sorted(Map.Entry.<String,Integer>comparingByValue(Comparator.reverseOrder()))
-        //         .collect(Collectors.toMap(
-        //                 Map.Entry::getKey,
-        //                 Map.Entry::getValue,
-        //                 (oldValue, newValue) -> oldValue,
-        //                 LinkedHashMap::new
-        //         ));
-        scoreBoardResult.entrySet()
-                    .stream()
-                    .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
-                    .collect(Collectors.toMap(
-                            Map.Entry::getKey,
-                            Map.Entry::getValue,
-                            (e1, e2) -> e1,
-                            LinkedHashMap::new
-                    ));
-        messagingTemplate.convertAndSend("/topic/end/"+gameId+"/scoreBoard", scoreBoardResult);
-        log.info("websocket send: scoreBoard!");
+//        Game resultGame = gameRepository.findBygameId(gameId);
+//        Map<String, Integer> scoreBoardResult = new HashMap<>();
+//        for (Long userid : resultGame.getScoreBoard().keySet()) {
+//            String username = (userRepository.findByUserId(userid)).getUsername();
+//            int score = (resultGame.getScoreBoard()).get(userid);
+//            scoreBoardResult.put(username, score);
+//        }
+//        // scoreBoardResult.entrySet().stream().sorted(Map.Entry.<String,Integer>comparingByValue(Comparator.reverseOrder()))
+//        //         .collect(Collectors.toMap(
+//        //                 Map.Entry::getKey,
+//        //                 Map.Entry::getValue,
+//        //                 (oldValue, newValue) -> oldValue,
+//        //                 LinkedHashMap::new
+//        //         ));
+//        scoreBoardResult.entrySet()
+//                    .stream()
+//                    .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
+//                    .collect(Collectors.toMap(
+//                            Map.Entry::getKey,
+//                            Map.Entry::getValue,
+//                            (e1, e2) -> e1,
+//                            LinkedHashMap::new
+//                    ));
+//        messagingTemplate.convertAndSend("/topic/end/"+gameId+"/scoreBoard", scoreBoardResult);
+//        log.info("websocket send: scoreBoard!");
     }
 
     public void countdown(Long gameId, int time) {

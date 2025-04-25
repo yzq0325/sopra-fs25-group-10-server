@@ -316,7 +316,6 @@ public class GameService {
             Thread.currentThread().interrupt();
             messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
         }
-
         Game finalGameToStart = gameToStart;
         Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, gameId));
         timingThread.start();
