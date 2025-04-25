@@ -466,15 +466,13 @@ public class GameService {
             }
             gameRepository.deleteByGameId(gameId);
         }
-        else{
-            for (Long userId : gameToSave.getScoreBoard().keySet()) {
-                User player = userRepository.findByUserId(userId);
-                player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
-                gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime());
+        else{   
+                User player = userRepository.findByUserId(gameToSave.getOwnerId());
+                player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(gameToSave.getOwnerId()), gameToSave.getCorrectAnswers(gameToSave.getOwnerId()), 
+                gameToSave.getTotalQuestions(gameToSave.getOwnerId()), gameToSave.getGameCreationDate(), gameToSave.getTime());
                 player.setGame(null);
                 userRepository.save(player);
                 userRepository.flush();
-            }
             gameRepository.deleteByGameId(gameId);
         }
         
