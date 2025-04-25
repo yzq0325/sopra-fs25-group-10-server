@@ -240,7 +240,9 @@ public class User implements Serializable {
             String uniqueName = gameName + UUID.randomUUID().toString().substring(0, 4);
             gameHistory.put(uniqueName, gameQuickSave);
         }
-        
+        else{
+            gameHistory.put(gameName, gameQuickSave);  
+        }
     }
 
     public Map<String, GameQuickSave> getGameHistory(){
