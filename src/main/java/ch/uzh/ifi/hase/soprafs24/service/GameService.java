@@ -352,6 +352,11 @@ public class GameService {
             gameRepository.save(targetGame);
             gameRepository.flush();
 
+            User targetUser = userRepository.findByUserId(userId);
+            targetUser.updateLearningTrack(answers.get(userId));
+            userRepository.save(targetUser);
+            userRepository.flush();
+
             GameGetDTO gameHintDTO = new GameGetDTO();
             generatedHints = getHintsOfOneCountry();
             gameHintDTO.setHints(generatedHints.values().iterator().next());

@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.constant.Country;
 
 import javax.persistence.*;
 
@@ -133,6 +134,12 @@ public class User implements Serializable {
     @MapKeyColumn(name = "gameName")
     private Map<String, GameQuickSave> gameHistory = new HashMap<>();
 
+    @ElementCollection
+    @CollectionTable(name = "userLearningTrack", joinColumns = @JoinColumn(name = "userId"))
+    @MapKeyColumn(name = "Country")
+    @Column(name = "Counter")
+    private Map<Country, Integer> learningTracking = new HashMap<>();
+
     public Long getUserId() {
         return userId;
     }
@@ -245,5 +252,9 @@ public class User implements Serializable {
 
     public int getGameTotalQuestions(String gameName) {
         return gameHistory.get(gameName).getTotalQuestions();
+    }
+
+    public void updateLearningTrack(Country country){
+        learningTracking.merge(country, 1, Integer::sum);
     }
 }
