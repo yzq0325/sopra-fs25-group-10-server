@@ -299,12 +299,13 @@ public class GameService {
         GameGetDTO gameHintDTO = new GameGetDTO();
         generatedHints = getHintsOfOneCountry();
         gameHintDTO.setHints(generatedHints.values().iterator().next());
+        Country country = generatedHints.keySet().iterator().next();
 
         // set sheet
         for (Long userId : allPlayers) {
-            answers.put(userId, generatedHints.keySet().iterator().next());
+            answers.put(userId, country);
         }
-
+        
         //set scoreboard
         Map<String, Integer> scoreBoardFront = new HashMap<>();
         for (Long userid : gameToStart.getPlayers()) {
@@ -406,7 +407,6 @@ public class GameService {
 
             return gameHintDTO;
         }
-
     }
 
     public void submitScores(Long gameId, Map<Long, Integer> scoreMap, Map<Long, Integer> correctAnswersMap, Map<Long, Integer> totalQuestionsMap) {
@@ -474,7 +474,7 @@ public class GameService {
     public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry() {
         System.out.println("hintCache size: " + utilService.getHintCache().size());
         Map<Country, List<Map<String, Object>>> hint = utilService.getHintCache().poll();
-        if (utilService.getHintCache().size() < 20) {
+        if (utilService.getHintCache().size() < 10) {
             utilService.refillAsync();
         }
         return hint;
@@ -498,9 +498,9 @@ public class GameService {
             if (gameToEnd.getOwnerId().equals(userId)) {
                 gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
                 User playerToEnd = userRepository.findByUserId(userId);
+                gameToEnd.setOwnerId(gameToEnd.getPlayers().get(1));
                 gameToEnd.removePlayer(playerToEnd);
-                gameToEnd.setOwnerId(gameToEnd.getPlayers().get(0));
-                messagingTemplate.convertAndSend("/topic/game"+gameToEnd.getGameId()+"/owner", gameToEnd.getOwnerId());
+                messagingTemplate.convertAndSend("/topic/game/"+gameToEnd.getGameId()+"/owner", gameToEnd.getOwnerId());
                 gameToEnd.updateScore(userId, -1);
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
                 gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime());
