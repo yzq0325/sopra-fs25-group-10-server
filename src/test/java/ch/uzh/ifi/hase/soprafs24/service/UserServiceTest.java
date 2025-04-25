@@ -55,7 +55,7 @@ public class UserServiceTest {
     assertEquals(testUser.getName(), createdUser.getName());
     assertEquals(testUser.getUsername(), createdUser.getUsername());
     assertNotNull(createdUser.getToken());
-    assertEquals(UserStatus.OFFLINE, createdUser.getStatus());
+    assertEquals(UserStatus.ONLINE, createdUser.getStatus());
   }
 
   @Test
@@ -170,6 +170,7 @@ public class UserServiceTest {
     User userInDB = new User();
     userInDB.setUsername("testUser");
     userInDB.setPassword("correctPassword");
+    userInDB.setStatus(UserStatus.OFFLINE); 
 
     Mockito.when(userRepository.findByUsername("testUser")).thenReturn(userInDB);
 
@@ -280,9 +281,10 @@ public class UserServiceTest {
 
     User updateInfo = new User();
     updateInfo.setUsername("newUsername");
-    updateInfo.setAvatar("avatar1.png");
+    updateInfo.setAvatar("/avatar_1.png");
     updateInfo.setEmail("new@email.com");
     updateInfo.setBio("new bio");
+    updateInfo.setPassword("password");
 
     Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
     Mockito.when(userRepository.findByUsername("newUsername")).thenReturn(null);
@@ -292,9 +294,10 @@ public class UserServiceTest {
 
     // then
     assertEquals("newUsername", testUser.getUsername());
-    assertEquals("avatar1.png", testUser.getAvatar());
+    assertEquals("/avatar_1.png", testUser.getAvatar());
     assertEquals("new@email.com", testUser.getEmail());
     assertEquals("new bio", testUser.getBio());
+    assertEquals("password", testUser.getPassword());
   }
 
   @Test
