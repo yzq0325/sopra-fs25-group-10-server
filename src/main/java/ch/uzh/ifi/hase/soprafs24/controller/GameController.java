@@ -88,6 +88,8 @@ public class GameController {
     return allPlayersDTOs;
   }
 
+  
+
   @PutMapping("/start/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
