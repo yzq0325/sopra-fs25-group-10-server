@@ -87,6 +87,7 @@ public class GameService {
         gameCreated.setHintsNumber(5);
         checkIfGameNameExists(gameToCreate.getGameName());
         gameCreated.setGameName(gameToCreate.getGameName());
+        gameCreated.setGameCode(String.format("%06d", Math.abs(UUID.randomUUID().hashCode()) % 1000000));
         gameCreated.setTime(gameToCreate.getTime());
         gameCreated.setPlayersNumber(gameToCreate.getPlayersNumber());
         gameCreated.setRealPlayersNumber(1);
@@ -364,6 +365,7 @@ public class GameService {
         }
         messagingTemplate.convertAndSend("/topic/"+gameId+"/playersNumber/", gameJoined.getPlayersNumber());
         messagingTemplate.convertAndSend("/topic/"+gameId+"/gametime", utilService.formatTime(gameJoined.getTime()*60));
+        messagingTemplate.convertAndSend("/topic/"+gameId+"/gameCode", gameJoined.getGameCode());
         return players;
 
     }
