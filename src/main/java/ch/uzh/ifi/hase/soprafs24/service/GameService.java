@@ -472,7 +472,7 @@ public class GameService {
             for (Long userId : gameToSave.getScoreBoard().keySet()) {
                 User player = userRepository.findByUserId(userId);
                 player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
-                gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime());
+                gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime(), gameToSave.getModeType());
                 player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
                 player.setGame(null);
                 userRepository.save(player);
@@ -483,7 +483,7 @@ public class GameService {
         else{   
                 User player = userRepository.findByUserId(gameToSave.getOwnerId());
                 player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(gameToSave.getOwnerId()), gameToSave.getCorrectAnswers(gameToSave.getOwnerId()), 
-                gameToSave.getTotalQuestions(gameToSave.getOwnerId()), gameToSave.getGameCreationDate(), gameToSave.getTime());
+                gameToSave.getTotalQuestions(gameToSave.getOwnerId()), gameToSave.getGameCreationDate(), gameToSave.getTime(),gameToSave.getModeType());
                 player.setGame(null);
                 userRepository.save(player);
                 userRepository.flush();
@@ -646,7 +646,7 @@ public class GameService {
             User playerToEnd = userRepository.findByUserId(userId);
             gameToEnd.updateScore(userId, -1);
             playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId), 
-            gameToEnd.getTotalQuestions(userId), gameToEnd.getGameCreationDate(), gameToEnd.getTime());
+            gameToEnd.getTotalQuestions(userId), gameToEnd.getGameCreationDate(), gameToEnd.getTime(),gameToEnd.getModeType());
             playerToEnd.setGame(null);
             userRepository.save(playerToEnd);
             userRepository.flush();
@@ -661,7 +661,7 @@ public class GameService {
                 messagingTemplate.convertAndSend("/topic/game/"+gameToEnd.getGameId()+"/owner", gameToEnd.getOwnerId());
                 gameToEnd.updateScore(userId, -1);
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
-                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime());
+                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(), gameToEnd.getModeType());
                 playerToEnd.setGame(null);
                 userRepository.save(playerToEnd);
                 userRepository.flush();
@@ -673,7 +673,7 @@ public class GameService {
                 gameToEnd.removePlayer(playerToEnd);
                 gameToEnd.updateScore(userId, -1);
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
-                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime());
+                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(),gameToEnd.getModeType());
                 playerToEnd.setGame(null);
                 userRepository.save(playerToEnd);
                 userRepository.flush();
