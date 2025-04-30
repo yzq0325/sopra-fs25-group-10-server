@@ -221,6 +221,7 @@ public class GameService {
             scoreBoardFront.put(username, score);
         }
         gameHintDTO.setScoreBoard(scoreBoardFront);
+        gameHintDTO.setTime(gameCreated.getTime());
         messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
         log.info("websocket send: hints!");
 
@@ -235,6 +236,7 @@ public class GameService {
             messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
         }
         Game finalGameToStart = gameCreated;
+        if(finalGameToStart.getTime()==-1){return;}
         Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
         timingThread.start();
     }
