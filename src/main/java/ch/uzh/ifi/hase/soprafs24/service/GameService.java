@@ -242,7 +242,9 @@ public class GameService {
         List<Game> allGames = gameRepository.findAll();
         List<GameGetDTO> gameLobbyGetDTOs = new ArrayList<>();
         for (Game game : allGames) {
-            gameLobbyGetDTOs.add(DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game));
+            if(game.getModeType().equals("combat")){
+                gameLobbyGetDTOs.add(DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game));
+            }
         }
         messagingTemplate.convertAndSend("/topic/lobby", gameLobbyGetDTOs);
         log.info("websocket send: lobby!");
@@ -360,8 +362,8 @@ public class GameService {
         for (Long userId : allPlayers) {
             players.add(userRepository.findByUserId(userId));
         }
-        messagingTemplate.convertAndSend("/topic/playersNumber", gameJoined.getPlayersNumber());
-        messagingTemplate.convertAndSend("/topic/gametime", utilService.formatTime(gameJoined.getTime()*60));
+        messagingTemplate.convertAndSend("/topic/"+gameId+"/playersNumber/", gameJoined.getPlayersNumber());
+        messagingTemplate.convertAndSend("/topic/"+gameId+"/gametime", utilService.formatTime(gameJoined.getTime()*60));
         return players;
 
     }
@@ -464,15 +466,13 @@ public class GameService {
             }
             gameRepository.deleteByGameId(gameId);
         }
-        else{
-            for (Long userId : gameToSave.getScoreBoard().keySet()) {
-                User player = userRepository.findByUserId(userId);
-                player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
-                gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime());
+        else{   
+                User player = userRepository.findByUserId(gameToSave.getOwnerId());
+                player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(gameToSave.getOwnerId()), gameToSave.getCorrectAnswers(gameToSave.getOwnerId()), 
+                gameToSave.getTotalQuestions(gameToSave.getOwnerId()), gameToSave.getGameCreationDate(), gameToSave.getTime());
                 player.setGame(null);
                 userRepository.save(player);
                 userRepository.flush();
-            }
             gameRepository.deleteByGameId(gameId);
         }
         

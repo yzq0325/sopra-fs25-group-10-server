@@ -109,7 +109,7 @@ public class UserService {
     }
 
     userInDB.setStatus(UserStatus.OFFLINE);
-    userInDB.setToken("");
+    userInDB.setToken(UUID.randomUUID().toString());
     userRepository.save(userInDB);
   }
 
@@ -158,7 +158,7 @@ public class UserService {
     userInDB.setAvatar(updatedInfo.getAvatar());
     userInDB.setEmail(updatedInfo.getEmail());
     userInDB.setBio(updatedInfo.getBio());
-    if(!((updatedInfo.getPassword()).equals(""))){ userInDB.setPassword(updatedInfo.getPassword());}
+    if((updatedInfo.getPassword()) != null){ userInDB.setPassword(updatedInfo.getPassword());}
 
     userRepository.save(userInDB);
     return userInDB;
