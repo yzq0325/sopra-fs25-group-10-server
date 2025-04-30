@@ -363,7 +363,7 @@ public class GameService {
         for (Long userId : allPlayers) {
             players.add(userRepository.findByUserId(userId));
         }
-        messagingTemplate.convertAndSend("/topic/"+gameId+"/playersNumber/", gameJoined.getPlayersNumber());
+        messagingTemplate.convertAndSend("/topic/"+gameId+"/playersNumber", gameJoined.getPlayersNumber());
         messagingTemplate.convertAndSend("/topic/"+gameId+"/gametime", utilService.formatTime(gameJoined.getTime()*60));
         messagingTemplate.convertAndSend("/topic/"+gameId+"/gameCode", gameJoined.getGameCode());
         return players;
