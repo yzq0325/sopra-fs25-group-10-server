@@ -284,6 +284,15 @@ public class GameService {
         }
     }
 
+    public GameGetDTO joinGamebyCode(GamePostDTO gamePostDTO){
+        Game gametoJoin = gameRepository.findBygameCode(gamePostDTO.getGameCode());
+        if (gametoJoin == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game with your gameCode doesn't exist! Please try another gameCode!");
+        }
+        else{
+            return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(gametoJoin);
+        }
+    }
     public void userExitGame(Long userId) {
         Game targetGame = userRepository.findByUserId(userId).getGame();
         if (userId != targetGame.getOwnerId()) {

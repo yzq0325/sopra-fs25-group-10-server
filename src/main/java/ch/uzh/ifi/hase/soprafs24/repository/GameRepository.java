@@ -17,6 +17,8 @@ public interface GameRepository extends JpaRepository<Game, Long> {
 
   List<Game> findByPlayersContaining(String username);
 
+  Game findBygameCode(String gameGame);
+
   void deleteByGameId(Long gameId);
 
 }
