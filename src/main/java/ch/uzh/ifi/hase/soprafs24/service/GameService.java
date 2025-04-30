@@ -133,6 +133,7 @@ public class GameService {
         gameCreated.setHintsNumber(5);
         checkIfGameNameExists(gameToStart.getGameName());
         gameCreated.setGameName(gameToStart.getGameName());
+        gameCreated.setGameCode(String.format("%06d", Math.abs(UUID.randomUUID().hashCode()) % 1000000));
         gameCreated.setTime(gameToStart.getTime());
         gameCreated.setPlayersNumber(gameToStart.getPlayersNumber());
         gameCreated.setRealPlayersNumber(1);
