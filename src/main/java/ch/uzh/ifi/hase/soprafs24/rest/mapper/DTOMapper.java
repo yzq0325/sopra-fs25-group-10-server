@@ -54,7 +54,8 @@ public interface DTOMapper {
   @Mapping(source = "playersNumber", target = "playersNumber")
   @Mapping(source = "time", target = "time") 
   @Mapping(source = "modeType", target = "modeType") 
-  @Mapping(source = "password", target = "password")  
+  @Mapping(source = "password", target = "password")
+  @Mapping(source = "gameCode", target = "gameCode")  
   Game convertGamePostDTOtoGameEntity(GamePostDTO gamePostDTO);
 
   @Mapping(source = "ownerId", target = "ownerId")
@@ -64,6 +65,7 @@ public interface DTOMapper {
   @Mapping(source = "realPlayersNumber", target = "realPlayersNumber")
   @Mapping(source = "password", target = "password")
   @Mapping(source = "gameId", target = "gameId")
+  @Mapping(source = "gameCode", target = "gameCode")  
   @Mapping(source = "endTime", target = "endTime")
   @Mapping(source = "finalScore", target = "finalScore")
   GameGetDTO convertGameEntityToGameGetDTO(Game game);
