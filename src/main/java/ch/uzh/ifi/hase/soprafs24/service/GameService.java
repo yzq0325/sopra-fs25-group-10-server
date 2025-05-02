@@ -68,6 +68,7 @@ public class GameService {
     }
 
     public Game createGame(Game gameToCreate) {
+        if(userRepository.findByUserId(gameToCreate.getOwnerId()).getGame()!=null){return null;}
         Game gameCreated = new Game();
 
         List<Long> players = new ArrayList<>();
@@ -114,6 +115,7 @@ public class GameService {
     }
 
     public void startSoloGame(Game gameToStart){
+        if(userRepository.findByUserId(gameToStart.getOwnerId()).getGame()!=null){return;}
         Game gameCreated = new Game();
 
         List<Long> players = new ArrayList<>();
