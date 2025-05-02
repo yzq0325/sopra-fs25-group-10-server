@@ -354,6 +354,29 @@ public class GameService {
         }
     }
 
+    public void chatChecksForGame(Long gameId, String playerName) {
+        System.out.println(gameId);
+        System.out.println(playerName);
+        Game game = gameRepository.findBygameId(gameId);
+        System.out.println(game);
+        if (game == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game Not Found!");
+        }
+    
+        User user = userRepository.findByUsername(playerName);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Found!");
+        }
+    
+        if (!game.getPlayers().contains(user.getUserId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a participant in this game.");
+        }
+
+        if(game.getEndTime() != null){
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Game endeded, Chat is not available anymore.");
+        }
+    }
+
     public List<User> getGamePlayers(Long gameId) {
         Game gameJoined = gameRepository.findBygameId(gameId);
         List<Long> allPlayers = gameJoined.getPlayers();
