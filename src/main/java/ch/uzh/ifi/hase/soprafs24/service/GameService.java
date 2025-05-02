@@ -659,7 +659,7 @@ public class GameService {
     }
 
     public void giveupGame(Long userId) {
-        if (userRepository.findByUserId(userId).getGame() != null) { return ; }
+        if (userRepository.findByUserId(userId).getGame() == null) { return ; }
         Game gameToEnd = (userRepository.findByUserId(userId)).getGame();
 
         if (gameToEnd.getRealPlayersNumber() == 1) {
