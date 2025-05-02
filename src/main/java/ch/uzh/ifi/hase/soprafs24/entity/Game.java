@@ -32,6 +32,9 @@ public class Game implements Serializable {
   private String gameName;
 
   @Column(nullable = false, unique = true)
+  private String gameCode;
+
+  @Column(nullable = false, unique = true)
   private Long ownerId;
 
   @ElementCollection
@@ -107,6 +110,14 @@ public class Game implements Serializable {
 
   public void setGameName(String gameName) {
     this.gameName = gameName;
+  }
+
+  public String getGameCode() {
+    return gameCode;
+  }
+
+  public void setGameCode(String gameCode) {
+    this.gameCode = gameCode;
   }
 
   public Long getOwnerId() {

@@ -24,6 +24,8 @@ public class GamePostDTO {
 
     private String password;
 
+    private String gameCode;
+
     private int hintUsingNumber;
 
     private Country submitAnswer;
@@ -48,6 +50,14 @@ public class GamePostDTO {
     
     public void setGameName(String gameName) {
         this.gameName = gameName;
+    }
+
+    public String getGameCode() {
+      return gameCode;
+    }
+  
+    public void setGameCode(String gameCode) {
+      this.gameCode = gameCode;
     }
 
     public Long getOwnerId() {

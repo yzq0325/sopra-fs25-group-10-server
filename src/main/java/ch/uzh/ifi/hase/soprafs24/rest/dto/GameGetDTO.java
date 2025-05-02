@@ -34,6 +34,8 @@ public class GameGetDTO {
 
     private String modeType;
 
+    private String gameCode;
+
     private LocalDateTime endTime;
 
     private Integer finalScore;
@@ -64,6 +66,14 @@ public class GameGetDTO {
     
     public void setGameName(String gameName) {
         this.gameName = gameName;
+    }
+
+    public String getGameCode() {
+        return gameCode;
+      }
+    
+    public void setGameCode(String gameCode) {
+        this.gameCode = gameCode;
     }
 
     public Long getOwnerId() {

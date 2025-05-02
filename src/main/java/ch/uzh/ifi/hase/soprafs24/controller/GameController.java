@@ -150,5 +150,19 @@ public class GameController {
     Game gameToStart = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
     gameService.startSoloGame(gameToStart);
   }
+
+  @PostMapping("/codejoin")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public GameGetDTO joinGamebyCode(@RequestBody GamePostDTO gamePostDTO){
+    return gameService.joinGamebyCode(gamePostDTO);
+  }
+
+  @PutMapping("/infinite/{gameId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void joinGamebyCode(@PathVariable Long gameId){
+    gameService.saveGame(gameId);
+  }
     
 }

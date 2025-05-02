@@ -52,12 +52,15 @@ public class GameControllerTest {
         game = new Game();
         game.setGameId(1L);
         game.setGameName("Test Game");
+        game.setGameCode("123456");
 
         gamePostDTO = new GamePostDTO();
         gamePostDTO.setGameName("Test Game");
+        gamePostDTO.setGameCode("123456");
 
         gameGetDTO = new GameGetDTO();
         gameGetDTO.setGameName("Test Game");
+        gameGetDTO.setGameCode("123456");
     }
 
     @Test
@@ -192,5 +195,16 @@ public class GameControllerTest {
         } catch (Exception e) {
             throw new RuntimeException("Failed to convert object to JSON", e);
         }
+    }
+
+    @Test
+    public void joinGamebyCode_successfully() throws Exception{
+    
+        given(gameService.joinGamebyCode(gamePostDTO)).willReturn(gameGetDTO);
+    
+        mockMvc.perform(post("/codejoin")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(gamePostDTO)))
+            .andExpect(status().isOk());
     }
 }
