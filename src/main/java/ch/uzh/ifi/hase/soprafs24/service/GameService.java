@@ -256,6 +256,7 @@ public class GameService {
 
     public void userJoinGame(Game gameToBeJoined, Long userId) {
         Game targetGame = gameRepository.findBygameId(gameToBeJoined.getGameId());
+        if(targetGame.getPlayers().contains(userId)){return;}
         if (targetGame.getGameRunning().equals(false)) {
             if (targetGame.getRealPlayersNumber() != targetGame.getPlayersNumber()) {
                 if (gameToBeJoined.getPassword().equals(targetGame.getPassword())) {
