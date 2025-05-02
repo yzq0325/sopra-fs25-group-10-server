@@ -28,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -54,6 +56,8 @@ public class GameService {
 
     private Map<Long, Country> answers = new HashMap<>();
 
+    private final ConcurrentHashMap<Long, ReentrantLock> userLocks = new ConcurrentHashMap<>();
+
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
@@ -68,7 +72,8 @@ public class GameService {
     }
 
     public Game createGame(Game gameToCreate) {
-        if(userRepository.findByUserId(gameToCreate.getOwnerId()).getGame()!=null){return null;}
+        if (userRepository.findByUserId(gameToCreate.getOwnerId()).getGame() != null) { return null; }
+
         Game gameCreated = new Game();
 
         List<Long> players = new ArrayList<>();
@@ -115,133 +120,145 @@ public class GameService {
     }
 
     public void startSoloGame(Game gameToStart){
-        if(userRepository.findByUserId(gameToStart.getOwnerId()).getGame()!=null){return;}
-        Game gameCreated = new Game();
-
-        List<Long> players = new ArrayList<>();
-        players.add(gameToStart.getOwnerId());
-        Map<Long, Integer> scoreBoard = new HashMap<>();
-        Map<Long, Integer> correctAnswersMap = new HashMap<>();
-        Map<Long, Integer> totalQuestionsMap = new HashMap<>();
-
-        checkIfOwnerExists(gameToStart.getOwnerId());
-        checkIfGameHaveSameOwner(gameToStart.getOwnerId());
-        gameCreated.setOwnerId(players.get(0));
-
-        gameCreated.setScoreBoard(scoreBoard);
-        gameCreated.setCorrectAnswersMap(correctAnswersMap);
-        gameCreated.setTotalQuestionsMap(totalQuestionsMap);
-        gameCreated.setPlayers(players);
-        gameCreated.setHintsNumber(5);
-        checkIfGameNameExists(gameToStart.getGameName());
-        gameCreated.setGameName(gameToStart.getGameName());
-        gameCreated.setGameCode(String.format("%06d", Math.abs(UUID.randomUUID().hashCode()) % 1000000));
-        gameCreated.setTime(gameToStart.getTime());
-        gameCreated.setPlayersNumber(gameToStart.getPlayersNumber());
-        gameCreated.setRealPlayersNumber(1);
-        gameCreated.setGameRunning(false);
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-        gameCreated.setGameCreationDate(now.format(formatter));
-
-        String mode = gameToStart.getModeType();
-        if (mode == null || (!mode.equals("solo") && !mode.equals("combat"))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'");
+        Long gameUserId = gameToStart.getOwnerId();
+        ReentrantLock lock = userLocks.computeIfAbsent(gameUserId, k -> new ReentrantLock());
+        boolean acquired = lock.tryLock();
+        if (!acquired) {
+            log.warn("Another createGame is already running for user {}", gameUserId);
+            return;
         }
-        gameCreated.setModeType(mode);
-
-        gameCreated.setPassword(gameToStart.getPassword());
-        gameCreated = gameRepository.save(gameCreated);
-        gameRepository.flush();
-
-        User owner = userRepository.findByUserId(gameToStart.getOwnerId());
-        owner.setGame(gameCreated);
-        userRepository.save(owner);
-        userRepository.flush();
-
-        messagingTemplate.convertAndSend("/topic/startsolo/" + gameCreated.getOwnerId() + "/gameId", gameCreated.getGameId());
-        log.info("websocket send: gameId!");
 
         try {
-            Thread.sleep(500);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-        }
+            Game gameCreated = new Game();
 
+            List<Long> players = new ArrayList<>();
+            players.add(gameToStart.getOwnerId());
+            Map<Long, Integer> scoreBoard = new HashMap<>();
+            Map<Long, Integer> correctAnswersMap = new HashMap<>();
+            Map<Long, Integer> totalQuestionsMap = new HashMap<>();
 
-        gameCreated.updateScore(gameCreated.getOwnerId(), 0);
-        for (Long userId : gameCreated.getPlayers()) {
-            User player = userRepository.findByUserId(userId);
-            if (player == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+            checkIfOwnerExists(gameToStart.getOwnerId());
+            checkIfGameHaveSameOwner(gameToStart.getOwnerId());
+            gameCreated.setOwnerId(players.get(0));
+
+            gameCreated.setScoreBoard(scoreBoard);
+            gameCreated.setCorrectAnswersMap(correctAnswersMap);
+            gameCreated.setTotalQuestionsMap(totalQuestionsMap);
+            gameCreated.setPlayers(players);
+            gameCreated.setHintsNumber(5);
+            checkIfGameNameExists(gameToStart.getGameName());
+            gameCreated.setGameName(gameToStart.getGameName());
+            gameCreated.setGameCode(String.format("%06d", Math.abs(UUID.randomUUID().hashCode()) % 1000000));
+            gameCreated.setTime(gameToStart.getTime());
+            gameCreated.setPlayersNumber(gameToStart.getPlayersNumber());
+            gameCreated.setRealPlayersNumber(1);
+            gameCreated.setGameRunning(false);
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
+            gameCreated.setGameCreationDate(now.format(formatter));
+
+            String mode = gameToStart.getModeType();
+            if (mode == null || (!mode.equals("solo") && !mode.equals("combat"))) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'");
             }
-            gameCreated.updateScore(userId, 0);
-        }
+            gameCreated.setModeType(mode);
 
-        //set correctAnswersMap
-        gameCreated.updateCorrectAnswers(gameCreated.getOwnerId(), 0);
-        for (Long userId : gameCreated.getPlayers()) {
-            User player = userRepository.findByUserId(userId);
-            if (player == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+            gameCreated.setPassword(gameToStart.getPassword());
+            gameCreated = gameRepository.save(gameCreated);
+            gameRepository.flush();
+
+            User owner = userRepository.findByUserId(gameToStart.getOwnerId());
+            owner.setGame(gameCreated);
+            userRepository.save(owner);
+            userRepository.flush();
+
+            messagingTemplate.convertAndSend("/topic/startsolo/" + gameCreated.getOwnerId() + "/gameId", gameCreated.getGameId());
+            log.info("websocket send: gameId!");
+
+            try {
+                Thread.sleep(500);
             }
-            gameCreated.updateCorrectAnswers(userId, 0);
-        }
-
-        //set totalQuestionsMap
-        gameCreated.updateTotalQuestions(gameCreated.getOwnerId(), 0);
-        for (Long userId : gameCreated.getPlayers()) {
-            User player = userRepository.findByUserId(userId);
-            if (player == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
             }
-            gameCreated.updateTotalQuestions(userId, 0);
-        }
 
-        gameCreated.setGameRunning(true);
 
-        gameCreated = gameRepository.save(gameCreated);
-        gameRepository.flush();
+            gameCreated.updateScore(gameCreated.getOwnerId(), 0);
+            for (Long userId : gameCreated.getPlayers()) {
+                User player = userRepository.findByUserId(userId);
+                if (player == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+                }
+                gameCreated.updateScore(userId, 0);
+            }
 
-        // push hints
-        GameGetDTO gameHintDTO = new GameGetDTO();
-        generatedHints = getHintsOfOneCountry();
-        gameHintDTO.setHints(generatedHints.values().iterator().next());
-        Country country = generatedHints.keySet().iterator().next();
+            //set correctAnswersMap
+            gameCreated.updateCorrectAnswers(gameCreated.getOwnerId(), 0);
+            for (Long userId : gameCreated.getPlayers()) {
+                User player = userRepository.findByUserId(userId);
+                if (player == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+                }
+                gameCreated.updateCorrectAnswers(userId, 0);
+            }
 
-        // set sheet
-        for (Long userId : players) {
-            answers.put(userId, country);
-        }
-        
-        //set scoreboard
-        Map<String, Integer> scoreBoardFront = new HashMap<>();
-        for (Long userid : gameCreated.getPlayers()) {
-            String username = (userRepository.findByUserId(userid)).getUsername();
-            int score = gameCreated.getScore(userid);
-            scoreBoardFront.put(username, score);
-        }
-        gameHintDTO.setScoreBoard(scoreBoardFront);
-        gameHintDTO.setTime(gameCreated.getTime());
-        messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
-        log.info("websocket send: hints!");
+            //set totalQuestionsMap
+            gameCreated.updateTotalQuestions(gameCreated.getOwnerId(), 0);
+            for (Long userId : gameCreated.getPlayers()) {
+                User player = userRepository.findByUserId(userId);
+                if (player == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, (userRepository.findByUserId(userId)).getUsername() + " is not found");
+                }
+                gameCreated.updateTotalQuestions(userId, 0);
+            }
 
-        // countdown
-        // utilService.countdown(gameId, gameToStart.getTime());
-        messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
-        try {
-            Thread.sleep(6000);
+            gameCreated.setGameRunning(true);
+
+            gameCreated = gameRepository.save(gameCreated);
+            gameRepository.flush();
+
+            // push hints
+            GameGetDTO gameHintDTO = new GameGetDTO();
+            generatedHints = getHintsOfOneCountry();
+            gameHintDTO.setHints(generatedHints.values().iterator().next());
+            Country country = generatedHints.keySet().iterator().next();
+
+            // set sheet
+            for (Long userId : players) {
+                answers.put(userId, country);
+            }
+
+            //set scoreboard
+            Map<String, Integer> scoreBoardFront = new HashMap<>();
+            for (Long userid : gameCreated.getPlayers()) {
+                String username = (userRepository.findByUserId(userid)).getUsername();
+                int score = gameCreated.getScore(userid);
+                scoreBoardFront.put(username, score);
+            }
+            gameHintDTO.setScoreBoard(scoreBoardFront);
+            gameHintDTO.setTime(gameCreated.getTime());
+            messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
+            log.info("websocket send: hints!");
+
+            // countdown
+            // utilService.countdown(gameId, gameToStart.getTime());
+            messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
+            try {
+                Thread.sleep(6000);
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+            }
+            Game finalGameToStart = gameCreated;
+            if(finalGameToStart.getTime()==-1){return;}
+            Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
+            timingThread.start();
+        } finally {
+            lock.unlock();
+            userLocks.remove(gameUserId);
         }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-        }
-        Game finalGameToStart = gameCreated;
-        if(finalGameToStart.getTime()==-1){return;}
-        Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
-        timingThread.start();
     }
 
     public void getGameLobby() {
@@ -302,7 +319,7 @@ public class GameService {
     public void userExitGame(Long userId) {
         Game targetGame = userRepository.findByUserId(userId).getGame();
         if (userId != targetGame.getOwnerId()) {
-            log.info("gameId: ", targetGame.getGameId());
+            log.info("gameId: {}", targetGame.getGameId());
             targetGame.removePlayer(userRepository.findByUserId(userId));
             targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() - 1);
             gameRepository.save(targetGame);
