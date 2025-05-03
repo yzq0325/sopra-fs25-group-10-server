@@ -169,7 +169,8 @@ public class GameController {
   }
 
   @MessageMapping("/game/{gameId}/ready")
-  public void handlePlayerReady(@DestinationVariable Long gameId, @Payload Long userId) {
+  public void handlePlayerReady(@DestinationVariable Long gameId, @Payload Map<String, Object> payload) {
+      Long userId = Long.valueOf(payload.get("userId").toString());
       gameService.toggleReadyStatus(gameId, userId);
   }
 }
