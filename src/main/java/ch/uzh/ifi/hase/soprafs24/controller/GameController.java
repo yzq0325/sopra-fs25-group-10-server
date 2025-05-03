@@ -14,6 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.Payload;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -164,5 +167,9 @@ public class GameController {
   public void joinGamebyCode(@PathVariable Long gameId){
     gameService.saveGame(gameId);
   }
-    
+
+  @MessageMapping("/game/{gameId}/ready")
+  public void handlePlayerReady(@DestinationVariable Long gameId, @Payload Long userId) {
+      gameService.toggleReadyStatus(gameId, userId);
+  }
 }
