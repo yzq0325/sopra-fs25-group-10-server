@@ -482,4 +482,83 @@ public class GameServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         assertTrue(exception.getReason().contains("Owner cannot toggle ready"));
     }
+
+    @Test
+    void checkAllReady_allPlayersReady_returnsTrue() {
+        Long gameId = 1L;
+        Long ownerId = 100L;
+    
+        User owner = new User();
+        owner.setUserId(ownerId);
+    
+        User player1 = new User();
+        player1.setUserId(101L);
+        player1.setReady(true);
+    
+        User player2 = new User();
+        player2.setUserId(102L);
+        player2.setReady(true);
+    
+        Game game = new Game();
+        game.setOwnerId(ownerId);
+    
+        List<User> players = List.of(owner, player1, player2);
+    
+        given(gameRepository.findBygameId(gameId)).willReturn(game);
+        doReturn(players).when(gameService).getGamePlayers(gameId);
+    
+        boolean result = gameService.checkAllReady(gameId);
+    
+        assertTrue(result);
+    }
+    
+    @Test
+    void checkAllReady_somePlayersNotReady_returnsFalse() {
+        Long gameId = 1L;
+        Long ownerId = 100L;
+    
+        User owner = new User();
+        owner.setUserId(ownerId);
+    
+        User player1 = new User();
+        player1.setUserId(101L);
+        player1.setReady(true);
+    
+        User player2 = new User();
+        player2.setUserId(102L);
+        player2.setReady(false);
+    
+        Game game = new Game();
+        game.setOwnerId(ownerId);
+    
+        List<User> players = List.of(owner, player1, player2);
+    
+        given(gameRepository.findBygameId(gameId)).willReturn(game);
+        doReturn(players).when(gameService).getGamePlayers(gameId);
+    
+        boolean result = gameService.checkAllReady(gameId);
+    
+        assertFalse(result);
+    }
+    
+    @Test
+    void checkAllReady_onlyOwner_returnsTrue() {
+        Long gameId = 1L;
+        Long ownerId = 100L;
+    
+        User owner = new User();
+        owner.setUserId(ownerId);
+    
+        Game game = new Game();
+        game.setOwnerId(ownerId);
+    
+        List<User> players = List.of(owner);
+    
+        given(gameRepository.findBygameId(gameId)).willReturn(game);
+        doReturn(players).when(gameService).getGamePlayers(gameId);
+    
+        boolean result = gameService.checkAllReady(gameId);
+    
+        assertTrue(result);
+    }
 }
