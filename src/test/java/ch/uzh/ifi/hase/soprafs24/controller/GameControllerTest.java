@@ -114,54 +114,39 @@ public class GameControllerTest {
     }
 
     @Test
-    public void joinGame_gameIsRunning_shouldReturnUnauthorized() throws Exception {
-        GamePostDTO requestDTO = new GamePostDTO();
-        requestDTO.setGameId(1L);
-        requestDTO.setPassword("1234");
-    
-        given(gameService.userJoinGame(any(), eq(1L))).willThrow(
-            new ResponseStatusException(HttpStatus.UNAUTHORIZED, "This game is running! You can't join the game! Please try again!")
-        );
+    public void joinGame_gameRunning_shouldReturnUnauthorized() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Game is running"))
+            .when(gameService).userJoinGame(any(), eq(1L));
     
         mockMvc.perform(put("/lobbyIn/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(requestDTO)))
+                .content(asJsonString(gamePostDTO)))
             .andExpect(status().isUnauthorized())
-            .andExpect(status().reason("This game is running! You can't join the game! Please try again!"));
+            .andExpect(status().reason("Game is running"));
     }
 
     @Test
-    public void joinGame_gameIsFull_shouldReturnBadRequest() throws Exception {
-        GamePostDTO requestDTO = new GamePostDTO();
-        requestDTO.setGameId(1L);
-        requestDTO.setPassword("1234");
-    
-        given(gameService.userJoinGame(any(), eq(1L))).willThrow(
-            new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't join this game because this game is full")
-        );
+    public void joinGame_gameFull_shouldReturnBadRequest() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is full"))
+            .when(gameService).userJoinGame(any(), eq(1L));
     
         mockMvc.perform(put("/lobbyIn/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(requestDTO)))
+                .content(asJsonString(gamePostDTO)))
             .andExpect(status().isBadRequest())
-            .andExpect(status().reason("You can't join this game because this game is full"));
+            .andExpect(status().reason("Game is full"));
     }
 
     @Test
     public void joinGame_wrongPassword_shouldReturnUnauthorized() throws Exception {
-        GamePostDTO requestDTO = new GamePostDTO();
-        requestDTO.setGameId(1L);
-        requestDTO.setPassword("wrong-pass");
-    
-        given(gameService.userJoinGame(any(), eq(1L))).willThrow(
-            new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!")
-        );
+        doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password"))
+            .when(gameService).userJoinGame(any(), eq(1L));
     
         mockMvc.perform(put("/lobbyIn/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(requestDTO)))
+                .content(asJsonString(gamePostDTO)))
             .andExpect(status().isUnauthorized())
-            .andExpect(status().reason("Wrong Password! You can't join the game! Please try again!"));
+            .andExpect(status().reason("Wrong Password"));
     }
 
     @Test
