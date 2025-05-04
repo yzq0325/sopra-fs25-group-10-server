@@ -188,15 +188,6 @@ public class GameControllerTest {
             .andExpect(status().isOk());
     }
 
-
-    private String asJsonString(final Object object) {
-        try {
-            return new ObjectMapper().writeValueAsString(object);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to convert object to JSON", e);
-        }
-    }
-
     @Test
     public void joinGamebyCode_successfully() throws Exception{
     
@@ -207,4 +198,14 @@ public class GameControllerTest {
                 .content(asJsonString(gamePostDTO)))
             .andExpect(status().isOk());
     }
+
+
+    private String asJsonString(final Object object) {
+        try {
+            return new ObjectMapper().writeValueAsString(object);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert object to JSON", e);
+        }
+    }
+
 }

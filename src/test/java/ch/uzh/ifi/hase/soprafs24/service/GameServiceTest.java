@@ -35,6 +35,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
@@ -233,7 +235,7 @@ public class GameServiceTest {
         assertTrue(exception.getReason().contains("Wrong Password"));
     }
 
-        @Test
+    @Test
     void chatChecksForGame_validData_passes() {
         Long gameId = 1L;
         String username = "Player1";
@@ -400,5 +402,84 @@ public class GameServiceTest {
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
         assertTrue(exception.getReason().contains("Game with your gameCode doesn't exist! Please try another gameCode!"));
+    }
+
+    @Test
+    void toggleReadyStatus_success() {
+        Long gameId = 100L;
+        Long userId = 2L;
+    
+        Game mockGame = mock(Game.class);
+        given(mockGame.getGameId()).willReturn(gameId);
+        given(mockGame.getOwnerId()).willReturn(1L);
+    
+        User mockUser = new User();
+        mockUser.setUserId(userId);
+        mockUser.setReady(false);
+        mockUser.setGame(mockGame);
+    
+        User ownerUser = new User();
+        ownerUser.setUserId(1L);
+        ownerUser.setReady(true);
+    
+        given(userRepository.findByUserId(userId)).willReturn(mockUser);
+        given(userRepository.findByUserId(1L)).willReturn(ownerUser);
+        given(gameRepository.findBygameId(gameId)).willReturn(mockGame);
+    
+        doNothing().when(messagingTemplate).convertAndSend(any(String.class), any(Object.class));
+    
+        doReturn(List.of(ownerUser, mockUser)).when(gameService).getGamePlayers(gameId);
+
+        gameService.toggleReadyStatus(gameId, userId);
+    
+        assertTrue(mockUser.isReady());
+
+        verify(userRepository).save(mockUser);
+    
+        verify(messagingTemplate).convertAndSend(eq("/topic/ready/" + gameId + "/status"), any(Map.class));
+        verify(messagingTemplate).convertAndSend(eq("/topic/ready/" + gameId + "/canStart"), eq(true));
+    }
+
+    @Test
+    void toggleReadyStatus_userNotInGame_throwsBadRequest() {
+        Long gameId = 100L;
+        Long userId = 2L;
+    
+        User mockUser = new User();
+        mockUser.setUserId(userId);
+        mockUser.setGame(null);
+    
+        given(userRepository.findByUserId(userId)).willReturn(mockUser);
+    
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.toggleReadyStatus(gameId, userId);
+        });
+    
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertTrue(exception.getReason().contains("Invalid user or game"));
+    }
+
+    @Test
+    void toggleReadyStatus_ownerCannotReady_throwsBadRequest() {
+        Long gameId = 100L;
+        Long userId = 1L;
+    
+        Game mockGame = mock(Game.class);
+        given(mockGame.getGameId()).willReturn(gameId);
+        given(mockGame.getOwnerId()).willReturn(userId);
+    
+        User mockOwner = new User();
+        mockOwner.setUserId(userId);
+        mockOwner.setGame(mockGame);
+    
+        given(userRepository.findByUserId(userId)).willReturn(mockOwner);
+        given(gameRepository.findBygameId(gameId)).willReturn(mockGame);
+    
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.toggleReadyStatus(gameId, userId);
+        });
+    
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertTrue(exception.getReason().contains("Owner cannot toggle ready"));
     }
 }
