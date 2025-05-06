@@ -46,6 +46,8 @@ public class GameGetDTO {
 
     private Integer correctAnswers;
 
+    private String answer;
+
     private List<Map<String, Object>> hints;
 
     private boolean judgement;
@@ -210,6 +212,14 @@ public class GameGetDTO {
     
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getAnswer() {
+        return answer;
+    }
+    
+    public void setAnswer(String answer) {
+        this.answer = answer;
     }
     
     public Integer getTotalScore() {
