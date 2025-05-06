@@ -173,4 +173,26 @@ public class GameController {
       Long userId = Long.valueOf(payload.get("userId").toString());
       gameService.toggleReadyStatus(gameId, userId);
   }
+
+  @PostMapping("/startexercise")
+  @ResponseStatus(HttpStatus.CREATED)
+  @ResponseBody
+  public void startexerciseGame(@RequestBody GamePostDTO gamePostDTO){
+    Game gameToStart = DTOMapper.INSTANCE.convertGamePostDTOtoGameEntity(gamePostDTO);
+    gameService.startExerciseGame(gameToStart);
+  }
+
+  @PutMapping("/next/{gameId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public GameGetDTO nextQuestion_ExerciseMode(@PathVariable Long gameId){
+    return gameService.nextQuestion_ExerciseMode(gameId);
+  }
+
+  @PostMapping("/finishexercise/{gameId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void finishExerciseGame(@PathVariable Long gameId){
+    gameService.saveGame(gameId);
+  }
 }
