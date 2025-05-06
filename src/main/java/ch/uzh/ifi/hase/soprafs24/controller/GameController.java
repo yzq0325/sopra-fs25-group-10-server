@@ -161,13 +161,6 @@ public class GameController {
     return gameService.joinGamebyCode(gamePostDTO);
   }
 
-  @PutMapping("/infinite/{gameId}")
-  @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
-  public void joinGamebyCode(@PathVariable Long gameId){
-    gameService.saveGame(gameId);
-  }
-
   @MessageMapping("/game/{gameId}/ready")
   public void handlePlayerReady(@DestinationVariable Long gameId, @Payload Map<String, Object> payload) {
       Long userId = Long.valueOf(payload.get("userId").toString());
