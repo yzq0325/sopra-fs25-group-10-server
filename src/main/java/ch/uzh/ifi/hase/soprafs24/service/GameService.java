@@ -100,7 +100,7 @@ public class GameService {
         gameCreated.setGameRunning(false);
 
         String mode = gameToCreate.getModeType();
-        if (mode == null || (!mode.equals("solo") && !mode.equals("combat"))) {
+        if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'");
         }
         gameCreated.setModeType(mode);
@@ -158,7 +158,7 @@ public class GameService {
             gameCreated.setGameCreationDate(now.format(formatter));
 
             String mode = gameToStart.getModeType();
-            if (mode == null || (!mode.equals("solo") && !mode.equals("combat"))) {
+            if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'");
             }
             gameCreated.setModeType(mode);
@@ -294,7 +294,7 @@ public class GameService {
             gameCreated.setGameCreationDate(now.format(formatter));
 
             String mode = gameToStart.getModeType();
-            if (mode == null || (!mode.equals("solo") && !mode.equals("combat"))) {
+            if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'");
             }
             gameCreated.setModeType(mode);
