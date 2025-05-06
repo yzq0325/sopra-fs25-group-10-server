@@ -316,6 +316,7 @@ public class GameService {
             return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(gametoJoin);
         }
     }
+
     public void userExitGame(Long userId) {
         Game targetGame = userRepository.findByUserId(userId).getGame();
         if (userId != targetGame.getOwnerId()) {
@@ -327,6 +328,7 @@ public class GameService {
 
             User targetUser = userRepository.findByUserId(userId);
             targetUser.setGame(null);
+            targetUser.setReady(false);
             userRepository.save(targetUser);
             userRepository.flush();
 
@@ -341,6 +343,7 @@ public class GameService {
 
             User targetUser = userRepository.findByUserId(userId);
             targetUser.setGame(null);
+            targetUser.setReady(false);
             userRepository.save(targetUser);
             userRepository.flush();
 
@@ -355,6 +358,7 @@ public class GameService {
 
             User targetUser = userRepository.findByUserId(userId);
             targetUser.setGame(null);
+            targetUser.setReady(false);
             userRepository.save(targetUser);
             userRepository.flush();
 
@@ -387,6 +391,29 @@ public class GameService {
         }
     }
 
+    public void chatChecksForGame(Long gameId, String playerName) {
+        System.out.println(gameId);
+        System.out.println(playerName);
+        Game game = gameRepository.findBygameId(gameId);
+        System.out.println(game);
+        if (game == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game Not Found!");
+        }
+    
+        User user = userRepository.findByUsername(playerName);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Found!");
+        }
+    
+        if (!game.getPlayers().contains(user.getUserId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a participant in this game.");
+        }
+
+        if(game.getEndTime() != null){
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Game endeded, Chat is not available anymore.");
+        }
+    }
+
     public List<User> getGamePlayers(Long gameId) {
         Game gameJoined = gameRepository.findBygameId(gameId);
         List<Long> allPlayers = gameJoined.getPlayers();
@@ -402,7 +429,21 @@ public class GameService {
 
     }
 
+    public boolean checkAllReady(Long gameId) {
+        List<User> players = getGamePlayers(gameId);
+        Game game = gameRepository.findBygameId(gameId);
+        Long ownerId = game.getOwnerId();
+    
+        return players.stream()
+            .filter(p -> !p.getUserId().equals(ownerId))
+            .allMatch(User::isReady);
+    }
+
     public void startGame(Long gameId) {
+        if (!checkAllReady(gameId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not all players are ready");
+        }
+
         Game gameToStart = gameRepository.findBygameId(gameId);
         List<Long> allPlayers = gameToStart.getPlayers();
 
@@ -481,6 +522,14 @@ public class GameService {
         Game finalGameToStart = gameToStart;
         Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, gameId));
         timingThread.start();
+
+        // reset ready status
+        for (Long userId : gameToStart.getPlayers()) {
+            User player = userRepository.findByUserId(userId);
+            player.setReady(false);
+            userRepository.save(player);
+        }
+        userRepository.flush();
     }
 
     public void saveGame(Long gameId) {
@@ -669,6 +718,7 @@ public class GameService {
             playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId), 
             gameToEnd.getTotalQuestions(userId), gameToEnd.getGameCreationDate(), gameToEnd.getTime(),gameToEnd.getModeType());
             playerToEnd.setGame(null);
+            playerToEnd.setReady(false);
             userRepository.save(playerToEnd);
             userRepository.flush();
             gameRepository.deleteByGameId(gameToEnd.getGameId());
@@ -684,6 +734,7 @@ public class GameService {
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
                 gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(), gameToEnd.getModeType());
                 playerToEnd.setGame(null);
+                playerToEnd.setReady(false);
                 userRepository.save(playerToEnd);
                 userRepository.flush();
                 getGameLobby();
@@ -696,6 +747,7 @@ public class GameService {
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
                 gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(),gameToEnd.getModeType());
                 playerToEnd.setGame(null);
+                playerToEnd.setReady(false);
                 userRepository.save(playerToEnd);
                 userRepository.flush();
                 getGameLobby();
@@ -725,4 +777,30 @@ public class GameService {
 
     }
 
+    public void toggleReadyStatus(Long gameId, Long userId) {
+        User user = userRepository.findByUserId(userId);
+        if (user == null || user.getGame() == null || !user.getGame().getGameId().equals(gameId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid user or game");
+        }
+    
+        Game game = user.getGame();
+        if (user.getUserId().equals(game.getOwnerId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Owner cannot toggle ready");
+        }
+    
+        user.setReady(!user.isReady());
+        userRepository.save(user);
+        userRepository.flush();
+    
+        List<User> players = getGamePlayers(gameId);
+    
+        Map<Long, Boolean> readinessMap = players.stream()
+                .collect(Collectors.toMap(User::getUserId, User::isReady));
+        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/status", readinessMap);
+    
+        boolean allReady = players.stream()
+                .filter(p -> !p.getUserId().equals(game.getOwnerId()))
+                .allMatch(User::isReady);
+        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/canStart", allReady);
+    }
 }

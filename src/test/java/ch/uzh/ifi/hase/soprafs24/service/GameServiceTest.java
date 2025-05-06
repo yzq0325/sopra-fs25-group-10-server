@@ -24,7 +24,9 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,8 +34,11 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
@@ -58,29 +63,68 @@ public class GameServiceTest {
     private GameService gameService;
 
     private Game testGame;
+    private GameGetDTO gameGetDTO;
     private User owner;
 
     @BeforeEach
     public void setup() {
-    
+        // Setup Game entity
         testGame = new Game();
         testGame.setGameName("Test Game");
+        testGame.setGameId(1L);
         testGame.setOwnerId(1L);
         testGame.setPlayersNumber(4);
         testGame.setTime(5);
         testGame.setModeType("solo");
         testGame.setPassword("1234");
-
+    
+        // Setup maps for tracking questions and answers
+        Map<Long, Integer> totalQuestionsMap = new HashMap<>();
+        totalQuestionsMap.put(1L, 10);
+        testGame.setTotalQuestionsMap(totalQuestionsMap);
+    
+        Map<Long, Integer> correctAnswersMap = new HashMap<>();
+        correctAnswersMap.put(1L, 0);
+        testGame.setCorrectAnswersMap(correctAnswersMap);
+    
+        // Setup User entity
         owner = new User();
         owner.setUserId(1L);
-
+        owner.setUsername("Test Owner");
+    
+        UtilService mockUtilService = mock(UtilService.class);
+    
+        Queue<Map<Country, List<Map<String, Object>>>> mockHintQueue = new LinkedList<>();
+    
+        Country mockCountry = Country.Switzerland;
+        Map<String, Object> hintData = new HashMap<>();
+        hintData.put("hint", "It's in Europe");
+    
+        List<Map<String, Object>> hintList = new ArrayList<>();
+        hintList.add(hintData);
+    
+        Map<Country, List<Map<String, Object>>> countryHintMap = new HashMap<>();
+        countryHintMap.put(mockCountry, hintList);
+    
+        mockHintQueue.add(countryHintMap);
+    
+        // Configure mock behavior
+        when(mockUtilService.getHintCache()).thenReturn(mockHintQueue);
+        ReflectionTestUtils.setField(gameService, "utilService", mockUtilService);
+    
+        // Mock repository behavior
         when(userRepository.findByUserId(1L)).thenReturn(owner);
         when(gameRepository.findByownerId(1L)).thenReturn(null);
         when(gameRepository.findBygameName("Test Game")).thenReturn(null);
         when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
+    
+        // Set messagingTemplate
         ReflectionTestUtils.setField(gameService, "messagingTemplate", messagingTemplate);
+    
+        // Initialize DTO
+        gameGetDTO = new GameGetDTO();
     }
+    
 
     @Test
     public void checkIfOwnerExists_ownerNotFound_throwsException() {
@@ -232,6 +276,248 @@ public class GameServiceTest {
         assertTrue(exception.getReason().contains("Wrong Password"));
     }
 
+    @Test
+    void chatChecksForGame_validData_passes() {
+        Long gameId = 1L;
+        String username = "Player1";
+        Long userId = 100L;
+
+        Game game = new Game();
+        game.setPlayers(Collections.singletonList(userId));
+        game.setEndTime(null);
+
+        User user = new User();
+        user.setUserId(userId);
+        user.setUsername(username);
+
+        when(gameRepository.findBygameId(gameId)).thenReturn(game);
+        when(userRepository.findByUsername(username)).thenReturn(user);
+
+        assertDoesNotThrow(() -> gameService.chatChecksForGame(gameId, username));
+    }
+
+    @Test
+    void chatChecksForGame_gameNotFound_throwsNotFound() {
+        when(gameRepository.findBygameId(1L)).thenReturn(null);
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                gameService.chatChecksForGame(1L, "Player1"));
+        assertEquals(404, ex.getStatus().value());
+        assertTrue(ex.getReason().contains("Game Not Found"));
+    }
+
+    @Test
+    void chatChecksForGame_userNotFound_throwsNotFound() {
+        Game game = new Game();
+        game.setPlayers(Collections.singletonList(1L));
+        when(gameRepository.findBygameId(1L)).thenReturn(game);
+        when(userRepository.findByUsername("Player1")).thenReturn(null);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                gameService.chatChecksForGame(1L, "Player1"));
+        assertEquals(404, ex.getStatus().value());
+        assertTrue(ex.getReason().contains("User Not Found"));
+    }
+
+    @Test
+    void chatChecksForGame_userNotInGame_throwsForbidden() {
+        Game game = new Game();
+        game.setPlayers(Collections.singletonList(2L));  // different user ID
+
+        User user = new User();
+        user.setUserId(1L);
+        user.setUsername("Player1");
+
+        when(gameRepository.findBygameId(1L)).thenReturn(game);
+        when(userRepository.findByUsername("Player1")).thenReturn(user);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                gameService.chatChecksForGame(1L, "Player1"));
+        assertEquals(403, ex.getStatus().value());
+        assertTrue(ex.getReason().contains("User is not a participant"));
+    }
+
+    @Test
+    void chatChecksForGame_gameEnded_throwsForbidden() {
+        Long userId = 1L;
+        Game game = new Game();
+        game.setPlayers(Collections.singletonList(userId));
+        game.setEndTime(LocalDateTime.now());  // ended game
+
+        User user = new User();
+        user.setUserId(userId);
+        user.setUsername("Player1");
+
+        when(gameRepository.findBygameId(1L)).thenReturn(game);
+        when(userRepository.findByUsername("Player1")).thenReturn(user);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                gameService.chatChecksForGame(1L, "Player1"));
+        assertEquals(403, ex.getStatus().value());
+        assertTrue(ex.getReason().contains("Game endeded"));
+    }
+
+    @Test
+    public void testProcessingAnswer_CorrectCountryAnswer() {
+        Long userId = 1L;
+    
+        GamePostDTO gamePostDTO = new GamePostDTO();
+        gamePostDTO.setGameId(1L);
+        gamePostDTO.setSubmitAnswer(Country.Switzerland); // Correct
+        gamePostDTO.setHintUsingNumber(2); // 2 hints used
+    
+        // Mock correct answer
+        Map<Long, Country> answers = new HashMap<>();
+        answers.put(userId, Country.Switzerland);
+        ReflectionTestUtils.setField(gameService, "answers", answers);
+    
+        // Mock generatedHints
+        Map<Country, List<Map<String, Object>>> generatedHints = new HashMap<>();
+        List<Map<String, Object>> hintList = List.of(Map.of("hint", "It's in Europe"));
+        generatedHints.put(Country.Germany, hintList);
+        ReflectionTestUtils.setField(gameService, "generatedHints", generatedHints);
+    
+        testGame.setPlayers(List.of(userId));
+        testGame.setScoreBoard(new HashMap<>(Map.of(userId, 0)));
+        when(userRepository.findByUserId(userId)).thenReturn(owner);
+        when(gameRepository.findBygameId(1L)).thenReturn(testGame);
+    
+        GameGetDTO result = gameService.processingAnswer(gamePostDTO, userId);
+    
+        assertTrue(result.getJudgement());
+        assertEquals(hintList, result.getHints());
+        assertEquals(80, testGame.getScoreBoard().get(userId)); // 100 - (2 - 1) * 20
+    
+        verify(gameRepository).save(testGame);
+        verify(userRepository).save(owner);
+        verify(messagingTemplate).convertAndSend(contains("/scoreBoard"), any(Map.class));
+    }
+    
+    
+    @Test
+    public void testProcessingAnswer_IncorrectCountryAnswer() {
+        Long userId = 1L;
+    
+        GamePostDTO gamePostDTO = new GamePostDTO();
+        gamePostDTO.setGameId(1L);
+        gamePostDTO.setSubmitAnswer(Country.France); // Incorrect
+        gamePostDTO.setHintUsingNumber(1); // 1 hint used
+    
+        // Mock correct answer
+        Map<Long, Country> answers = new HashMap<>();
+        answers.put(userId, Country.Switzerland);
+        ReflectionTestUtils.setField(gameService, "answers", answers);
+    
+        // Mock generatedHints
+        Map<Country, List<Map<String, Object>>> generatedHints = new HashMap<>();
+        List<Map<String, Object>> hintList = List.of(Map.of("hint", "It's in Europe"));
+        generatedHints.put(Country.Austria, hintList);
+        ReflectionTestUtils.setField(gameService, "generatedHints", generatedHints);
+    
+        testGame.setPlayers(List.of(userId));
+        testGame.setScoreBoard(new HashMap<>(Map.of(userId, 0)));
+        when(userRepository.findByUserId(userId)).thenReturn(owner);
+        when(gameRepository.findBygameId(1L)).thenReturn(testGame);
+    
+        GameGetDTO result = gameService.processingAnswer(gamePostDTO, userId);
+    
+        assertFalse(result.getJudgement());
+        assertEquals(hintList, result.getHints());
+        assertEquals(0, testGame.getScoreBoard().get(userId));
+    
+        verify(gameRepository).save(testGame);
+        verify(messagingTemplate).convertAndSend(contains("/scoreBoard"), any(Map.class));
+    }
+
+    @Test
+    public void testProcessingAnswer_LearningTrackUpdate_CorrectAnswer() {
+        Long userId = 1L;
+    
+        // GamePostDTO with a correct answer
+        GamePostDTO gamePostDTO = new GamePostDTO();
+        gamePostDTO.setGameId(1L);
+        gamePostDTO.setSubmitAnswer(Country.Switzerland);  // Correct answer
+        gamePostDTO.setHintUsingNumber(1);  // 1 hint used
+    
+        // Mock correct answers
+        Map<Long, Country> answers = new HashMap<>();
+        answers.put(userId, Country.Switzerland);  // Correct answer
+        ReflectionTestUtils.setField(gameService, "answers", answers);
+    
+        // Mock generatedHints
+        Map<Country, List<Map<String, Object>>> generatedHints = new HashMap<>();
+        List<Map<String, Object>> hintList = List.of(Map.of("hint", "It's in Europe"));
+        generatedHints.put(Country.Switzerland, hintList);  // Correct hint for Switzerland
+        ReflectionTestUtils.setField(gameService, "generatedHints", generatedHints);
+    
+        // Set up the game with one player
+        testGame.setPlayers(List.of(userId));
+        testGame.setScoreBoard(new HashMap<>(Map.of(userId, 0)));
+    
+        // Mock User object
+        User mockUser = mock(User.class);
+        mockUser.setUserId(userId);
+        mockUser.setUsername("Test User");
+    
+        // Mock the user repository call to return the mocked user
+        when(userRepository.findByUserId(userId)).thenReturn(mockUser);
+    
+        // Mock game repository call
+        when(gameRepository.findBygameId(1L)).thenReturn(testGame);
+    
+        GameGetDTO result = gameService.processingAnswer(gamePostDTO, userId);
+    
+        assertTrue(result.getJudgement());
+    
+        verify(mockUser).updateLearningTrack(Country.Switzerland);
+        verify(userRepository).save(mockUser);
+    }
+    
+    @Test
+    public void testProcessingAnswer_LearningTrackUpdate_IncorrectAnswer() {
+        Long userId = 1L;
+    
+        // GamePostDTO with an incorrect answer
+        GamePostDTO gamePostDTO = new GamePostDTO();
+        gamePostDTO.setGameId(1L);
+        gamePostDTO.setSubmitAnswer(Country.France);  // Incorrect answer
+        gamePostDTO.setHintUsingNumber(1);  // 1 hint used
+    
+        // Mock correct answers
+        Map<Long, Country> answers = new HashMap<>();
+        answers.put(userId, Country.Switzerland);  // Correct answer is Switzerland
+        ReflectionTestUtils.setField(gameService, "answers", answers);
+    
+        // Mock generatedHints
+        Map<Country, List<Map<String, Object>>> generatedHints = new HashMap<>();
+        List<Map<String, Object>> hintList = List.of(Map.of("hint", "It's in Europe"));
+        generatedHints.put(Country.Austria, hintList);  // Incorrect hint
+        ReflectionTestUtils.setField(gameService, "generatedHints", generatedHints);
+    
+        // Set up the game with one player
+        testGame.setPlayers(List.of(userId));
+        testGame.setScoreBoard(new HashMap<>(Map.of(userId, 0)));
+    
+        // Mock User object
+        User mockUser = mock(User.class);
+        when(mockUser.getUserId()).thenReturn(userId);
+        when(mockUser.getUsername()).thenReturn("Test User");
+    
+        // Mock the user repository call
+        when(userRepository.findByUserId(userId)).thenReturn(mockUser);
+        when(gameRepository.findBygameId(1L)).thenReturn(testGame);
+    
+        // Call the method
+        GameGetDTO result = gameService.processingAnswer(gamePostDTO, userId);
+    
+        // Validate result
+        assertFalse(result.getJudgement());
+        assertEquals(hintList, result.getHints());
+    
+        verify(mockUser, never()).updateLearningTrack(any());
+    
+        verify(userRepository, never()).save(mockUser);
+    }
+
     // @Test
     // public void userStartGame_successfullyStartGame() {
     //     Long gameId = 100L;
@@ -319,5 +605,163 @@ public class GameServiceTest {
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
         assertTrue(exception.getReason().contains("Game with your gameCode doesn't exist! Please try another gameCode!"));
+    }
+
+    @Test
+    void toggleReadyStatus_success() {
+        Long gameId = 100L;
+        Long userId = 2L;
+    
+        Game mockGame = mock(Game.class);
+        given(mockGame.getGameId()).willReturn(gameId);
+        given(mockGame.getOwnerId()).willReturn(1L);
+    
+        User mockUser = new User();
+        mockUser.setUserId(userId);
+        mockUser.setReady(false);
+        mockUser.setGame(mockGame);
+    
+        User ownerUser = new User();
+        ownerUser.setUserId(1L);
+        ownerUser.setReady(true);
+    
+        given(userRepository.findByUserId(userId)).willReturn(mockUser);
+        given(userRepository.findByUserId(1L)).willReturn(ownerUser);
+        given(gameRepository.findBygameId(gameId)).willReturn(mockGame);
+    
+        doNothing().when(messagingTemplate).convertAndSend(any(String.class), any(Object.class));
+    
+        doReturn(List.of(ownerUser, mockUser)).when(gameService).getGamePlayers(gameId);
+
+        gameService.toggleReadyStatus(gameId, userId);
+    
+        assertTrue(mockUser.isReady());
+
+        verify(userRepository).save(mockUser);
+    
+        verify(messagingTemplate).convertAndSend(eq("/topic/ready/" + gameId + "/status"), any(Map.class));
+        verify(messagingTemplate).convertAndSend(eq("/topic/ready/" + gameId + "/canStart"), eq(true));
+    }
+
+    @Test
+    void toggleReadyStatus_userNotInGame_throwsBadRequest() {
+        Long gameId = 100L;
+        Long userId = 2L;
+    
+        User mockUser = new User();
+        mockUser.setUserId(userId);
+        mockUser.setGame(null);
+    
+        given(userRepository.findByUserId(userId)).willReturn(mockUser);
+    
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.toggleReadyStatus(gameId, userId);
+        });
+    
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertTrue(exception.getReason().contains("Invalid user or game"));
+    }
+
+    @Test
+    void toggleReadyStatus_ownerCannotReady_throwsBadRequest() {
+        Long gameId = 100L;
+        Long userId = 1L;
+    
+        Game mockGame = mock(Game.class);
+        given(mockGame.getGameId()).willReturn(gameId);
+        given(mockGame.getOwnerId()).willReturn(userId);
+    
+        User mockOwner = new User();
+        mockOwner.setUserId(userId);
+        mockOwner.setGame(mockGame);
+    
+        given(userRepository.findByUserId(userId)).willReturn(mockOwner);
+        given(gameRepository.findBygameId(gameId)).willReturn(mockGame);
+    
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.toggleReadyStatus(gameId, userId);
+        });
+    
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertTrue(exception.getReason().contains("Owner cannot toggle ready"));
+    }
+
+    @Test
+    void checkAllReady_allPlayersReady_returnsTrue() {
+        Long gameId = 1L;
+        Long ownerId = 100L;
+    
+        User owner = new User();
+        owner.setUserId(ownerId);
+    
+        User player1 = new User();
+        player1.setUserId(101L);
+        player1.setReady(true);
+    
+        User player2 = new User();
+        player2.setUserId(102L);
+        player2.setReady(true);
+    
+        Game game = new Game();
+        game.setOwnerId(ownerId);
+    
+        List<User> players = List.of(owner, player1, player2);
+    
+        given(gameRepository.findBygameId(gameId)).willReturn(game);
+        doReturn(players).when(gameService).getGamePlayers(gameId);
+    
+        boolean result = gameService.checkAllReady(gameId);
+    
+        assertTrue(result);
+    }
+    
+    @Test
+    void checkAllReady_somePlayersNotReady_returnsFalse() {
+        Long gameId = 1L;
+        Long ownerId = 100L;
+    
+        User owner = new User();
+        owner.setUserId(ownerId);
+    
+        User player1 = new User();
+        player1.setUserId(101L);
+        player1.setReady(true);
+    
+        User player2 = new User();
+        player2.setUserId(102L);
+        player2.setReady(false);
+    
+        Game game = new Game();
+        game.setOwnerId(ownerId);
+    
+        List<User> players = List.of(owner, player1, player2);
+    
+        given(gameRepository.findBygameId(gameId)).willReturn(game);
+        doReturn(players).when(gameService).getGamePlayers(gameId);
+    
+        boolean result = gameService.checkAllReady(gameId);
+    
+        assertFalse(result);
+    }
+    
+    @Test
+    void checkAllReady_onlyOwner_returnsTrue() {
+        Long gameId = 1L;
+        Long ownerId = 100L;
+    
+        User owner = new User();
+        owner.setUserId(ownerId);
+    
+        Game game = new Game();
+        game.setOwnerId(ownerId);
+    
+        List<User> players = List.of(owner);
+    
+        given(gameRepository.findBygameId(gameId)).willReturn(game);
+        doReturn(players).when(gameService).getGamePlayers(gameId);
+    
+        boolean result = gameService.checkAllReady(gameId);
+    
+        assertTrue(result);
     }
 }

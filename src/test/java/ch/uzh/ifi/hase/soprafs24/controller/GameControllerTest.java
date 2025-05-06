@@ -19,6 +19,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Map;
@@ -76,6 +78,24 @@ public class GameControllerTest {
     }
 
     @Test
+    public void createGame_invalidMode_shouldReturnBadRequest() throws Exception {
+        GamePostDTO invalidModeDTO = new GamePostDTO();
+        invalidModeDTO.setGameName("InvalidGame");
+        invalidModeDTO.setModeType("invalid");
+
+        given(gameService.createGame(any())).willThrow(
+            new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'")
+        );
+    
+        mockMvc.perform(post("/games")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(invalidModeDTO)))
+            .andExpect(status().isBadRequest())
+            .andExpect(status().reason("Invalid mode type: must be 'solo' or 'combat'"));
+    }
+    
+
+    @Test
     public void getGameLobby_success() throws Exception {
         doNothing().when(gameService).getGameLobby();
     
@@ -91,6 +111,42 @@ public class GameControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(asJsonString(gamePostDTO)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    public void joinGame_gameRunning_shouldReturnUnauthorized() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Game is running"))
+            .when(gameService).userJoinGame(any(), eq(1L));
+    
+        mockMvc.perform(put("/lobbyIn/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(gamePostDTO)))
+            .andExpect(status().isUnauthorized())
+            .andExpect(status().reason("Game is running"));
+    }
+
+    @Test
+    public void joinGame_gameFull_shouldReturnBadRequest() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is full"))
+            .when(gameService).userJoinGame(any(), eq(1L));
+    
+        mockMvc.perform(put("/lobbyIn/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(gamePostDTO)))
+            .andExpect(status().isBadRequest())
+            .andExpect(status().reason("Game is full"));
+    }
+
+    @Test
+    public void joinGame_wrongPassword_shouldReturnUnauthorized() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password"))
+            .when(gameService).userJoinGame(any(), eq(1L));
+    
+        mockMvc.perform(put("/lobbyIn/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(gamePostDTO)))
+            .andExpect(status().isUnauthorized())
+            .andExpect(status().reason("Wrong Password"));
     }
 
     @Test
@@ -117,6 +173,16 @@ public class GameControllerTest {
     }
 
     @Test
+    public void getGamePlayers_invalidGameId_shouldReturnNotFound() throws Exception {
+        given(gameService.getGamePlayers(99L))
+            .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+    
+        mockMvc.perform(get("/ready/99"))
+            .andExpect(status().isNotFound())
+            .andExpect(status().reason("Game not found"));
+    }
+
+    @Test
     public void startGame_success() throws Exception {
         doNothing().when(gameService).startGame(1L);
 
@@ -139,12 +205,38 @@ public class GameControllerTest {
     }
 
     @Test
+    public void submitScores_invalidScoreMap_shouldReturnBadRequest() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Score map is missing"))
+            .when(gameService).submitScores(eq(1L), any(), any(), any());
+    
+        gamePostDTO.setScoreMap(null);
+    
+        mockMvc.perform(put("/games/1/end")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(gamePostDTO)))
+            .andExpect(status().isBadRequest())
+            .andExpect(status().reason("Score map is missing"));
+    }
+
+    @Test
     public void getUserGameHistory_success() throws Exception {
         given(gameService.getGamesByUser(1L)).willReturn(List.of(gameGetDTO));
 
         mockMvc.perform(get("/users/1/history"))
                 .andExpect(status().isOk());
     }
+
+    
+    @Test
+    public void getUserGameHistory_userNotFound_shouldReturnNotFound() throws Exception {
+        given(gameService.getGamesByUser(404L))
+            .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    
+        mockMvc.perform(get("/users/404/history"))
+            .andExpect(status().isNotFound())
+            .andExpect(status().reason("User not found"));
+    }
+    
 
     @Test
     public void getLeaderboard_success() throws Exception {
@@ -188,15 +280,6 @@ public class GameControllerTest {
             .andExpect(status().isOk());
     }
 
-
-    private String asJsonString(final Object object) {
-        try {
-            return new ObjectMapper().writeValueAsString(object);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to convert object to JSON", e);
-        }
-    }
-
     @Test
     public void joinGamebyCode_successfully() throws Exception{
     
@@ -207,4 +290,14 @@ public class GameControllerTest {
                 .content(asJsonString(gamePostDTO)))
             .andExpect(status().isOk());
     }
+
+
+    private String asJsonString(final Object object) {
+        try {
+            return new ObjectMapper().writeValueAsString(object);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert object to JSON", e);
+        }
+    }
+
 }
