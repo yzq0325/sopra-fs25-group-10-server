@@ -337,9 +337,10 @@ public class GameService {
             }
 
             gameHintDTO.setTime(gameCreated.getTime());
+            gameHintDTO.setModeType(gameCreated.getModeType());
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
             log.info("websocket send: hints!");
-            
+
             // countdown
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
             try {
