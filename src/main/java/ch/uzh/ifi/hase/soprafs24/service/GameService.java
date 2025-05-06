@@ -330,7 +330,7 @@ public class GameService {
             gameHintDTO.setHints(generatedHints.values().iterator().next());
             Country country = generatedHints.keySet().iterator().next();
             gameHintDTO.setAnswer(country.name());
-            
+
             // set sheet
             for (Long userId : players) {
                 answers.put(userId, country);
@@ -362,6 +362,7 @@ public class GameService {
         generatedHints = getHintsOfOneCountry();
         gameHintDTO.setHints(generatedHints.values().iterator().next());
         answers.put(targetGame.getOwnerId(), generatedHints.keySet().iterator().next());
+        gameHintDTO.setAnswer(generatedHints.keySet().iterator().next().name());
 
         return gameHintDTO;
     }
