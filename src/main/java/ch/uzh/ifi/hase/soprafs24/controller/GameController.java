@@ -182,4 +182,11 @@ public class GameController {
     return gameService.nextQuestion_ExerciseMode(gameId);
   }
 
+  @PutMapping("/finishexercise/{gameId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void finishexercisegame (@PathVariable Long gameId){
+    gameService.saveGame(gameId);
+  }
+
 }
