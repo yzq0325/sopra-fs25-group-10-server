@@ -318,6 +318,7 @@ public class GameService {
                 Thread.currentThread().interrupt();
                 messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
             }
+            
             gameCreated.setGameRunning(true);
 
             gameCreated = gameRepository.save(gameCreated);
@@ -328,12 +329,17 @@ public class GameService {
             generatedHints = getHintsOfOneCountry();
             gameHintDTO.setHints(generatedHints.values().iterator().next());
             Country country = generatedHints.keySet().iterator().next();
+            
 
             // set sheet
             for (Long userId : players) {
                 answers.put(userId, country);
             }
 
+            gameHintDTO.setTime(gameCreated.getTime());
+            messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
+            log.info("websocket send: hints!");
+            
             // countdown
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
             try {
