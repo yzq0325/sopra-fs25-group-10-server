@@ -182,17 +182,11 @@ public class GameController {
     gameService.startExerciseGame(gameToStart);
   }
 
-  @PutMapping("/next/{gameId}")
+  @PostMapping("/next/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public GameGetDTO nextQuestion_ExerciseMode(@PathVariable Long gameId){
     return gameService.nextQuestion_ExerciseMode(gameId);
   }
 
-  // @PostMapping("/finishexercise/{gameId}")
-  // @ResponseStatus(HttpStatus.OK)
-  // @ResponseBody
-  // public void finishExerciseGame(@PathVariable Long gameId){
-  //   gameService.saveGame(gameId);
-  // }
 }
