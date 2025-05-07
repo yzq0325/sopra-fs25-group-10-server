@@ -97,6 +97,7 @@ public class GameService {
         gameCreated.setTime(gameToCreate.getTime());
         gameCreated.setPlayersNumber(gameToCreate.getPlayersNumber());
         gameCreated.setRealPlayersNumber(1);
+        gameCreated.setDifficulty(gameToCreate.getDifficulty());
         gameCreated.setGameRunning(false);
 
         String mode = gameToCreate.getModeType();
@@ -152,6 +153,7 @@ public class GameService {
             gameCreated.setTime(gameToStart.getTime());
             gameCreated.setPlayersNumber(gameToStart.getPlayersNumber());
             gameCreated.setRealPlayersNumber(1);
+            gameCreated.setDifficulty(gameToStart.getDifficulty());
             gameCreated.setGameRunning(false);
             LocalDateTime now = LocalDateTime.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
@@ -220,7 +222,7 @@ public class GameService {
 
             // push hints
             GameGetDTO gameHintDTO = new GameGetDTO();
-            generatedHints = getHintsOfOneCountry();
+            generatedHints = getHintsOfOneCountry(gameToStart.getDifficulty());
             gameHintDTO.setHints(generatedHints.values().iterator().next());
             Country country = generatedHints.keySet().iterator().next();
 
@@ -288,6 +290,7 @@ public class GameService {
             gameCreated.setTime(gameToStart.getTime());
             gameCreated.setPlayersNumber(gameToStart.getPlayersNumber());
             gameCreated.setRealPlayersNumber(1);
+            gameCreated.setDifficulty(gameToStart.getDifficulty());
             gameCreated.setGameRunning(false);
             LocalDateTime now = LocalDateTime.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
@@ -326,7 +329,7 @@ public class GameService {
 
             // push hints
             GameGetDTO gameHintDTO = new GameGetDTO();
-            generatedHints = getHintsOfOneCountry();
+            generatedHints = getHintsOfOneCountry(gameToStart.getDifficulty());
             gameHintDTO.setHints(generatedHints.values().iterator().next());
             Country country = generatedHints.keySet().iterator().next();
             gameHintDTO.setAnswer(country.name());
@@ -359,7 +362,7 @@ public class GameService {
     public GameGetDTO nextQuestion_ExerciseMode(Long gameId) {
         Game targetGame = gameRepository.findBygameId(gameId);
         GameGetDTO gameHintDTO = new GameGetDTO();
-        generatedHints = getHintsOfOneCountry();
+        generatedHints = getHintsOfOneCountry(targetGame.getDifficulty());
         gameHintDTO.setHints(generatedHints.values().iterator().next());
         answers.put(targetGame.getOwnerId(), generatedHints.keySet().iterator().next());
         gameHintDTO.setAnswer(generatedHints.keySet().iterator().next().name());
@@ -595,7 +598,7 @@ public class GameService {
 
         // push hints
         GameGetDTO gameHintDTO = new GameGetDTO();
-        generatedHints = getHintsOfOneCountry();
+        generatedHints = getHintsOfOneCountry(gameToStart.getDifficulty());
         gameHintDTO.setHints(generatedHints.values().iterator().next());
         Country country = generatedHints.keySet().iterator().next();
 
@@ -714,10 +717,11 @@ public class GameService {
                 userRepository.flush();
 
                 GameGetDTO gameHintDTO = new GameGetDTO();
-                generatedHints = getHintsOfOneCountry();
+                generatedHints = getHintsOfOneCountry(targetGame.getDifficulty());
                 gameHintDTO.setHints(generatedHints.values().iterator().next());
                 answers.put(userId, generatedHints.keySet().iterator().next());
                 gameHintDTO.setJudgement(true);
+                gameHintDTO.setAnswer(answers.get(userId).name());
 
                 Map<String, Integer> scoreBoardFront = new HashMap<>();
                 for (Long userid : targetGame.getPlayers()) {
@@ -744,9 +748,10 @@ public class GameService {
                 gameRepository.flush();
 
                 GameGetDTO gameHintDTO = new GameGetDTO();
-                generatedHints = getHintsOfOneCountry();
+                generatedHints = getHintsOfOneCountry(targetGame.getDifficulty());
                 gameHintDTO.setHints(generatedHints.values().iterator().next());
                 answers.put(userId, generatedHints.keySet().iterator().next());
+                gameHintDTO.setAnswer(answers.get(userId).name());
                 gameHintDTO.setJudgement(false);
                 Map<String, Integer> scoreBoardFront = new HashMap<>();
                 for (Long userid : targetGame.getPlayers()) {
@@ -834,7 +839,11 @@ public class GameService {
         return leaderBoard;
     }
 
-    public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry() {
+    public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(String difficulty) {
+        if(difficulty ==""){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,  " Difficulty is not set!");
+        }
+        utilService.setDifficulty(difficulty);
         System.out.println("hintCache size: " + utilService.getHintCache().size());
         Map<Country, List<Map<String, Object>>> hint = utilService.getHintCache().poll();
         if (utilService.getHintCache().size() < 10) {

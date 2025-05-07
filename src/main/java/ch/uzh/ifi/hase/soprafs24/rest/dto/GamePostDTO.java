@@ -36,6 +36,8 @@ public class GamePostDTO {
 
     private Map<Long, Integer> totalQuestionsMap;
 
+    private String difficulty;
+
     public Long getGameId() {
         return gameId;
       }
@@ -80,80 +82,89 @@ public class GamePostDTO {
         return playersNumber;
       }
     
-      public void setPlayersNumber(int playersNumber) {
-        this.playersNumber = playersNumber;
-      }
-      
-      public int getTime() {
-        return time;
-      }
+    public void setPlayersNumber(int playersNumber) {
+      this.playersNumber = playersNumber;
+    }
     
-      public void setTime(int time) {
-        this.time = time;
-      }
+    public int getTime() {
+      return time;
+    }
+  
+    public void setTime(int time) {
+      this.time = time;
+    }
 
-    
-      public String getModeType() {
-        return modeType;
-      }
-    
-      public void setModeType(String modeType) {
-        this.modeType = modeType;
-      }
-    
-      public String getLockType() {
-        return lockType;
-      }
-    
-      public void setLockType(String lockType) {
-        this.lockType = lockType;
-      }
-    
-      public String getPassword() {
-        return password;
-      }
-    
-      public void setHintUsingNumber(int hintUsingNumber) {
-        this.hintUsingNumber = hintUsingNumber;
-      }
+  
+    public String getModeType() {
+      return modeType;
+    }
+  
+    public void setModeType(String modeType) {
+      this.modeType = modeType;
+    }
+  
+    public String getLockType() {
+      return lockType;
+    }
+  
+    public void setLockType(String lockType) {
+      this.lockType = lockType;
+    }
+  
+    public String getPassword() {
+      return password;
+    }
+  
+    public void setHintUsingNumber(int hintUsingNumber) {
+      this.hintUsingNumber = hintUsingNumber;
+    }
 
-      public int getHintUsingNumber() {
-        return hintUsingNumber;
-      }
+    public int getHintUsingNumber() {
+      return hintUsingNumber;
+    }
 
-      public void setSubmitAnswer(Country submitAnswer) {
-        this.submitAnswer = submitAnswer;
-      }
+    public void setSubmitAnswer(Country submitAnswer) {
+      this.submitAnswer = submitAnswer;
+    }
 
-      public Country getSubmitAnswer() {
-        return submitAnswer;
-      }
-    
-      public void setPassword(String password) {
-        this.password = password;
-      }
+    public Country getSubmitAnswer() {
+      return submitAnswer;
+    }
+  
+    public void setPassword(String password) {
+      this.password = password;
+    }
 
-      public Map<Long, Integer> getScoreMap() {
-        return scoreMap;
-      }
-    
-      public void setScoreMap(Map<Long, Integer> scoreMap) {
-        this.scoreMap = scoreMap;
-      }
-    
-      public Map<Long, Integer> getCorrectAnswersMap() {
-        return correctAnswersMap;
-      }
-    
-      public void setCorrectAnswersMap(Map<Long, Integer> correctAnswersMap) {
-        this.correctAnswersMap = correctAnswersMap;
-      }
-    
-      public Map<Long, Integer> getTotalQuestionsMap() {
-        return totalQuestionsMap;
-      }
-    
-      public void setTotalQuestionsMap(Map<Long, Integer> totalQuestionsMap) {
-        this.totalQuestionsMap = totalQuestionsMap;
-      }
+    public Map<Long, Integer> getScoreMap() {
+      return scoreMap;
+    }
+  
+    public void setScoreMap(Map<Long, Integer> scoreMap) {
+      this.scoreMap = scoreMap;
+    }
+  
+    public Map<Long, Integer> getCorrectAnswersMap() {
+      return correctAnswersMap;
+    }
+  
+    public void setCorrectAnswersMap(Map<Long, Integer> correctAnswersMap) {
+      this.correctAnswersMap = correctAnswersMap;
+    }
+  
+    public Map<Long, Integer> getTotalQuestionsMap() {
+      return totalQuestionsMap;
+    }
+  
+    public void setTotalQuestionsMap(Map<Long, Integer> totalQuestionsMap) {
+      this.totalQuestionsMap = totalQuestionsMap;
+    }
+
+    public String getDifficulty() {
+      return difficulty;
+    }
+  
+    public void setDifficulty(String difficulty) {
+      this.difficulty = difficulty;
+    }
+
 }

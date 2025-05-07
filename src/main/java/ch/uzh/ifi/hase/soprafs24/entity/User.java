@@ -258,13 +258,18 @@ public class User implements Serializable {
         gameQuickSave.setTotalQuestions(total);
         gameQuickSave.setGameCreationDate(gameCreationDate);
         gameQuickSave.setGameTime(gameTime);
-        int counter = 1;
-        String uniqueName = gameName + counter;
-        while (gameHistory.containsKey(uniqueName)) {
-            counter++;
-            uniqueName = gameName + counter;
-        }
+        if(gameName.contains("Solo")){
+            int counter = 1;
+            String uniqueName = gameName + counter;
+            while (gameHistory.containsKey(uniqueName)) {
+                counter++;
+                uniqueName = gameName + counter;
+            }
         gameHistory.put(uniqueName, gameQuickSave);
+        }else{
+            gameHistory.put(gameName, gameQuickSave);
+        }
+        
         gameQuickSave.setModeType(modeType);
     }
 

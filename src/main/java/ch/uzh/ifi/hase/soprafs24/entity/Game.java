@@ -77,6 +77,9 @@ public class Game implements Serializable {
   
   @Column(nullable = true)
   private Integer finalScore;
+
+  @Column(nullable = false)
+  private String difficulty;
   
   @ElementCollection
   @CollectionTable(name = "correct_answers", joinColumns = @JoinColumn(name = "gameId"))
@@ -291,4 +294,13 @@ public class Game implements Serializable {
   public Integer getCorrectAnswers(Long userId) {
       return correctAnswersMap.get(userId);
   }
+
+  public String getDifficulty() {
+    return difficulty;
+  }
+
+  public void setDifficulty(String difficulty) {
+    this.difficulty = difficulty;
+  }
+
 }

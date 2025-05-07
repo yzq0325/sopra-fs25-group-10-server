@@ -59,6 +59,12 @@ public class UtilService {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
+    private String difficulty = "hard";
+
+    public void setDifficulty(String difficulty){
+        this.difficulty = difficulty;
+    }
+
     public Queue<Map<Country, List<Map<String, Object>>>> getHintCache() {
         return hintCache;
     }
@@ -127,7 +133,32 @@ public class UtilService {
     public Map<Country, List<Map<String, Object>>> generateClues(int clueNumber) {
         try {
             Country[] countries = Country.values();
-            Country targetCountry = countries[new Random().nextInt(countries.length)];
+            Country targetCountry;
+            if(difficulty.equals("easy")) {
+                List<String> easyCountryNames = List.of(
+                    // Europe
+                    "UNITED_KINGDOM", "RUSSIA", "GERMANY", "FRANCE", "ITALY", "SPAIN", "NETHERLANDS", 
+                    "AUSTRIA", "SWEDEN", "NORWAY", "GREECE", "FINLAND", "UKRAINE", "HUNGARY", 
+                    "SWITZERLAND", "POLAND", "BELGIUM", "PORTUGAL", "DENMARK", "ICELAND", 
+                    "ROMANIA", "CZECH_REPUBLIC",
+                    // Asia
+                    "CHINA", "JAPAN", "SOUTH_KOREA", "INDIA", "THAILAND", "SINGAPORE", 
+                    "SAUDI_ARABIA", "IRAN", "TURKEY", "INDONESIA", "MONGOLIA", "UNITED_ARAB_EMIRATES",
+                    // Americas
+                    "CANADA", "UNITED_STATES", "MEXICO", "BRAZIL", "CHILE", "ARGENTINA", "COLOMBIA",
+                    // Africa
+                    "EGYPT", "SOUTH_AFRICA", "ETHIOPIA", "DEMOCRATIC_REPUBLIC_OF_THE_CONGO", 
+                    "MOROCCO", "ALGERIA", "MADAGASCAR",
+                    // Oceania
+                    "AUSTRALIA", "NEW_ZEALAND"
+                );
+                
+                String randomCountryName = easyCountryNames.get(new Random().nextInt(easyCountryNames.size()));
+                targetCountry = Country.valueOf(randomCountryName);
+            }else{
+                targetCountry = countries[new Random().nextInt(countries.length)];
+            }
+            
             String prompt = buildPrompt(targetCountry, clueNumber);
             String payload = buildPayloadJson(prompt);
 
