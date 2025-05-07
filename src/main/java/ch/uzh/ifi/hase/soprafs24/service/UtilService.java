@@ -37,7 +37,7 @@ public class UtilService {
     private static final int HINT_NUMBER = 5;
 
 //    private static final String GEMINI_API_KEY = "AIzaSyDOukvhZmaQlP38T1bdTGGnc5X-TYRr_Gc";
-    private static final String GEMINI_API_KEY = "AIzaSyDY8tpkqRT5UkmNP0U3NuOtfnR--O9_fps";
+    private static final String GEMINI_API_KEY = "AIzaSyD73dy5dzR3ZgNLB_tfma-tAtPabQjvjhE";
     private static final String MODEL_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY;
 
