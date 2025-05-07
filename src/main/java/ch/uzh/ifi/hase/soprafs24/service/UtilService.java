@@ -137,20 +137,20 @@ public class UtilService {
             if(difficulty.equals("easy")) {
                 List<String> easyCountryNames = List.of(
                     // Europe
-                    "UNITED_KINGDOM", "RUSSIA", "GERMANY", "FRANCE", "ITALY", "SPAIN", "NETHERLANDS", 
-                    "AUSTRIA", "SWEDEN", "NORWAY", "GREECE", "FINLAND", "UKRAINE", "HUNGARY", 
-                    "SWITZERLAND", "POLAND", "BELGIUM", "PORTUGAL", "DENMARK", "ICELAND", 
-                    "ROMANIA", "CZECH_REPUBLIC",
+                    "UnitedKingdom", "Russia", "Germany", "France", "Italy", "Spain", "Netherlands",
+                    "Austria", "Sweden", "Norway", "Greece", "Finland", "Ukraine", "Hungary",
+                    "Switzerland", "Poland", "Belgium", "Portugal", "Denmark", "Iceland",
+                    "Romania", "Czechia",
                     // Asia
-                    "CHINA", "JAPAN", "SOUTH_KOREA", "INDIA", "THAILAND", "SINGAPORE", 
-                    "SAUDI_ARABIA", "IRAN", "TURKEY", "INDONESIA", "MONGOLIA", "UNITED_ARAB_EMIRATES",
+                    "China", "Japan", "SouthKorea", "India", "Thailand", "Singapore",
+                    "Saudi Arabia", "Iran", "Turkey", "Indonesia", "Mongolia", "UnitedArabEmirates",
                     // Americas
-                    "CANADA", "UNITED_STATES", "MEXICO", "BRAZIL", "CHILE", "ARGENTINA", "COLOMBIA",
+                    "Canada", "UnitedStates", "Mexico", "Brazil", "Chile", "Argentina", "Colombia",
                     // Africa
-                    "EGYPT", "SOUTH_AFRICA", "ETHIOPIA", "DEMOCRATIC_REPUBLIC_OF_THE_CONGO", 
-                    "MOROCCO", "ALGERIA", "MADAGASCAR",
+                    "Egypt", "SouthAfrica", "Ethiopia", "DemocraticRepublicOfTheCongo",
+                    "Morocco", "Algeria", "Madagascar",
                     // Oceania
-                    "AUSTRALIA", "NEW_ZEALAND"
+                    "Australia", "NewZealand"
                 );
                 
                 String randomCountryName = easyCountryNames.get(new Random().nextInt(easyCountryNames.size()));
