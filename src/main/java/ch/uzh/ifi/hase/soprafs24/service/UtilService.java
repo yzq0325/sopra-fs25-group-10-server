@@ -27,7 +27,11 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,7 +47,6 @@ public class UtilService {
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final Queue<Map<Country, List<Map<String, Object>>>> hintCache = new ConcurrentLinkedDeque<>();
     private final Logger log = LoggerFactory.getLogger(UtilService.class);
 
     private final GameRepository gameRepository;
@@ -59,52 +62,73 @@ public class UtilService {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
-    private String difficulty = "hard";
-
-    public void setDifficulty(String difficulty){
-        this.difficulty = difficulty;
-    }
-
-    public Queue<Map<Country, List<Map<String, Object>>>> getHintCache() {
-        return hintCache;
-    }
-
-    @EventListener(ApplicationReadyEvent.class)
-    public void preloadHints() {
-        System.out.println("Preloading hints...");
-        refillCache();
-        System.out.println("Preloading hints done! Cache size: " + hintCache.size());
-    }
-
-    public void refillCache() {
-        int missing = FILL_SIZE - hintCache.size();
-        int attempts = 0;
-
-        while (hintCache.size() < FILL_SIZE && attempts < FILL_SIZE * 2) {
-            try {
-                Map<Country, List<Map<String, Object>>> newHint = generateClues(HINT_NUMBER);
-                if (newHint != null && !newHint.isEmpty()) {
-                    hintCache.add(newHint);
+    public static class HintList {
+        private final List<Map<Country, List<Map<String, Object>>>> hintList = Collections.synchronizedList(new ArrayList<>());
+        Map<Long /* userId */, AtomicInteger /* progress */> userProgress = new ConcurrentHashMap<>();
+        public int size() { return hintList.size(); }
+        public void add(Map<Country, List<Map<String, Object>>> hint) { hintList.add(hint); }
+        public Map<Country, List<Map<String, Object>>> get(int index) { return hintList.get(index); }
+        public int getMinProgressAcrossUsers() { return userProgress.values().stream().mapToInt(AtomicInteger::get).min().orElse(0); }
+        public synchronized void removeUsedHints() {
+            // the hint all users at least used
+            int minIndex = getMinProgressAcrossUsers();
+            if (minIndex > 0) {
+                for (int i = 0; i < minIndex; i++) {
+                    hintList.set(i, null);
                 }
-                Thread.sleep(1500);
+            }
+        }
+    }
+    private final ConcurrentMap<Long, HintList> hintCache = new ConcurrentHashMap<>();
+
+    @Async
+    public void initHintQueue(Long gameId, String difficulty) {
+        HintList list = new HintList();
+
+        int attempts = 0;
+        while (list.size() < FILL_SIZE && attempts < FILL_SIZE * 2) {
+            try {
+                Map<Country, List<Map<String, Object>>> newHint = generateClues(HINT_NUMBER, difficulty);
+                if (newHint != null && !newHint.isEmpty()) {
+                    list.add(newHint);
+                }
+//                Thread.sleep(1500);
             }
             catch (Exception e) {
-                System.err.println("Failed to generate hint (attempt " + (attempts + 1) + "): " + e.getMessage());
+                log.error("Failed to generate hint (attempt {}): {}", attempts + 1, e.getMessage());
             }
             attempts++;
         }
 
-        System.out.println("Cache preloaded with " + hintCache.size() + " hints");
+        log.info("Cache preloaded with {} hints for game {}", list.size(), gameId);
+        hintCache.put(gameId, list);
+    }
+
+    public Map<Country, List<Map<String, Object>>> getHintForUser(Long gameId, Long userId) {
+        HintList list = hintCache.get(gameId);
+        if (list == null) { throw new IllegalStateException("Hint queue not initialized for game " + gameId); }
+        AtomicInteger currentProgress = list.userProgress.computeIfAbsent(userId, k -> new AtomicInteger(0));
+        int index = currentProgress.getAndIncrement();
+        synchronized (list.hintList) {
+            if (index >= list.hintList.size()) { throw new IllegalStateException("No more hints available for game " + gameId); }
+            Map<Country, List<Map<String, Object>>> hint = list.hintList.get(index);
+            list.removeUsedHints();
+            return hint;
+        }
     }
 
     @Async
-    public void refillAsync() {
-        System.out.println("Async refill running on thread: " + Thread.currentThread().getName());
+    public void addHintForGame(Long gameId, String difficulty) {
+        log.info("Async refill running on thread {} for game {}", Thread.currentThread().getName(), gameId);
 
-        Map<Country, List<Map<String, Object>>> hint = generateClues(HINT_NUMBER);
-        if (hint != null && !hint.isEmpty()) {
-            hintCache.add(hint);
+        Map<Country, List<Map<String, Object>>> newHint = generateClues(HINT_NUMBER, difficulty);
+        if (newHint != null && !newHint.isEmpty()) {
+            hintCache.computeIfAbsent(gameId, k -> new HintList()).add(newHint);
         }
+    }
+
+    public ConcurrentMap<Long, HintList> getHintCache() {
+        return hintCache;
     }
 
     public String formatTime(int totalSeconds) {
@@ -130,7 +154,7 @@ public class UtilService {
     }
 
     //<country, clue, difficulty(int)>
-    public Map<Country, List<Map<String, Object>>> generateClues(int clueNumber) {
+    public Map<Country, List<Map<String, Object>>> generateClues(int clueNumber, String difficulty) {
         try {
             Country[] countries = Country.values();
             Country targetCountry;

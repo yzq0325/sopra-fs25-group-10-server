@@ -29,12 +29,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import ch.uzh.ifi.hase.soprafs24.service.UtilService.HintList;
 
 /**
  * User Service
@@ -57,6 +60,7 @@ public class GameService {
     private Map<Long, Country> answers = new HashMap<>();
 
     private final ConcurrentHashMap<Long, ReentrantLock> userLocks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long, AtomicBoolean> refillInProgress = new ConcurrentHashMap<>();
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -220,9 +224,11 @@ public class GameService {
             gameCreated = gameRepository.save(gameCreated);
             gameRepository.flush();
 
+            utilService.initHintQueue(gameCreated.getGameId(), gameCreated.getDifficulty());
+
             // push hints
             GameGetDTO gameHintDTO = new GameGetDTO();
-            generatedHints = getHintsOfOneCountry(gameToStart.getDifficulty());
+            generatedHints = getHintsOfOneCountry(gameToStart.getGameId(), gameToStart.getOwnerId(), gameToStart.getDifficulty());
             gameHintDTO.setHints(generatedHints.values().iterator().next());
             Country country = generatedHints.keySet().iterator().next();
             gameHintDTO.setAnswer(country.name());
@@ -307,6 +313,8 @@ public class GameService {
             gameCreated = gameRepository.save(gameCreated);
             gameRepository.flush();
 
+            utilService.initHintQueue(gameCreated.getGameId(), gameCreated.getDifficulty());
+
             User owner = userRepository.findByUserId(gameToStart.getOwnerId());
             owner.setGame(gameCreated);
             userRepository.save(owner);
@@ -330,7 +338,7 @@ public class GameService {
 
             // push hints
             GameGetDTO gameHintDTO = new GameGetDTO();
-            generatedHints = getHintsOfOneCountry(gameToStart.getDifficulty());
+            generatedHints = getHintsOfOneCountry(gameCreated.getGameId(), gameCreated.getOwnerId(), gameCreated.getDifficulty());
             gameHintDTO.setHints(generatedHints.values().iterator().next());
             Country country = generatedHints.keySet().iterator().next();
             gameHintDTO.setAnswer(country.name());
@@ -363,7 +371,7 @@ public class GameService {
     public GameGetDTO nextQuestion_ExerciseMode(Long gameId) {
         Game targetGame = gameRepository.findBygameId(gameId);
         GameGetDTO gameHintDTO = new GameGetDTO();
-        generatedHints = getHintsOfOneCountry(targetGame.getDifficulty());
+        generatedHints = getHintsOfOneCountry(gameId, targetGame.getOwnerId(), targetGame.getDifficulty());
         gameHintDTO.setHints(generatedHints.values().iterator().next());
         answers.put(targetGame.getOwnerId(), generatedHints.keySet().iterator().next());
         gameHintDTO.setAnswer(generatedHints.keySet().iterator().next().name());
@@ -597,9 +605,13 @@ public class GameService {
         gameToStart = gameRepository.save(gameToStart);
         gameRepository.flush();
 
+        utilService.initHintQueue(gameToStart.getGameId(), gameToStart.getDifficulty());
+
         // push hints
         GameGetDTO gameHintDTO = new GameGetDTO();
-        generatedHints = getHintsOfOneCountry(gameToStart.getDifficulty());
+        for (Long userId : allPlayers) {
+            generatedHints = getHintsOfOneCountry(gameToStart.getGameId(), userId, gameToStart.getDifficulty());
+        }
         gameHintDTO.setHints(generatedHints.values().iterator().next());
         Country country = generatedHints.keySet().iterator().next();
 
@@ -718,7 +730,7 @@ public class GameService {
                 userRepository.flush();
 
                 GameGetDTO gameHintDTO = new GameGetDTO();
-                generatedHints = getHintsOfOneCountry(targetGame.getDifficulty());
+                generatedHints = getHintsOfOneCountry(targetGame.getGameId(), userId, targetGame.getDifficulty());
                 gameHintDTO.setHints(generatedHints.values().iterator().next());
                 answers.put(userId, generatedHints.keySet().iterator().next());
                 gameHintDTO.setJudgement(true);
@@ -749,7 +761,7 @@ public class GameService {
                 gameRepository.flush();
 
                 GameGetDTO gameHintDTO = new GameGetDTO();
-                generatedHints = getHintsOfOneCountry(targetGame.getDifficulty());
+                generatedHints = getHintsOfOneCountry(targetGame.getGameId(), userId, targetGame.getDifficulty());
                 gameHintDTO.setHints(generatedHints.values().iterator().next());
                 answers.put(userId, generatedHints.keySet().iterator().next());
                 gameHintDTO.setAnswer(answers.get(userId).name());
@@ -840,15 +852,27 @@ public class GameService {
         return leaderBoard;
     }
 
-    public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(String difficulty) {
-        if(difficulty ==""){
+    public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(Long gameId, Long userId, String difficulty) {
+        if(difficulty == null || difficulty.isEmpty()){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,  " Difficulty is not set!");
         }
-        utilService.setDifficulty(difficulty);
-        System.out.println("hintCache size: " + utilService.getHintCache().size());
-        Map<Country, List<Map<String, Object>>> hint = utilService.getHintCache().poll();
-        if (utilService.getHintCache().size() < 10) {
-            utilService.refillAsync();
+        log.info("hintCache size: {}", utilService.getHintCache().size());
+        Map<Country, List<Map<String, Object>>> hint = utilService.getHintForUser(gameId, userId);
+
+        HintList list = utilService.getHintCache().get(gameId);
+        synchronized (list) {
+            int minProgress = list.getMinProgressAcrossUsers();
+            int remainingHints = list.size() - minProgress;
+
+            if (remainingHints < 10) {
+                AtomicBoolean flag = refillInProgress.computeIfAbsent(gameId, id -> new AtomicBoolean(false));
+                if (flag.compareAndSet(false, true)) {
+                    for (int i = 0; i < 10 - remainingHints; ++i) {
+                        utilService.addHintForGame(gameId, difficulty);
+                    }
+                    flag.set(false);
+                }
+            }
         }
         return hint;
     }
