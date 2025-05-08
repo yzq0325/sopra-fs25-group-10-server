@@ -189,7 +189,6 @@ public class GameService {
                 messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
             }
 
-
             gameCreated.updateScore(gameCreated.getOwnerId(), 0);
             for (Long userId : gameCreated.getPlayers()) {
                 User player = userRepository.findByUserId(userId);
@@ -224,14 +223,24 @@ public class GameService {
             gameCreated = gameRepository.save(gameCreated);
             gameRepository.flush();
 
-            utilService.initHintQueue(gameCreated.getGameId(), gameCreated.getDifficulty());
+            utilService.initHintQueue(gameCreated.getGameId(), gameCreated.getPlayers());
+            utilService.refillHintQueue(gameCreated.getGameId(), gameCreated.getDifficulty());
+
+            messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
+            try {
+                Thread.sleep(6000);
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+            }
 
             // push hints
             GameGetDTO gameHintDTO = new GameGetDTO();
-            generatedHints = getHintsOfOneCountry(gameToStart.getGameId(), gameToStart.getOwnerId(), gameToStart.getDifficulty());
+            generatedHints = getHintsOfOneCountry(gameCreated.getGameId(), gameCreated.getOwnerId(), gameCreated.getDifficulty());
             gameHintDTO.setHints(generatedHints.values().iterator().next());
             Country country = generatedHints.keySet().iterator().next();
-            gameHintDTO.setAnswer(country.name());
+            gameHintDTO.setAnswer(country.ordinal());
 
             // set sheet
             for (Long userId : players) {
@@ -252,14 +261,6 @@ public class GameService {
 
             // countdown
             // utilService.countdown(gameId, gameToStart.getTime());
-            messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
-            try {
-                Thread.sleep(6000);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
             Game finalGameToStart = gameCreated;
             if(finalGameToStart.getTime()==-1){return;}
             Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
@@ -313,8 +314,6 @@ public class GameService {
             gameCreated = gameRepository.save(gameCreated);
             gameRepository.flush();
 
-            utilService.initHintQueue(gameCreated.getGameId(), gameCreated.getDifficulty());
-
             User owner = userRepository.findByUserId(gameToStart.getOwnerId());
             owner.setGame(gameCreated);
             userRepository.save(owner);
@@ -336,22 +335,8 @@ public class GameService {
             gameCreated = gameRepository.save(gameCreated);
             gameRepository.flush();
 
-            // push hints
-            GameGetDTO gameHintDTO = new GameGetDTO();
-            generatedHints = getHintsOfOneCountry(gameCreated.getGameId(), gameCreated.getOwnerId(), gameCreated.getDifficulty());
-            gameHintDTO.setHints(generatedHints.values().iterator().next());
-            Country country = generatedHints.keySet().iterator().next();
-            gameHintDTO.setAnswer(country.name());
-
-            // set sheet
-            for (Long userId : players) {
-                answers.put(userId, country);
-            }
-
-            gameHintDTO.setTime(gameCreated.getTime());
-            gameHintDTO.setModeType(gameCreated.getModeType());
-            messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
-            log.info("websocket send: hints!");
+            utilService.initHintQueue(gameCreated.getGameId(), gameCreated.getPlayers());
+            utilService.refillHintQueue(gameCreated.getGameId(), gameCreated.getDifficulty());
 
             // countdown
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
@@ -362,6 +347,23 @@ public class GameService {
                 Thread.currentThread().interrupt();
                 messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
             }
+
+            // push hints
+            GameGetDTO gameHintDTO = new GameGetDTO();
+            generatedHints = getHintsOfOneCountry(gameCreated.getGameId(), gameCreated.getOwnerId(), gameCreated.getDifficulty());
+            gameHintDTO.setHints(generatedHints.values().iterator().next());
+            Country country = generatedHints.keySet().iterator().next();
+            gameHintDTO.setAnswer(country.ordinal());
+
+            // set sheet
+            for (Long userId : players) {
+                answers.put(userId, country);
+            }
+
+            gameHintDTO.setTime(gameCreated.getTime());
+            gameHintDTO.setModeType(gameCreated.getModeType());
+            messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
+            log.info("websocket send: hints!");
         } finally {
             lock.unlock();
             userLocks.remove(gameUserId);
@@ -374,7 +376,7 @@ public class GameService {
         generatedHints = getHintsOfOneCountry(gameId, targetGame.getOwnerId(), targetGame.getDifficulty());
         gameHintDTO.setHints(generatedHints.values().iterator().next());
         answers.put(targetGame.getOwnerId(), generatedHints.keySet().iterator().next());
-        gameHintDTO.setAnswer(generatedHints.keySet().iterator().next().name());
+        gameHintDTO.setAnswer(generatedHints.keySet().iterator().next().ordinal());
 
         return gameHintDTO;
     }
@@ -486,6 +488,7 @@ public class GameService {
 
             getGameLobby();
         }
+        utilService.removeCacheForGame(targetGame.getGameId());
     }
 
     public void checkIfOwnerExists(Long userId) {
@@ -605,15 +608,25 @@ public class GameService {
         gameToStart = gameRepository.save(gameToStart);
         gameRepository.flush();
 
-        utilService.initHintQueue(gameToStart.getGameId(), gameToStart.getDifficulty());
+        utilService.initHintQueue(gameToStart.getGameId(), gameToStart.getPlayers());
+        utilService.refillHintQueue(gameToStart.getGameId(), gameToStart.getDifficulty());
+
+        // countdown
+        messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", 5);
+        try {
+            Thread.sleep(6000);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+        }
 
         // push hints
         GameGetDTO gameHintDTO = new GameGetDTO();
-        for (Long userId : allPlayers) {
-            generatedHints = getHintsOfOneCountry(gameToStart.getGameId(), userId, gameToStart.getDifficulty());
-        }
+        generatedHints = utilService.getFirstHint(gameId);
         gameHintDTO.setHints(generatedHints.values().iterator().next());
         Country country = generatedHints.keySet().iterator().next();
+        gameHintDTO.setAnswer(country.ordinal());
 
         // set sheet
         for (Long userId : allPlayers) {
@@ -631,16 +644,6 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/start/" + gameId + "/hints", gameHintDTO);
         log.info("websocket send: hints!");
 
-        // countdown
-        // utilService.countdown(gameId, gameToStart.getTime());
-        messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", 5);
-        try {
-            Thread.sleep(6000);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-        }
         Game finalGameToStart = gameToStart;
         Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, gameId));
         timingThread.start();
@@ -687,7 +690,7 @@ public class GameService {
             userRepository.flush();
             gameRepository.deleteByGameId(gameId);
         }
-        
+        utilService.removeCacheForGame(gameId);
     }
 
     public GameGetDTO processingAnswer(GamePostDTO gamePostDTO, Long userId) {
@@ -734,7 +737,7 @@ public class GameService {
                 gameHintDTO.setHints(generatedHints.values().iterator().next());
                 answers.put(userId, generatedHints.keySet().iterator().next());
                 gameHintDTO.setJudgement(true);
-                gameHintDTO.setAnswer(answers.get(userId).name());
+                gameHintDTO.setAnswer(answers.get(userId).ordinal());
 
                 Map<String, Integer> scoreBoardFront = new HashMap<>();
                 for (Long userid : targetGame.getPlayers()) {
@@ -764,7 +767,7 @@ public class GameService {
                 generatedHints = getHintsOfOneCountry(targetGame.getGameId(), userId, targetGame.getDifficulty());
                 gameHintDTO.setHints(generatedHints.values().iterator().next());
                 answers.put(userId, generatedHints.keySet().iterator().next());
-                gameHintDTO.setAnswer(answers.get(userId).name());
+                gameHintDTO.setAnswer(answers.get(userId).ordinal());
                 gameHintDTO.setJudgement(false);
                 Map<String, Integer> scoreBoardFront = new HashMap<>();
                 for (Long userid : targetGame.getPlayers()) {
@@ -856,7 +859,7 @@ public class GameService {
         if(difficulty == null || difficulty.isEmpty()){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,  " Difficulty is not set!");
         }
-        log.info("hintCache size: {}", utilService.getHintCache().size());
+        log.info("size of hintCache with game {}: {}", gameId, utilService.getHintCache().get(gameId).size());
         Map<Country, List<Map<String, Object>>> hint = utilService.getHintForUser(gameId, userId);
 
         HintList list = utilService.getHintCache().get(gameId);
@@ -892,6 +895,7 @@ public class GameService {
             userRepository.save(playerToEnd);
             userRepository.flush();
             gameRepository.deleteByGameId(gameToEnd.getGameId());
+            utilService.removeCacheForGame(gameToEnd.getGameId());
         }
         else {
             if (gameToEnd.getOwnerId().equals(userId)) {
@@ -943,8 +947,8 @@ public class GameService {
             gameToEnd.removePlayer(userRepository.findByUserId(userId));
             gameRepository.save(gameToEnd);
             gameRepository.flush();
+            utilService.removeExitPlayer(gameToEnd.getGameId(), userId);
         }
-
     }
 
     public void toggleReadyStatus(Long gameId, Long userId) {

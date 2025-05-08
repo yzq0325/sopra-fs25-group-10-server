@@ -1,5 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
+import ch.uzh.ifi.hase.soprafs24.constant.Country;
+
 import java.util.Map;
 import java.util.List;
 import java.time.LocalDateTime;
@@ -46,7 +48,7 @@ public class GameGetDTO {
 
     private Integer correctAnswers;
 
-    private String answer;
+    private Integer answer;
 
     private List<Map<String, Object>> hints;
 
@@ -214,11 +216,11 @@ public class GameGetDTO {
         this.username = username;
     }
 
-    public String getAnswer() {
+    public Integer getAnswer() {
         return answer;
     }
     
-    public void setAnswer(String answer) {
+    public void setAnswer(Integer answer) {
         this.answer = answer;
     }
     
