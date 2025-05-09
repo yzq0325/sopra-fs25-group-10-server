@@ -440,11 +440,16 @@ public class GameService {
     }
 
     public void startGame(Long gameId) {
+        Game gameToStart = gameRepository.findBygameId(gameId);
+
+        if (gameToStart == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game Not Found");
+        }
+
         if (!checkAllReady(gameId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not all players are ready");
         }
 
-        Game gameToStart = gameRepository.findBygameId(gameId);
         List<Long> allPlayers = gameToStart.getPlayers();
 
         //set time

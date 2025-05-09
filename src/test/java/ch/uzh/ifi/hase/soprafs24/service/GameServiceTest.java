@@ -69,8 +69,8 @@ public class GameServiceTest {
     private Game testGameCombat;
     private GameGetDTO gameGetDTO;
     private User owner;
-
-
+    
+    
     
     @BeforeEach
     public void setup() {
@@ -160,28 +160,28 @@ public class GameServiceTest {
         player2.setUserId(2L);
         player2.setUsername("PlayerTwo");
         player2.setReady(true); // Mark as ready
-
+        
         owner.setReady(true); // Also mark owner (player1) as ready
-
+        
         // Add both players to the combat game
         List<Long> combatPlayers = Arrays.asList(owner.getUserId(), player2.getUserId());
         testGameCombat.setPlayers(combatPlayers);
-
+        
         // Initialize maps for both players
         Map<Long, Integer> combatTotalQuestionsMap = new HashMap<>();
         combatTotalQuestionsMap.put(owner.getUserId(), 10);
         combatTotalQuestionsMap.put(player2.getUserId(), 10);
         testGameCombat.setTotalQuestionsMap(combatTotalQuestionsMap);
-
+        
         Map<Long, Integer> combatCorrectAnswersMap = new HashMap<>();
         combatCorrectAnswersMap.put(owner.getUserId(), 0);
         combatCorrectAnswersMap.put(player2.getUserId(), 0);
         testGameCombat.setCorrectAnswersMap(combatCorrectAnswersMap);
-
+        
         // Mock repository behavior for both users
         when(userRepository.findByUserId(1L)).thenReturn(owner);
         when(userRepository.findByUserId(2L)).thenReturn(player2);
-
+        
         // Mock repository behavior
         when(userRepository.findByUserId(1L)).thenReturn(owner);
         when(gameRepository.findByownerId(1L)).thenReturn(null);
@@ -938,4 +938,84 @@ public class GameServiceTest {
         eq("/topic/game/1/timer-interrupted"), eq("TIMER_STOPPED")
         );
     } 
+    
+    @Test
+    void startCombatGame_notAllPlayersReady_throwsResponseStatusException() {
+        // Arrange
+        Long gameId = 3L;
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGameCombat);
+        doReturn(false).when(gameService).checkAllReady(gameId);
+        
+        // Act + Assert
+        ResponseStatusException thrown = assertThrows(
+        ResponseStatusException.class,
+        () -> gameService.startGame(gameId)
+        );
+        
+        assertEquals(HttpStatus.BAD_REQUEST, thrown.getStatus());
+        assertEquals("Not all players are ready", thrown.getReason());
+    }
+    
+    @Test
+    void startCombatGame_gameNotFound_throwsResponseStatusException() {
+        // Arrange
+        Long gameId = 3L;
+        when(gameRepository.findBygameId(gameId)).thenReturn(null);
+        
+        // Act + Assert
+        ResponseStatusException ex = assertThrows(
+        ResponseStatusException.class,
+        () -> gameService.startGame(gameId)
+        );
+        
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+        assertEquals("Game Not Found", ex.getReason());
+    }
+    
+    @Test
+    void startCombatGame_validGame_startGameSuccessfully() throws InterruptedException {
+        // Arrange
+        Long gameId = 3L;
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGameCombat);
+        // doReturn(false).when(gameService).checkAllReady(gameId);
+        
+        // Act
+        gameService.startGame(gameId);
+        
+        // Assert
+        verify(gameRepository).save(testGameCombat);
+        verify(messagingTemplate).convertAndSend(matches("/topic/start/3/hints"), any(GameGetDTO.class));
+        verify(messagingTemplate).convertAndSend(matches("/topic/start/3/ready-time"), eq(5));
+        
+        // Verify the game running flag is set to true
+        assertTrue(testGameCombat.getGameRunning());
+
+    }
+
+    @Test
+    void startCombatGame_threadInterrupted_sendsTimerInterruptedMessage() {
+        // Arrange
+        Long gameId = 1L;
+
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGameCombat);
+        doReturn(true).when(gameService).checkAllReady(gameId);
+        when(gameRepository.save(any(Game.class))).thenReturn(testGameCombat);
+
+        Thread combatGameThread = new Thread(() -> gameService.startGame(gameId));
+        combatGameThread.start();
+
+        try {
+            Thread.sleep(100); // allow thread to start
+            combatGameThread.interrupt(); // simulate interruption
+            combatGameThread.join(); // wait for thread to complete
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interrupt status
+        }
+
+        verify(messagingTemplate, atLeastOnce()).convertAndSend(
+            eq("/topic/game/" + gameId + "/timer-interrupted"),
+            eq("TIMER_STOPPED")
+        );
+    }
 }
