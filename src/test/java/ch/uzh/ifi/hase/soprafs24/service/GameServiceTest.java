@@ -65,8 +65,12 @@ public class GameServiceTest {
     private GameService gameService;
     
     private Game testGame;
+    private Game testGameSolo;
+    private Game testGameCombat;
     private GameGetDTO gameGetDTO;
     private User owner;
+
+
     
     @BeforeEach
     public void setup() {
@@ -88,6 +92,25 @@ public class GameServiceTest {
         Map<Long, Integer> correctAnswersMap = new HashMap<>();
         correctAnswersMap.put(1L, 0);
         testGame.setCorrectAnswersMap(correctAnswersMap);
+        
+        // Setup Solo Game entity
+        testGameSolo = new Game();
+        testGameSolo.setGameName("Test Solo Game");
+        testGameSolo.setGameId(2L);
+        testGameSolo.setOwnerId(1L);
+        testGameSolo.setPlayersNumber(1);
+        testGameSolo.setTime(5);
+        testGameSolo.setModeType("solo"); // Solo game mode
+        testGameSolo.setPassword("soloPass");
+        
+        // Setup maps for tracking questions and answers for solo game
+        Map<Long, Integer> totalQuestionsMapSolo = new HashMap<>();
+        totalQuestionsMapSolo.put(1L, 10);
+        testGameSolo.setTotalQuestionsMap(totalQuestionsMapSolo);
+        
+        Map<Long, Integer> correctAnswersMapSolo = new HashMap<>();
+        correctAnswersMapSolo.put(1L, 0);
+        testGameSolo.setCorrectAnswersMap(correctAnswersMapSolo);
         
         // Setup User entity
         owner = new User();
@@ -114,10 +137,58 @@ public class GameServiceTest {
         when(mockUtilService.getHintCache()).thenReturn(mockHintQueue);
         ReflectionTestUtils.setField(gameService, "utilService", mockUtilService);
         
+        // Setup Combat Game entity
+        testGameCombat = new Game();
+        testGameCombat.setGameName("Test Combat Game");
+        testGameCombat.setGameId(3L);
+        testGameCombat.setOwnerId(1L);
+        testGameCombat.setPlayersNumber(2);
+        testGameCombat.setTime(5);
+        testGameCombat.setModeType("combat");
+        testGameCombat.setPassword("combatPass");
+        
+        // Setup maps for tracking questions and answers for combat game
+        Map<Long, Integer> totalQuestionsMapCombat = new HashMap<>();
+        totalQuestionsMapCombat.put(1L, 10);
+        testGameCombat.setTotalQuestionsMap(totalQuestionsMapCombat);
+        
+        Map<Long, Integer> correctAnswersMapCombat = new HashMap<>();
+        correctAnswersMapCombat.put(1L, 0);
+        testGameCombat.setCorrectAnswersMap(correctAnswersMapCombat);
+        
+        User player2 = new User();
+        player2.setUserId(2L);
+        player2.setUsername("PlayerTwo");
+        player2.setReady(true); // Mark as ready
+
+        owner.setReady(true); // Also mark owner (player1) as ready
+
+        // Add both players to the combat game
+        List<Long> combatPlayers = Arrays.asList(owner.getUserId(), player2.getUserId());
+        testGameCombat.setPlayers(combatPlayers);
+
+        // Initialize maps for both players
+        Map<Long, Integer> combatTotalQuestionsMap = new HashMap<>();
+        combatTotalQuestionsMap.put(owner.getUserId(), 10);
+        combatTotalQuestionsMap.put(player2.getUserId(), 10);
+        testGameCombat.setTotalQuestionsMap(combatTotalQuestionsMap);
+
+        Map<Long, Integer> combatCorrectAnswersMap = new HashMap<>();
+        combatCorrectAnswersMap.put(owner.getUserId(), 0);
+        combatCorrectAnswersMap.put(player2.getUserId(), 0);
+        testGameCombat.setCorrectAnswersMap(combatCorrectAnswersMap);
+
+        // Mock repository behavior for both users
+        when(userRepository.findByUserId(1L)).thenReturn(owner);
+        when(userRepository.findByUserId(2L)).thenReturn(player2);
+
         // Mock repository behavior
         when(userRepository.findByUserId(1L)).thenReturn(owner);
         when(gameRepository.findByownerId(1L)).thenReturn(null);
         when(gameRepository.findBygameName("Test Game")).thenReturn(null);
+        when(gameRepository.findBygameName("Test Solo Game")).thenReturn(null);
+        when(gameRepository.findBygameName("Test Combat Game")).thenReturn(null);
+        // when(gameRepository.findBygameId(3L)).thenReturn(null);
         when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
         
         // Set messagingTemplate
@@ -126,7 +197,6 @@ public class GameServiceTest {
         // Initialize DTO
         gameGetDTO = new GameGetDTO();
     }
-    
     
     @Test
     public void checkIfOwnerExists_ownerNotFound_throwsException() {
@@ -867,6 +937,5 @@ public class GameServiceTest {
         verify(messagingTemplate, atLeastOnce()).convertAndSend(
         eq("/topic/game/1/timer-interrupted"), eq("TIMER_STOPPED")
         );
-    }
-    
+    } 
 }
