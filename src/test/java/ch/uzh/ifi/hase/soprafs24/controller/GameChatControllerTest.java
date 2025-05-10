@@ -32,4 +32,22 @@ public class GameChatControllerTest {
         assertNotNull(result.getTimestamp());
         assertTrue(result.getTimestamp().isBefore(LocalDateTime.now().plusSeconds(1)));
     }
+
+    @Test
+    void testSendLobbyMessage() {
+        // Arrange
+        GameChatController controller = new GameChatController(null);
+        ChatMessage inputMessage = new ChatMessage();
+        inputMessage.setSender("Alice");
+        inputMessage.setContent("Hello lobby!");
+
+        // Act
+        ChatMessage response = controller.sendLobbyMessage(inputMessage);
+
+        // Assert
+        assertEquals("Alice", response.getSender());
+        assertEquals("Hello lobby!", response.getContent());
+        assertNotNull(response.getTimestamp());
+        assertTrue(response.getTimestamp().isBefore(LocalDateTime.now().plusSeconds(1)));
+    }
 }

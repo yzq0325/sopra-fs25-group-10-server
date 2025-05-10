@@ -29,5 +29,12 @@ public class GameChatController {
         // System.out.println("Message sent to topic: /topic/chat/" + gameId);
         return message;
     }
+        
+    @MessageMapping("/chat/lobby")
+    @SendTo("/topic/chat/lobby")
+    public ChatMessage sendLobbyMessage(ChatMessage message) {
+        message.setTimestamp(LocalDateTime.now());
+        return message;
+    }
 }
 
