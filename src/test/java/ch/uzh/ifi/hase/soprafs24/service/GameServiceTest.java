@@ -8,6 +8,7 @@ import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.UtilService;
 
@@ -24,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -197,7 +199,7 @@ public class GameServiceTest {
         // Initialize DTO
         gameGetDTO = new GameGetDTO();
     }
-    
+
     @Test
     public void checkIfOwnerExists_ownerNotFound_throwsException() {
         when(userRepository.findByUserId(99L)).thenReturn(null);
@@ -836,7 +838,94 @@ public class GameServiceTest {
         
         assertTrue(result);
     }
+
+    @Test
+    public void giveupGame_onlyPlayer_gameDeletedAndUserUpdated() {
+        Long userId = 1L;
+
+        Game mockGame = mock(Game.class);
+        when(mockGame.getRealPlayersNumber()).thenReturn(1);
+        when(mockGame.getGameName()).thenReturn("TestGame");
+        when(mockGame.getScore(userId)).thenReturn(50);
+        when(mockGame.getCorrectAnswers(userId)).thenReturn(5);
+        when(mockGame.getTime()).thenReturn(60);
+        when(mockGame.getModeType()).thenReturn("solo");
+
+        User mockUser = new User();
+        mockUser.setUserId(userId);
+        mockUser.setUsername("player1");
+        mockUser.setGame(mockGame);
+
+        when(userRepository.findByUserId(userId)).thenReturn(mockUser);
+
+        gameService.giveupGame(userId);
+
+        verify(mockGame, times(2)).updateScore(eq(userId), eq(-1));
+        assertNull(mockUser.getGame());
+        assertFalse(mockUser.isReady());
+        verify(userRepository).save(mockUser);
+        verify(userRepository).flush();
+        verify(gameRepository).deleteByGameId(mockGame.getGameId());
+    }
+
+    @Test
+    void giveupGame_ownerMultiplePlayers_transfersOwnership() {
+        // Arrange
+        Long userId = 1L;
+        User mockUser = new User();
+        mockUser.setUserId(userId);
+        mockUser.setUsername("player1");
     
+        Game mockGame = mock(Game.class);
+        mockUser.setGame(mockGame);
+        User newOwner = new User();
+        newOwner.setUserId(2L);
+        newOwner.setUsername("player2");
+    
+        // 配置 mockGame 的行为
+        when(mockGame.getGameId()).thenReturn(1L);
+        when(mockGame.getGameName()).thenReturn("TestGame");
+        when(mockGame.getScore(userId)).thenReturn(50);
+        when(mockGame.getCorrectAnswers(userId)).thenReturn(5);
+        when(mockGame.getTotalQuestions(userId)).thenReturn(10);
+        when(mockGame.getGameCreationDate()).thenReturn("01-01-2025 12:00");
+        when(mockGame.getTime()).thenReturn(60);
+        when(mockGame.getModeType()).thenReturn("combat");
+        when(mockGame.getRealPlayersNumber()).thenReturn(2);
+        when(mockGame.getOwnerId()).thenReturn(userId); // 初始拥有者为 1L
+        when(mockGame.getPlayers()).thenReturn(Arrays.asList(userId, 2L)); // 玩家列表 [1L, 2L]
+        when(mockGame.getScoreBoard()).thenReturn(new HashMap<>(Map.of(userId, 50, 2L, 30)));
+        when(userRepository.findByUserId(userId)).thenReturn(mockUser);
+        when(userRepository.findByUserId(2L)).thenReturn(newOwner);
+        when(userRepository.save(any(User.class))).thenReturn(mockUser);
+        when(gameRepository.save(any(Game.class))).thenReturn(mockGame);
+    
+        // 模拟 setOwnerId 的行为，确保后续 getOwnerId 返回 2L
+        doAnswer(invocation -> {
+            when(mockGame.getOwnerId()).thenReturn(2L); // 在 setOwnerId(2L) 后更新 getOwnerId
+            return null;
+        }).when(mockGame).setOwnerId(2L);
+    
+        // Mock getGameLobby to avoid unnecessary WebSocket calls
+        doNothing().when(gameService).getGameLobby();
+    
+        // Act
+        gameService.giveupGame(userId);
+    
+        // Assert
+        verify(mockGame).setRealPlayersNumber(1);
+        verify(mockGame).setOwnerId(2L); // 验证 setOwnerId(2L) 被调用
+        verify(mockGame, times(2)).removePlayer(mockUser); // 期望 removePlayer 被调用两次
+        verify(mockGame).updateScore(eq(userId), eq(-1));
+        verify(messagingTemplate).convertAndSend(eq("/topic/game/1/owner"), eq(2L)); // 期望发送新拥有者 2L
+        verify(messagingTemplate).convertAndSend(eq("/topic/user/1/scoreBoard"), any(Map.class));
+        assertNull(mockUser.getGame());
+        assertFalse(mockUser.isReady());
+        verify(userRepository).save(mockUser);
+        verify(userRepository).flush();
+        verify(gameRepository).save(mockGame);
+        verify(gameRepository).flush();
+    }
     
     @Test
     public void startSoloGame_validInput_gameStartedSuccessfully() {
