@@ -526,7 +526,8 @@ public class GameServiceTest {
         // Set up the game with one player
         testGame.setPlayers(List.of(userId));
         testGame.setScoreBoard(new HashMap<>(Map.of(userId, 0)));
-        
+        testGame.setModeType("combat");
+
         // Mock User object
         User mockUser = mock(User.class);
         mockUser.setUserId(userId);
@@ -570,7 +571,8 @@ public class GameServiceTest {
         // Set up the game with one player
         testGame.setPlayers(List.of(userId));
         testGame.setScoreBoard(new HashMap<>(Map.of(userId, 0)));
-        
+        testGame.setModeType("combat");
+
         // Mock User object
         User mockUser = mock(User.class);
         when(mockUser.getUserId()).thenReturn(userId);
