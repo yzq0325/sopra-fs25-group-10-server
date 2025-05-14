@@ -851,6 +851,7 @@ public class GameService {
 
         for (User user : allUsers) {
             UserGetDTO userGetDTO = new UserGetDTO();
+            userGetDTO.setUserId(user.getUserId());     
             userGetDTO.setLevel((user.getLevel().multiply(new BigDecimal(100))).intValue());
             userGetDTO.setUsername(user.getUsername());
             userGetDTO.setAvatar(user.getAvatar());
