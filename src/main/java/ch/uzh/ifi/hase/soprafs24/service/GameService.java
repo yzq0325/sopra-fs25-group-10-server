@@ -131,7 +131,7 @@ public class GameService {
         gameRepository.deleteByGameId(gameId);
         Game createdGame = createGame(gameToCreate);
         GameGetDTO recreatedGameDTO = DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(createdGame);
-        messagingTemplate.convertAndSend("/topic/recreate/"+gameId, recreatedGameDTO));
+        messagingTemplate.convertAndSend("/topic/recreate/"+gameId, recreatedGameDTO);
         return recreatedGameDTO;
     }
 
