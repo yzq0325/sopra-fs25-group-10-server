@@ -190,12 +190,4 @@ public class GameController {
     gameService.saveGame(gameId);
   }
 
-  @PostMapping("/back/{gameId}")
-  @ResponseStatus(HttpStatus.CREATED)
-  @ResponseBody
-  public GameGetDTO recreateGame(@PathVariable Long gameId)  {
-
-    return gameService.recreateGame(gameId);
-      
-  }
 }
