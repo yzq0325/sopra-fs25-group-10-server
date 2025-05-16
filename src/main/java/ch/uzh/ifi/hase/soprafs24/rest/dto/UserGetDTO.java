@@ -18,7 +18,7 @@ public class UserGetDTO {
   private String email;
   private String bio;
   private int level;
-  private Map<String, GameQuickSave> gameHistory;
+  private Map<Long, GameQuickSave> gameHistory;
   private Map<Country, Integer> learningTracking;
 
   public Long getUserId() {
@@ -93,11 +93,11 @@ public class UserGetDTO {
     this.level = level;
   }
 
-  public void setGameHistory(Map<String,GameQuickSave> gameHistory){
+  public void setGameHistory(Map<Long,GameQuickSave> gameHistory){
     this.gameHistory = gameHistory;
   }
 
-  public Map<String,GameQuickSave> getGameHistory(){
+  public Map<Long,GameQuickSave> getGameHistory(){
     return gameHistory;
   }
 

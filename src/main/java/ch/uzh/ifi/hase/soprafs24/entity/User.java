@@ -38,6 +38,8 @@ public class User implements Serializable {
 
         public GameQuickSave() {
         }
+        @Column(name = "gameName", nullable = false)
+        private String gameName;
 
         @Column(name = "score", nullable = false)
         private int score;
@@ -56,6 +58,14 @@ public class User implements Serializable {
 
         @Column(name = "modeType", nullable = false)
         private String modeType;
+
+        public String getGameName() {
+            return gameName;
+        }
+
+        public void setGameName(String gameName) {
+            this.gameName = gameName;
+        }
 
         public int getScore() {
             return score;
@@ -146,8 +156,8 @@ public class User implements Serializable {
 
     @ElementCollection
     @CollectionTable(name = "userGameHistory", joinColumns = @JoinColumn(name = "userId"))
-    @MapKeyColumn(name = "gameName")
-    private Map<String, GameQuickSave> gameHistory = new HashMap<>();
+    @MapKeyColumn(name = "gameId")
+    private Map<Long, GameQuickSave> gameHistory = new HashMap<>();
 
     @ElementCollection
     @CollectionTable(name = "userLearningTrack", joinColumns = @JoinColumn(name = "userId"))
@@ -251,42 +261,31 @@ public class User implements Serializable {
         this.isReady = isReady;
     }
 
-    public void setGameHistory(String gameName, int score, int correct, int total, String gameCreationDate, int gameTime, String modeType) {
+    public void setGameHistory(Long gameId, String gameName, int score, int correct, int total, String gameCreationDate, int gameTime, String modeType) {
         GameQuickSave gameQuickSave = new GameQuickSave();
+        gameQuickSave.setGameName(gameName); 
         gameQuickSave.setScore(score);
         gameQuickSave.setCorrectAnswers(correct);
         gameQuickSave.setTotalQuestions(total);
         gameQuickSave.setGameCreationDate(gameCreationDate);
         gameQuickSave.setGameTime(gameTime);
-        if(gameName.contains("Solo")){
-            int counter = 1;
-            String uniqueName = gameName + counter;
-            while (gameHistory.containsKey(uniqueName)) {
-                counter++;
-                uniqueName = gameName + counter;
-            }
-        gameHistory.put(uniqueName, gameQuickSave);
-        }else{
-            gameHistory.put(gameName, gameQuickSave);
-        }
-        
         gameQuickSave.setModeType(modeType);
     }
 
-    public Map<String, GameQuickSave> getGameHistory(){
+    public Map<Long, GameQuickSave> getGameHistory(){
         return gameHistory;
     }
 
-    public int getGameScore(String gameName) {
-        return gameHistory.get(gameName).getScore();
+    public int getGameScore(Long gameId) {
+        return gameHistory.get(gameId).getScore();
     }
 
-    public int getGameCorrectAnswer(String gameName) {
-        return gameHistory.get(gameName).getCorrectAnswers();
+    public int getGameCorrectAnswer(Long gameId) {
+        return gameHistory.get(gameId).getCorrectAnswers();
     }
 
-    public int getGameTotalQuestions(String gameName) {
-        return gameHistory.get(gameName).getTotalQuestions();
+    public int getGameTotalQuestions(Long gameId) {
+        return gameHistory.get(gameId).getTotalQuestions();
     }
 
     public void updateLearningTrack(Country country){

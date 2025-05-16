@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
@@ -189,4 +190,12 @@ public class GameController {
     gameService.saveGame(gameId);
   }
 
+  @PostMapping("/back/{gameId}")
+  @ResponseStatus(HttpStatus.CREATED)
+  @ResponseBody
+  public void recreateGame(@PathVariable Long gameId)  {
+
+    gameService.recreateGame(gameId);
+      
+  }
 }
