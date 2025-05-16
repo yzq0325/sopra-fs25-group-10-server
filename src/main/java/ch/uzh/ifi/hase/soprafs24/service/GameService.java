@@ -130,8 +130,9 @@ public class GameService {
         Game gameToCreate = gameRepository.findBygameId(gameId);
         gameRepository.deleteByGameId(gameId);
         Game createdGame = createGame(gameToCreate);
-        messagingTemplate.convertAndSend("/topic/recreate/"+gameId, createdGame);
+        messagingTemplate.convertAndSend("/topic/recreate/"+gameId, createdGame.getGameId());
     }
+
     public void startSoloGame(Game gameToStart){
         Long gameUserId = gameToStart.getOwnerId();
         ReentrantLock lock = userLocks.computeIfAbsent(gameUserId, k -> new ReentrantLock());
