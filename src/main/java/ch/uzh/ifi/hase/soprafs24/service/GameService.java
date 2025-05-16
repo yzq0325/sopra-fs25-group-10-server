@@ -124,17 +124,6 @@ public class GameService {
         return gameCreated;
     }
 
-    public GameGetDTO recreateGame(Long gameId){
-        if(gameRepository.findBygameId(gameId) == null){return null;}
-
-        Game gameToCreate = gameRepository.findBygameId(gameId);
-        gameRepository.deleteByGameId(gameId);
-        Game createdGame = createGame(gameToCreate);
-        GameGetDTO recreatedGameDTO = DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(createdGame);
-        messagingTemplate.convertAndSend("/topic/recreate/"+gameId, recreatedGameDTO);
-        return recreatedGameDTO;
-    }
-
     public void startSoloGame(Game gameToStart){
         Long gameUserId = gameToStart.getOwnerId();
         ReentrantLock lock = userLocks.computeIfAbsent(gameUserId, k -> new ReentrantLock());
@@ -681,10 +670,12 @@ public class GameService {
                 player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
                 gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime(), gameToSave.getModeType());
                 player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
-                player.setGame(null);
                 userRepository.save(player);
                 userRepository.flush();
             }
+            gameToSave.setGameRunning(false);
+            LocalDateTime now = LocalDateTime.now();
+            gameToSave.setGameCreationDate(now);
             
         }
         else if(gameToSave.getModeType().equals("solo")){
