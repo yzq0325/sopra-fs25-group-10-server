@@ -130,8 +130,9 @@ public class GameService {
         Game gameToCreate = gameRepository.findBygameId(gameId);
         gameRepository.deleteByGameId(gameId);
         Game createdGame = createGame(gameToCreate);
-        messagingTemplate.convertAndSend("/topic/recreate/"+gameId, createdGame.getGameId());
-        return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(createdGame);
+        GameGetDTO recreatedGameDTO = DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(createdGame);
+        messagingTemplate.convertAndSend("/topic/recreate/"+gameId, recreatedGameDTO));
+        return recreatedGameDTO;
     }
 
     public void startSoloGame(Game gameToStart){
