@@ -272,6 +272,7 @@ public class User implements Serializable {
         gameQuickSave.setGameCreationDate(gameCreationDate);
         gameQuickSave.setGameTime(gameTime);
         gameQuickSave.setModeType(modeType);
+        gameHistory.add(gameQuickSave);
     }
 
     public List<GameQuickSave> getGameHistory(){
