@@ -676,6 +676,9 @@ public class GameService {
             gameToSave.setGameRunning(false);
             LocalDateTime now = LocalDateTime.now();
             gameToSave.setGameCreationDate(now);
+
+            gameRepository.save(gameToSave);
+            gameRepository.flush();
             
         }
         else if(gameToSave.getModeType().equals("solo")){
