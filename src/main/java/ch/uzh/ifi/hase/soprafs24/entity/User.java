@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +52,7 @@ public class User implements Serializable {
         private int totalQuestions;
 
         @Column(name = "gameCreationDate", nullable = false)
-        private String gameCreationDate;
+        private LocalDateTime gameCreationDate;
 
         @Column(name = "gameTime", nullable = false)
         private int gameTime;
@@ -91,11 +92,11 @@ public class User implements Serializable {
             this.totalQuestions = totalQuestions;
         }
 
-        public String getGameCreationDate() {
+        public LocalDateTime getGameCreationDate() {
             return gameCreationDate;
         }
         
-        public void setGameCreationDate(String gameCreationDate) {
+        public void setGameCreationDate(LocalDateTime gameCreationDate) {
             this.gameCreationDate = gameCreationDate;
         }
 
@@ -156,8 +157,9 @@ public class User implements Serializable {
 
     @ElementCollection
     @CollectionTable(name = "userGameHistory", joinColumns = @JoinColumn(name = "userId"))
+    @OrderBy("gameCreationDate DESC")
     @MapKeyColumn(name = "gameId")
-    private Map<Long, GameQuickSave> gameHistory = new HashMap<>();
+    private List<GameQuickSave> gameHistory = new ArrayList<>();
 
     @ElementCollection
     @CollectionTable(name = "userLearningTrack", joinColumns = @JoinColumn(name = "userId"))
@@ -261,7 +263,7 @@ public class User implements Serializable {
         this.isReady = isReady;
     }
 
-    public void setGameHistory(Long gameId, String gameName, int score, int correct, int total, String gameCreationDate, int gameTime, String modeType) {
+    public void setGameHistory(String gameName, int score, int correct, int total, LocalDateTime gameCreationDate, int gameTime, String modeType) {
         GameQuickSave gameQuickSave = new GameQuickSave();
         gameQuickSave.setGameName(gameName); 
         gameQuickSave.setScore(score);
@@ -272,21 +274,21 @@ public class User implements Serializable {
         gameQuickSave.setModeType(modeType);
     }
 
-    public Map<Long, GameQuickSave> getGameHistory(){
+    public List<GameQuickSave> getGameHistory(){
         return gameHistory;
     }
 
-    public int getGameScore(Long gameId) {
-        return gameHistory.get(gameId).getScore();
-    }
+    // public int getGameScore(Long gameId) {
+    //     return gameHistory.get(gameId).getScore();
+    // }
 
-    public int getGameCorrectAnswer(Long gameId) {
-        return gameHistory.get(gameId).getCorrectAnswers();
-    }
+    // public int getGameCorrectAnswer(Long gameId) {
+    //     return gameHistory.get(gameId).getCorrectAnswers();
+    // }
 
-    public int getGameTotalQuestions(Long gameId) {
-        return gameHistory.get(gameId).getTotalQuestions();
-    }
+    // public int getGameTotalQuestions(Long gameId) {
+    //     return gameHistory.get(gameId).getTotalQuestions();
+    // }
 
     public void updateLearningTrack(Country country){
         learningTracking.merge(country, 1, Integer::sum);
