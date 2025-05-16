@@ -124,13 +124,14 @@ public class GameService {
         return gameCreated;
     }
 
-    public void recreateGame(Long gameId){
-        if(gameRepository.findBygameId(gameId) != null){return;}
+    public GameGetDTO recreateGame(Long gameId){
+        if(gameRepository.findBygameId(gameId) == null){return null;}
 
         Game gameToCreate = gameRepository.findBygameId(gameId);
         gameRepository.deleteByGameId(gameId);
         Game createdGame = createGame(gameToCreate);
         messagingTemplate.convertAndSend("/topic/recreate/"+gameId, createdGame.getGameId());
+        return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(createdGame);
     }
 
     public void startSoloGame(Game gameToStart){
@@ -688,7 +689,7 @@ public class GameService {
             }
             
         }
-        if(gameToSave.getModeType().equals("solo")){
+        else if(gameToSave.getModeType().equals("solo")){
             User player = userRepository.findByUserId(gameToSave.getOwnerId());
             player.setGameHistory(gameToSave.getGameId(), gameToSave.getGameName(), gameToSave.getScore(gameToSave.getOwnerId()), gameToSave.getCorrectAnswers(gameToSave.getOwnerId()), 
             gameToSave.getTotalQuestions(gameToSave.getOwnerId()), gameToSave.getGameCreationDate(), gameToSave.getTime(),gameToSave.getModeType());

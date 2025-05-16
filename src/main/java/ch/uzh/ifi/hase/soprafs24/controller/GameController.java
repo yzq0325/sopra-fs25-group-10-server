@@ -193,9 +193,9 @@ public class GameController {
   @PostMapping("/back/{gameId}")
   @ResponseStatus(HttpStatus.CREATED)
   @ResponseBody
-  public void recreateGame(@PathVariable Long gameId)  {
+  public GameGetDTO recreateGame(@PathVariable Long gameId)  {
 
-    gameService.recreateGame(gameId);
+    return gameService.recreateGame(gameId);
       
   }
 }
