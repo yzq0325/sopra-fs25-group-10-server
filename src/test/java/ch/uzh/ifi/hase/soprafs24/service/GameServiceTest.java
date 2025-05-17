@@ -338,7 +338,76 @@ public class GameServiceTest {
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         assertTrue(exception.getReason().contains("Wrong Password"));
     }
+
+    @Test
+    public void userExitGame_userIsNotOwner_moreThanOnePlayer() {
+        Game GameToExit = new Game();
+        GameToExit.setGameId(100L);
+        GameToExit.setPlayersNumber(4);
+        GameToExit.setRealPlayersNumber(4);
+        GameToExit.setOwnerId(10L);
+        GameToExit.setPlayers(new ArrayList<>(List.of(10L, 11L, 12L, 13L)));
+        
+        User userToExit = new User();
+        userToExit.setUserId(11L);
+        userToExit.setGame(GameToExit);
+        userToExit.setReady(true);
+        
+        when(gameRepository.findBygameId(100L)).thenReturn(GameToExit);
+        when(userRepository.findByUserId(11L)).thenReturn(userToExit);
+        gameService.userExitGame(userToExit.getUserId());
+        
+        assertEquals(GameToExit.getRealPlayersNumber(), 3);
+        assertEquals(GameToExit.getPlayers(), List.of(10L,12L,13L));
+        assertEquals(userToExit.isReady(), false);
+    }
     
+    @Test
+    public void userExitGame_userIsOwner_moreThanOnePlayer() {
+        Game GameToExit = new Game();
+        GameToExit.setGameId(100L);
+        GameToExit.setPlayersNumber(4);
+        GameToExit.setRealPlayersNumber(4);
+        GameToExit.setOwnerId(10L);
+        GameToExit.setPlayers(new ArrayList<>(List.of(10L, 11L, 12L, 13L)));
+        
+        User userToExit = new User();
+        userToExit.setUserId(10L);
+        userToExit.setGame(GameToExit);
+        userToExit.setReady(true);
+        
+        when(gameRepository.findBygameId(100L)).thenReturn(GameToExit);
+        when(userRepository.findByUserId(10L)).thenReturn(userToExit);
+        gameService.userExitGame(userToExit.getUserId());
+        
+        assertEquals(GameToExit.getRealPlayersNumber(), 3);
+        assertEquals(GameToExit.getPlayers(), List.of(11L,12L,13L));
+        assertEquals(GameToExit.getOwnerId(), 11L);
+        assertEquals(userToExit.isReady(), false);
+    }
+
+    @Test
+    public void userExitGame_onlyOnePlayer() {
+        Game GameToExit = new Game();
+        GameToExit.setGameId(100L);
+        GameToExit.setPlayersNumber(1);
+        GameToExit.setRealPlayersNumber(1);
+        GameToExit.setOwnerId(10L);
+        GameToExit.setPlayers(new ArrayList<>(List.of(10L)));
+        
+        User userToExit = new User();
+        userToExit.setUserId(10L);
+        userToExit.setGame(GameToExit);
+        userToExit.setReady(true);
+        
+        when(gameRepository.findBygameId(100L)).thenReturn(GameToExit);
+        when(userRepository.findByUserId(10L)).thenReturn(userToExit);
+        gameService.userExitGame(userToExit.getUserId());
+        
+        assertEquals(userToExit.getGame(), null);
+        assertEquals(userToExit.isReady(), false);
+    }
+
     @Test
     void chatChecksForGame_validData_passes() {
         Long gameId = 1L;

@@ -175,7 +175,6 @@ public class GameService {
     public void userExitGame(Long userId) {
         Game targetGame = userRepository.findByUserId(userId).getGame();
         if (userId != targetGame.getOwnerId()) {
-            log.info("gameId: {}", targetGame.getGameId());
             targetGame.removePlayer(userRepository.findByUserId(userId));
             targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() - 1);
             gameRepository.save(targetGame);
@@ -550,7 +549,7 @@ public class GameService {
         return gameHintDTO;
     }
 
-     public void toggleReadyStatus(Long gameId, Long userId) {
+    public void toggleReadyStatus(Long gameId, Long userId) {
         User user = userRepository.findByUserId(userId);
         if (user == null || user.getGame() == null || !user.getGame().getGameId().equals(gameId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid user or game");
@@ -577,7 +576,7 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/canStart", allReady);
     }
 
-     public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(Long gameId, Long userId, String difficulty) {
+    public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(Long gameId, Long userId, String difficulty) {
         if(difficulty == null || difficulty.isEmpty()){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,  " Difficulty is not set!");
         }
