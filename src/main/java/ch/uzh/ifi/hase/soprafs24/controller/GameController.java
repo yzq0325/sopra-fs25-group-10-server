@@ -101,24 +101,6 @@ public class GameController {
     gameService.startGame(gameId);
   }
 
-  @PutMapping("/games/{gameId}/end")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void submitScores(@PathVariable Long gameId, @RequestBody GamePostDTO gamePostDTO) {
-      gameService.submitScores(
-          gameId,
-          gamePostDTO.getScoreMap(),
-          gamePostDTO.getCorrectAnswersMap(),
-          gamePostDTO.getTotalQuestionsMap()
-      );
-  }
-
-  @GetMapping("/users/{userId}/history")
-  @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
-  public List<GameGetDTO> getUserGameHistory(@PathVariable Long userId) {
-    return gameService.getGamesByUser(userId);
-  }
-
   @GetMapping("/leaderboard")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody

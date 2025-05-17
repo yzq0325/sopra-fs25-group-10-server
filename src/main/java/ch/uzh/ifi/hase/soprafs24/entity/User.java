@@ -5,10 +5,6 @@ import ch.uzh.ifi.hase.soprafs24.constant.Country;
 
 import javax.persistence.*;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,7 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+
 
 /**
  * Internal User Representation
@@ -278,18 +274,6 @@ public class User implements Serializable {
     public List<GameQuickSave> getGameHistory(){
         return gameHistory;
     }
-
-    // public int getGameScore(Long gameId) {
-    //     return gameHistory.get(gameId).getScore();
-    // }
-
-    // public int getGameCorrectAnswer(Long gameId) {
-    //     return gameHistory.get(gameId).getCorrectAnswers();
-    // }
-
-    // public int getGameTotalQuestions(Long gameId) {
-    //     return gameHistory.get(gameId).getTotalQuestions();
-    // }
 
     public void updateLearningTrack(Country country){
         learningTracking.merge(country, 1, Integer::sum);

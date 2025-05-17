@@ -16,7 +16,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,16 +32,12 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
@@ -185,7 +180,6 @@ public class GameServiceTest {
         when(gameRepository.findBygameName("Test Game")).thenReturn(null);
         when(gameRepository.findBygameName("Test Solo Game")).thenReturn(null);
         when(gameRepository.findBygameName("Test Combat Game")).thenReturn(null);
-        // when(gameRepository.findBygameId(3L)).thenReturn(null);
         when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
         
         // Set messagingTemplate
