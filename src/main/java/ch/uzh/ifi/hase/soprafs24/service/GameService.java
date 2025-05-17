@@ -1,7 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.constant.Country;
-import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
@@ -9,20 +8,14 @@ import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
-import ch.uzh.ifi.hase.soprafs24.service.UtilService;
-import ch.uzh.ifi.hase.soprafs24.constant.Country;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -36,7 +29,6 @@ import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import ch.uzh.ifi.hase.soprafs24.service.UtilService.HintList;
 
 /**
@@ -122,6 +114,184 @@ public class GameService {
         getGameLobby();
         log.debug("Created new Game: {}", gameToCreate);
         return gameCreated;
+    }
+
+    public void getGameLobby() {
+        List<Game> allGames = gameRepository.findAll();
+        List<GameGetDTO> gameLobbyGetDTOs = new ArrayList<>();
+        for (Game game : allGames) {
+            if(game.getModeType().equals("combat")){
+                gameLobbyGetDTOs.add(DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game));
+            }
+        }
+        messagingTemplate.convertAndSend("/topic/lobby", gameLobbyGetDTOs);
+        log.info("websocket send: lobby!");
+    }
+
+    public void userJoinGame(Game gameToBeJoined, Long userId) {
+        Game targetGame = gameRepository.findBygameId(gameToBeJoined.getGameId());
+        if(targetGame.getPlayers().contains(userId)){return;}
+        if (targetGame.getGameRunning().equals(false)) {
+            if (targetGame.getRealPlayersNumber() != targetGame.getPlayersNumber()) {
+                if (gameToBeJoined.getPassword().equals(targetGame.getPassword())) {
+                    targetGame.addPlayer(userRepository.findByUserId(userId));
+                    targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() + 1);
+                    gameRepository.save(targetGame);
+                    gameRepository.flush();
+
+                    User targetUser = userRepository.findByUserId(userId);
+                    targetUser.setGame(gameToBeJoined);
+                    userRepository.save(targetUser);
+                    userRepository.flush();
+
+                    List<User> players = getGamePlayers(gameToBeJoined.getGameId());
+                    messagingTemplate.convertAndSend("/topic/ready/" + gameToBeJoined.getGameId() + "/players", players);
+                    log.info("websocket send: players!");
+                    getGameLobby();
+                }
+                else {
+                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!");
+                }
+            }
+            else {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't join this game because this game is full!");
+            }
+        }
+        else {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "This game is running! You can't join the game! Please try again!");
+        }
+    }
+
+    public GameGetDTO joinGamebyCode(GamePostDTO gamePostDTO){
+        Game gametoJoin = gameRepository.findBygameCode(gamePostDTO.getGameCode());
+        if (gametoJoin == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game with your gameCode doesn't exist! Please try another gameCode!");
+        }
+        else{
+            return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(gametoJoin);
+        }
+    }
+
+    public void userExitGame(Long userId) {
+        Game targetGame = userRepository.findByUserId(userId).getGame();
+        if (userId != targetGame.getOwnerId()) {
+            targetGame.removePlayer(userRepository.findByUserId(userId));
+            targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() - 1);
+            gameRepository.save(targetGame);
+            gameRepository.flush();
+
+            User targetUser = userRepository.findByUserId(userId);
+            targetUser.setGame(null);
+            targetUser.setReady(false);
+            userRepository.save(targetUser);
+            userRepository.flush();
+
+            List<User> players = getGamePlayers(targetGame.getGameId());
+            messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
+            log.info("websocket send: players!");
+
+            getGameLobby();
+        }
+        else if (targetGame.getRealPlayersNumber() == 1) {
+            gameRepository.deleteByGameId(targetGame.getGameId());
+
+            User targetUser = userRepository.findByUserId(userId);
+            targetUser.setGame(null);
+            targetUser.setReady(false);
+            userRepository.save(targetUser);
+            userRepository.flush();
+
+            getGameLobby();
+        }
+        else {
+            targetGame.removePlayer(userRepository.findByUserId(userId));
+            targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() - 1);
+            targetGame.setOwnerId((targetGame.getPlayers()).get(0));
+            gameRepository.save(targetGame);
+            gameRepository.flush();
+
+            User targetUser = userRepository.findByUserId(userId);
+            targetUser.setGame(null);
+            targetUser.setReady(false);
+            userRepository.save(targetUser);
+            userRepository.flush();
+
+            List<User> players = getGamePlayers(targetGame.getGameId());
+            messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
+            log.info("websocket send: players!");
+
+            getGameLobby();
+        }
+        utilService.removeCacheForGame(targetGame.getGameId());
+    }
+
+    public void checkIfOwnerExists(Long userId) {
+        User userwithUserId = userRepository.findByUserId(userId);
+        if (userwithUserId == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner doesn't exists! Please try an existed ownername");
+        }
+    }
+
+    public void checkIfGameHaveSameOwner(Long userId) {
+        Game gameWithSameOwner = gameRepository.findByownerId(userId);
+        if (gameWithSameOwner != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This owner have already create a game! Please use another one!");
+        }
+    }
+
+    public void checkIfGameNameExists(String gameName) {
+        Game gameWithSameName = gameRepository.findBygameName(gameName);
+        if (gameWithSameName != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "GameName exists! Please try a new one!");
+        }
+    }
+
+    public void chatChecksForGame(Long gameId, String playerName) {
+        System.out.println(gameId);
+        System.out.println(playerName);
+        Game game = gameRepository.findBygameId(gameId);
+        System.out.println(game);
+        if (game == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game Not Found!");
+        }
+    
+        User user = userRepository.findByUsername(playerName);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Found!");
+        }
+    
+        if (!game.getPlayers().contains(user.getUserId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a participant in this game.");
+        }
+
+        if(game.getEndTime() != null){
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Game endeded, Chat is not available anymore.");
+        }
+    }
+
+    public List<User> getGamePlayers(Long gameId) {
+        Game gameJoined = gameRepository.findBygameId(gameId);
+        List<Long> allPlayers = gameJoined.getPlayers();
+
+        List<User> players = new ArrayList<>();
+        for (Long userId : allPlayers) {
+            players.add(userRepository.findByUserId(userId));
+        }
+        messagingTemplate.convertAndSend("/topic/"+gameId+"/playersNumber", gameJoined.getPlayersNumber());
+        messagingTemplate.convertAndSend("/topic/"+gameId+"/gametime", utilService.formatTime(gameJoined.getTime()*60));
+        messagingTemplate.convertAndSend("/topic/"+gameId+"/gameCode", gameJoined.getGameCode());
+        return players;
+
+    }
+
+    public boolean checkAllReady(Long gameId) {
+        List<User> players = getGamePlayers(gameId);
+        Game game = gameRepository.findBygameId(gameId);
+        Long ownerId = game.getOwnerId();
+    
+        return players.stream()
+            .filter(p -> !p.getUserId().equals(ownerId))
+            .allMatch(User::isReady);
     }
 
     public void startSoloGame(Game gameToStart){
@@ -379,183 +549,56 @@ public class GameService {
         return gameHintDTO;
     }
 
-    public void getGameLobby() {
-        List<Game> allGames = gameRepository.findAll();
-        List<GameGetDTO> gameLobbyGetDTOs = new ArrayList<>();
-        for (Game game : allGames) {
-            if(game.getModeType().equals("combat")){
-                gameLobbyGetDTOs.add(DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game));
-            }
-        }
-        messagingTemplate.convertAndSend("/topic/lobby", gameLobbyGetDTOs);
-        log.info("websocket send: lobby!");
-    }
-
-    public void userJoinGame(Game gameToBeJoined, Long userId) {
-        Game targetGame = gameRepository.findBygameId(gameToBeJoined.getGameId());
-        if(targetGame.getPlayers().contains(userId)){return;}
-        if (targetGame.getGameRunning().equals(false)) {
-            if (targetGame.getRealPlayersNumber() != targetGame.getPlayersNumber()) {
-                if (gameToBeJoined.getPassword().equals(targetGame.getPassword())) {
-                    targetGame.addPlayer(userRepository.findByUserId(userId));
-                    targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() + 1);
-                    gameRepository.save(targetGame);
-                    gameRepository.flush();
-
-                    User targetUser = userRepository.findByUserId(userId);
-                    targetUser.setGame(gameToBeJoined);
-                    userRepository.save(targetUser);
-                    userRepository.flush();
-
-                    List<User> players = getGamePlayers(gameToBeJoined.getGameId());
-                    messagingTemplate.convertAndSend("/topic/ready/" + gameToBeJoined.getGameId() + "/players", players);
-                    log.info("websocket send: players!");
-                    getGameLobby();
-                }
-                else {
-                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong Password! You can't join the game! Please try again!");
-                }
-            }
-            else {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't join this game because this game is full!");
-            }
-        }
-        else {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "This game is running! You can't join the game! Please try again!");
-        }
-    }
-
-    public GameGetDTO joinGamebyCode(GamePostDTO gamePostDTO){
-        Game gametoJoin = gameRepository.findBygameCode(gamePostDTO.getGameCode());
-        if (gametoJoin == null){
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game with your gameCode doesn't exist! Please try another gameCode!");
-        }
-        else{
-            return DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(gametoJoin);
-        }
-    }
-
-    public void userExitGame(Long userId) {
-        Game targetGame = userRepository.findByUserId(userId).getGame();
-        if (userId != targetGame.getOwnerId()) {
-            log.info("gameId: {}", targetGame.getGameId());
-            targetGame.removePlayer(userRepository.findByUserId(userId));
-            targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() - 1);
-            gameRepository.save(targetGame);
-            gameRepository.flush();
-
-            User targetUser = userRepository.findByUserId(userId);
-            targetUser.setGame(null);
-            targetUser.setReady(false);
-            userRepository.save(targetUser);
-            userRepository.flush();
-
-            List<User> players = getGamePlayers(targetGame.getGameId());
-            messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
-            log.info("websocket send: players!");
-
-            getGameLobby();
-        }
-        else if (targetGame.getRealPlayersNumber() == 1) {
-            gameRepository.deleteByGameId(targetGame.getGameId());
-
-            User targetUser = userRepository.findByUserId(userId);
-            targetUser.setGame(null);
-            targetUser.setReady(false);
-            userRepository.save(targetUser);
-            userRepository.flush();
-
-            getGameLobby();
-        }
-        else {
-            targetGame.removePlayer(userRepository.findByUserId(userId));
-            targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() - 1);
-            targetGame.setOwnerId((targetGame.getPlayers()).get(0));
-            gameRepository.save(targetGame);
-            gameRepository.flush();
-
-            User targetUser = userRepository.findByUserId(userId);
-            targetUser.setGame(null);
-            targetUser.setReady(false);
-            userRepository.save(targetUser);
-            userRepository.flush();
-
-            List<User> players = getGamePlayers(targetGame.getGameId());
-            messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
-            log.info("websocket send: players!");
-
-            getGameLobby();
-        }
-        utilService.removeCacheForGame(targetGame.getGameId());
-    }
-
-    public void checkIfOwnerExists(Long userId) {
-        User userwithUserId = userRepository.findByUserId(userId);
-        if (userwithUserId == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner doesn't exists! Please try an existed ownername");
-        }
-    }
-
-    public void checkIfGameHaveSameOwner(Long userId) {
-        Game gameWithSameOwner = gameRepository.findByownerId(userId);
-        if (gameWithSameOwner != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "This owner have already create a game! Please use another one!");
-        }
-    }
-
-    public void checkIfGameNameExists(String gameName) {
-        Game gameWithSameName = gameRepository.findBygameName(gameName);
-        if (gameWithSameName != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "GameName exists! Please try a new one!");
-        }
-    }
-
-    public void chatChecksForGame(Long gameId, String playerName) {
-        System.out.println(gameId);
-        System.out.println(playerName);
-        Game game = gameRepository.findBygameId(gameId);
-        System.out.println(game);
-        if (game == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game Not Found!");
+    public void toggleReadyStatus(Long gameId, Long userId) {
+        User user = userRepository.findByUserId(userId);
+        if (user == null || user.getGame() == null || !user.getGame().getGameId().equals(gameId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid user or game");
         }
     
-        User user = userRepository.findByUsername(playerName);
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Found!");
+        Game game = user.getGame();
+        if (user.getUserId().equals(game.getOwnerId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Owner cannot toggle ready");
         }
     
-        if (!game.getPlayers().contains(user.getUserId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a participant in this game.");
-        }
-
-        if(game.getEndTime() != null){
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Game endeded, Chat is not available anymore.");
-        }
-    }
-
-    public List<User> getGamePlayers(Long gameId) {
-        Game gameJoined = gameRepository.findBygameId(gameId);
-        List<Long> allPlayers = gameJoined.getPlayers();
-
-        List<User> players = new ArrayList<>();
-        for (Long userId : allPlayers) {
-            players.add(userRepository.findByUserId(userId));
-        }
-        messagingTemplate.convertAndSend("/topic/"+gameId+"/playersNumber", gameJoined.getPlayersNumber());
-        messagingTemplate.convertAndSend("/topic/"+gameId+"/gametime", utilService.formatTime(gameJoined.getTime()*60));
-        messagingTemplate.convertAndSend("/topic/"+gameId+"/gameCode", gameJoined.getGameCode());
-        return players;
-
-    }
-
-    public boolean checkAllReady(Long gameId) {
+        user.setReady(!user.isReady());
+        userRepository.save(user);
+        userRepository.flush();
+    
         List<User> players = getGamePlayers(gameId);
-        Game game = gameRepository.findBygameId(gameId);
-        Long ownerId = game.getOwnerId();
     
-        return players.stream()
-            .filter(p -> !p.getUserId().equals(ownerId))
-            .allMatch(User::isReady);
+        Map<Long, Boolean> readinessMap = players.stream()
+                .collect(Collectors.toMap(User::getUserId, User::isReady));
+        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/status", readinessMap);
+    
+        boolean allReady = players.stream()
+                .filter(p -> !p.getUserId().equals(game.getOwnerId()))
+                .allMatch(User::isReady);
+        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/canStart", allReady);
+    }
+
+    public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(Long gameId, Long userId, String difficulty) {
+        if(difficulty == null || difficulty.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,  " Difficulty is not set!");
+        }
+        log.info("size of hintCache with game {}: {}", gameId, utilService.getHintCache().get(gameId).size());
+        Map<Country, List<Map<String, Object>>> hint = utilService.getHintForUser(gameId, userId);
+
+        HintList list = utilService.getHintCache().get(gameId);
+        synchronized (list) {
+            int minProgress = list.getMinProgressAcrossUsers();
+            int remainingHints = list.size() - minProgress;
+
+            if (remainingHints < 10) {
+                AtomicBoolean flag = refillInProgress.computeIfAbsent(gameId, id -> new AtomicBoolean(false));
+                if (flag.compareAndSet(false, true)) {
+                    for (int i = 0; i < 10 - remainingHints; ++i) {
+                        utilService.addHintForGame(gameId, difficulty);
+                    }
+                    flag.set(false);
+                }
+            }
+        }
+        return hint;
     }
 
     public void startGame(Long gameId) {
@@ -659,47 +702,6 @@ public class GameService {
         userRepository.flush();
     }
 
-    public void saveGame(Long gameId) {
-        Game gameToSave = gameRepository.findBygameId(gameId);
-        if (gameToSave == null ) {
-            return;
-        }
-        if(gameToSave.getModeType().equals("combat")){
-            for (Long userId : gameToSave.getScoreBoard().keySet()) {
-                User player = userRepository.findByUserId(userId);
-                player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
-                gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime(), gameToSave.getModeType());
-                player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
-                userRepository.save(player);
-                userRepository.flush();
-            }
-            gameToSave.setGameRunning(false);
-            LocalDateTime now = LocalDateTime.now();
-            gameToSave.setGameCreationDate(now);
-
-            gameRepository.save(gameToSave);
-            gameRepository.flush();
-            
-        }
-        else if(gameToSave.getModeType().equals("solo")){
-            User player = userRepository.findByUserId(gameToSave.getOwnerId());
-            player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(gameToSave.getOwnerId()), gameToSave.getCorrectAnswers(gameToSave.getOwnerId()), 
-            gameToSave.getTotalQuestions(gameToSave.getOwnerId()), gameToSave.getGameCreationDate(), gameToSave.getTime(),gameToSave.getModeType());
-            player.setGame(null);
-            userRepository.save(player);
-            userRepository.flush();
-            gameRepository.deleteByGameId(gameId);
-        }
-        else{
-            User player = userRepository.findByUserId(gameToSave.getOwnerId());
-            player.setGame(null);
-            userRepository.save(player);
-            userRepository.flush();
-            gameRepository.deleteByGameId(gameId);
-        }
-        utilService.removeCacheForGame(gameId);
-    }
-
     public GameGetDTO processingAnswer(GamePostDTO gamePostDTO, Long userId) {
 
         //judge right or wrong and update hints
@@ -798,93 +800,46 @@ public class GameService {
             }
         }
     }
-        
-
-    public void submitScores(Long gameId, Map<Long, Integer> scoreMap, Map<Long, Integer> correctAnswersMap, Map<Long, Integer> totalQuestionsMap) {
-        Game game = gameRepository.findBygameId(gameId);
-
-        if (game == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found");
+    
+    public void saveGame(Long gameId) {
+        Game gameToSave = gameRepository.findBygameId(gameId);
+        if (gameToSave == null ) {
+            return;
         }
-
-        // update all users
-        for (Long userId : scoreMap.keySet()) {
-            Integer score = scoreMap.get(userId);
-            Integer correct = correctAnswersMap.getOrDefault(userId, 0);
-            Integer total = totalQuestionsMap.getOrDefault(userId, 0);
-            String summary = correct + " of " + total + " correct";
-
-            game.updateScore(userId, score);
-            game.getCorrectAnswersMap().put(userId, correct);
-            game.getTotalQuestionsMap().put(userId, total);
-            game.getResultSummaryMap().put(userId, summary);
-        }
-
-        // end
-        if (game.getScoreBoard().size() >= game.getRealPlayersNumber()) {
-            game.setEndTime(LocalDateTime.now());
-            log.info("Game " + gameId + " ended automatically. All players submitted scores.");
-        }
-
-        gameRepository.save(game);
-    }
-
-    public List<GameGetDTO> getGamesByUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        String username = user.getUsername();
-
-        return gameRepository.findByPlayersContaining(username).stream()
-                .filter(game -> game.getEndTime() != null)
-                .map(game -> {
-                    GameGetDTO dto = DTOMapper.INSTANCE.convertGameEntityToGameGetDTO(game);
-                    dto.setCorrectAnswers(game.getCorrectAnswersMap().get(userId));
-                    dto.setTotalQuestions(game.getTotalQuestionsMap().get(userId));
-                    dto.setResultSummary(game.getResultSummaryMap().get(userId));
-                    return dto;
-                })
-                .collect(Collectors.toList());
-    }
-
-    public List<UserGetDTO> getLeaderboard() {
-
-        List<User> allUsers = userRepository.findAll();
-        List<UserGetDTO> leaderBoard = new ArrayList<>(); 
-
-        for (User user : allUsers) {
-            UserGetDTO userGetDTO = new UserGetDTO();
-            userGetDTO.setLevel((user.getLevel().multiply(new BigDecimal(100))).intValue());
-            userGetDTO.setUsername(user.getUsername());
-            userGetDTO.setAvatar(user.getAvatar());
-            leaderBoard.add(userGetDTO);
-        }
-        leaderBoard.sort(Comparator.comparing(UserGetDTO::getLevel).reversed());
-        return leaderBoard;
-    }
-
-    public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(Long gameId, Long userId, String difficulty) {
-        if(difficulty == null || difficulty.isEmpty()){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,  " Difficulty is not set!");
-        }
-        log.info("size of hintCache with game {}: {}", gameId, utilService.getHintCache().get(gameId).size());
-        Map<Country, List<Map<String, Object>>> hint = utilService.getHintForUser(gameId, userId);
-
-        HintList list = utilService.getHintCache().get(gameId);
-        synchronized (list) {
-            int minProgress = list.getMinProgressAcrossUsers();
-            int remainingHints = list.size() - minProgress;
-
-            if (remainingHints < 10) {
-                AtomicBoolean flag = refillInProgress.computeIfAbsent(gameId, id -> new AtomicBoolean(false));
-                if (flag.compareAndSet(false, true)) {
-                    for (int i = 0; i < 10 - remainingHints; ++i) {
-                        utilService.addHintForGame(gameId, difficulty);
-                    }
-                    flag.set(false);
-                }
+        if(gameToSave.getModeType().equals("combat")){
+            for (Long userId : gameToSave.getScoreBoard().keySet()) {
+                User player = userRepository.findByUserId(userId);
+                player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
+                gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime(), gameToSave.getModeType());
+                player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
+                userRepository.save(player);
+                userRepository.flush();
             }
+            gameToSave.setGameRunning(false);
+            LocalDateTime now = LocalDateTime.now();
+            gameToSave.setGameCreationDate(now);
+
+            gameRepository.save(gameToSave);
+            gameRepository.flush();
+            
         }
-        return hint;
+        else if(gameToSave.getModeType().equals("solo")){
+            User player = userRepository.findByUserId(gameToSave.getOwnerId());
+            player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(gameToSave.getOwnerId()), gameToSave.getCorrectAnswers(gameToSave.getOwnerId()), 
+            gameToSave.getTotalQuestions(gameToSave.getOwnerId()), gameToSave.getGameCreationDate(), gameToSave.getTime(),gameToSave.getModeType());
+            player.setGame(null);
+            userRepository.save(player);
+            userRepository.flush();
+            gameRepository.deleteByGameId(gameId);
+        }
+        else{
+            User player = userRepository.findByUserId(gameToSave.getOwnerId());
+            player.setGame(null);
+            userRepository.save(player);
+            userRepository.flush();
+            gameRepository.deleteByGameId(gameId);
+        }
+        utilService.removeCacheForGame(gameId);
     }
 
     public void giveupGame(Long userId) {
@@ -958,30 +913,19 @@ public class GameService {
         }
     }
 
-    public void toggleReadyStatus(Long gameId, Long userId) {
-        User user = userRepository.findByUserId(userId);
-        if (user == null || user.getGame() == null || !user.getGame().getGameId().equals(gameId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid user or game");
+    public List<UserGetDTO> getLeaderboard() {
+
+        List<User> allUsers = userRepository.findAll();
+        List<UserGetDTO> leaderBoard = new ArrayList<>(); 
+
+        for (User user : allUsers) {
+            UserGetDTO userGetDTO = new UserGetDTO();
+            userGetDTO.setLevel((user.getLevel().multiply(new BigDecimal(100))).intValue());
+            userGetDTO.setUsername(user.getUsername());
+            userGetDTO.setAvatar(user.getAvatar());
+            leaderBoard.add(userGetDTO);
         }
-    
-        Game game = user.getGame();
-        if (user.getUserId().equals(game.getOwnerId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Owner cannot toggle ready");
-        }
-    
-        user.setReady(!user.isReady());
-        userRepository.save(user);
-        userRepository.flush();
-    
-        List<User> players = getGamePlayers(gameId);
-    
-        Map<Long, Boolean> readinessMap = players.stream()
-                .collect(Collectors.toMap(User::getUserId, User::isReady));
-        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/status", readinessMap);
-    
-        boolean allReady = players.stream()
-                .filter(p -> !p.getUserId().equals(game.getOwnerId()))
-                .allMatch(User::isReady);
-        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/canStart", allReady);
+        leaderBoard.sort(Comparator.comparing(UserGetDTO::getLevel).reversed());
+        return leaderBoard;
     }
 }

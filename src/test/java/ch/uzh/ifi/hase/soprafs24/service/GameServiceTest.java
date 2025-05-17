@@ -16,7 +16,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,16 +32,12 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
@@ -185,7 +180,6 @@ public class GameServiceTest {
         when(gameRepository.findBygameName("Test Game")).thenReturn(null);
         when(gameRepository.findBygameName("Test Solo Game")).thenReturn(null);
         when(gameRepository.findBygameName("Test Combat Game")).thenReturn(null);
-        // when(gameRepository.findBygameId(3L)).thenReturn(null);
         when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
         
         // Set messagingTemplate
@@ -344,7 +338,76 @@ public class GameServiceTest {
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         assertTrue(exception.getReason().contains("Wrong Password"));
     }
+
+    @Test
+    public void userExitGame_userIsNotOwner_moreThanOnePlayer() {
+        Game GameToExit = new Game();
+        GameToExit.setGameId(100L);
+        GameToExit.setPlayersNumber(4);
+        GameToExit.setRealPlayersNumber(4);
+        GameToExit.setOwnerId(10L);
+        GameToExit.setPlayers(new ArrayList<>(List.of(10L, 11L, 12L, 13L)));
+        
+        User userToExit = new User();
+        userToExit.setUserId(11L);
+        userToExit.setGame(GameToExit);
+        userToExit.setReady(true);
+        
+        when(gameRepository.findBygameId(100L)).thenReturn(GameToExit);
+        when(userRepository.findByUserId(11L)).thenReturn(userToExit);
+        gameService.userExitGame(userToExit.getUserId());
+        
+        assertEquals(GameToExit.getRealPlayersNumber(), 3);
+        assertEquals(GameToExit.getPlayers(), List.of(10L,12L,13L));
+        assertEquals(userToExit.isReady(), false);
+    }
     
+    @Test
+    public void userExitGame_userIsOwner_moreThanOnePlayer() {
+        Game GameToExit = new Game();
+        GameToExit.setGameId(100L);
+        GameToExit.setPlayersNumber(4);
+        GameToExit.setRealPlayersNumber(4);
+        GameToExit.setOwnerId(10L);
+        GameToExit.setPlayers(new ArrayList<>(List.of(10L, 11L, 12L, 13L)));
+        
+        User userToExit = new User();
+        userToExit.setUserId(10L);
+        userToExit.setGame(GameToExit);
+        userToExit.setReady(true);
+        
+        when(gameRepository.findBygameId(100L)).thenReturn(GameToExit);
+        when(userRepository.findByUserId(10L)).thenReturn(userToExit);
+        gameService.userExitGame(userToExit.getUserId());
+        
+        assertEquals(GameToExit.getRealPlayersNumber(), 3);
+        assertEquals(GameToExit.getPlayers(), List.of(11L,12L,13L));
+        assertEquals(GameToExit.getOwnerId(), 11L);
+        assertEquals(userToExit.isReady(), false);
+    }
+
+    @Test
+    public void userExitGame_onlyOnePlayer() {
+        Game GameToExit = new Game();
+        GameToExit.setGameId(100L);
+        GameToExit.setPlayersNumber(1);
+        GameToExit.setRealPlayersNumber(1);
+        GameToExit.setOwnerId(10L);
+        GameToExit.setPlayers(new ArrayList<>(List.of(10L)));
+        
+        User userToExit = new User();
+        userToExit.setUserId(10L);
+        userToExit.setGame(GameToExit);
+        userToExit.setReady(true);
+        
+        when(gameRepository.findBygameId(100L)).thenReturn(GameToExit);
+        when(userRepository.findByUserId(10L)).thenReturn(userToExit);
+        gameService.userExitGame(userToExit.getUserId());
+        
+        assertEquals(userToExit.getGame(), null);
+        assertEquals(userToExit.isReady(), false);
+    }
+
     @Test
     void chatChecksForGame_validData_passes() {
         Long gameId = 1L;
@@ -978,6 +1041,104 @@ public class GameServiceTest {
         );
     } 
     
+    @Test
+    public void startExerciseGame_validInput_gameStartedSuccessfully() {
+        // Arrange
+        Game inputGame = new Game();
+        inputGame.setOwnerId(1L);
+        inputGame.setGameName("Exercise Game");
+        inputGame.setModeType("exercise");
+        inputGame.setTime(5);
+        inputGame.setPlayersNumber(1);
+        
+        // Mock owner
+        when(userRepository.findByUserId(1L)).thenReturn(owner);
+        when(gameRepository.findBygameName("Exercise Game")).thenReturn(null);
+        when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> {
+            Game savedGame = invocation.getArgument(0);
+            savedGame.setGameId(1L);
+            return savedGame;
+        });
+        
+        // Act
+        gameService.startExerciseGame(inputGame);
+        
+        // Assert
+        verify(gameRepository, atLeastOnce()).save(any(Game.class));
+        verify(messagingTemplate).convertAndSend(eq("/topic/startExercise/1/gameId"), eq(1L));
+        verify(messagingTemplate).convertAndSend(eq("/topic/start/1/ready-time"), eq(5));
+    }
+    
+    @Test
+    public void startExerciseGame_invalidMode_throwsException() {
+        // Arrange
+        Game inputGame = new Game();
+        inputGame.setOwnerId(1L);
+        inputGame.setGameName("Invalid Mode Game");
+        inputGame.setModeType("123");
+        
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        () -> gameService.startExerciseGame(inputGame));
+        
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertTrue(exception.getReason().contains("Invalid mode type"));
+    }
+    
+    @Test
+    public void startExerciseGame_lockNotAcquired_logsWarningAndReturns() {
+        // Arrange
+        Game inputGame = new Game();
+        inputGame.setOwnerId(1L);
+        inputGame.setGameName("Locked Game");
+        inputGame.setModeType("exercise");
+        
+        ReentrantLock lock = mock(ReentrantLock.class);
+        when(lock.tryLock()).thenReturn(false);
+        ReflectionTestUtils.setField(gameService, "userLocks", new ConcurrentHashMap<>(Map.of(1L, lock)));
+        
+        // Act
+        gameService.startExerciseGame(inputGame);
+        
+        // Assert
+        verify(gameRepository, never()).save(any());
+        verify(messagingTemplate, never()).convertAndSend(anyString(), (Object) any());
+    }
+    
+    @Test
+    void startExerciseGame_threadInterrupted_sendsTimerInterruptedMessage() {
+        // Arrange
+        Game inputGame = new Game();
+        inputGame.setOwnerId(1L);
+        inputGame.setGameName("Interrupted Exercise Game");
+        inputGame.setModeType("exercise");
+        inputGame.setTime(5);
+        inputGame.setPlayersNumber(1);
+        
+        when(userRepository.findByUserId(1L)).thenReturn(owner);
+        when(gameRepository.findBygameName("Interrupted Exercise Game")).thenReturn(null);
+        when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> {
+            Game game = invocation.getArgument(0);
+            game.setGameId(1L);
+            return game;
+        });
+        
+        Thread gameThread = new Thread(() -> gameService.startExerciseGame(inputGame));
+        gameThread.start();
+        
+        try {
+            Thread.sleep(100);
+            gameThread.interrupt();
+            gameThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // reset interrupt flag
+        }
+        
+        verify(messagingTemplate, atLeastOnce()).convertAndSend(
+        eq("/topic/game/1/timer-interrupted"), eq("TIMER_STOPPED")
+        );
+    } 
+
     @Test
     void startCombatGame_notAllPlayersReady_throwsResponseStatusException() {
         // Arrange

@@ -311,9 +311,6 @@ public class UserServiceIntegrationTest {
     UserGetDTO result = userService.getHistory(testUser.getUserId());
 
     assertNotNull(result.getGameHistory());
-    // assertEquals(100, result.getGameHistory().get("game1").getScore());
-    // assertEquals(8, result.getGameHistory().get("game1").getCorrectAnswers());
-    // assertEquals(10, result.getGameHistory().get("game1").getTotalQuestions());
   }
 
   @Test
