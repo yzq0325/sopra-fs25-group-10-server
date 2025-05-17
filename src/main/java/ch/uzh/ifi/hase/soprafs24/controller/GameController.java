@@ -2,18 +2,13 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.GameService;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -22,8 +17,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * User Controller
  * This class is responsible for handling all REST request that are related to
@@ -36,9 +29,6 @@ import java.util.stream.Collectors;
 public class GameController {
 
   private final GameService gameService;
-
-  @Autowired
-  private SimpMessagingTemplate messagingTemplate;
 
   GameController(GameService gameService) {
       this.gameService = gameService;

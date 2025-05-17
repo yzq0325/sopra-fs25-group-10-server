@@ -275,6 +275,14 @@ public class User implements Serializable {
         return gameHistory;
     }
 
+    public void updateGameHistory(String username){
+        for(GameQuickSave gameQuickSave : gameHistory){
+            if(gameQuickSave.getGameName().contains("solo")){
+                gameQuickSave.setGameName(username+"solo");
+            }
+        }
+    }
+    
     public void updateLearningTrack(Country country){
         learningTracking.merge(country, 1, Integer::sum);
     }

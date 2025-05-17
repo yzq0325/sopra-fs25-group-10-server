@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
-import java.math.BigDecimal;
 import java.util.Map;
 import java.util.List;
 
