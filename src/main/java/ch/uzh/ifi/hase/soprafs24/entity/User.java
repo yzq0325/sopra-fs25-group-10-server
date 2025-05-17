@@ -277,8 +277,8 @@ public class User implements Serializable {
 
     public void updateGameHistory(String username){
         for(GameQuickSave gameQuickSave : gameHistory){
-            if(gameQuickSave.getGameName().contains("Solo")){
-                gameQuickSave.setGameName(username+"Solo");
+            if(gameQuickSave.getModeType().equals("solo")){
+                gameQuickSave.setGameName(username+"-Solo");
             }
         }
     }
