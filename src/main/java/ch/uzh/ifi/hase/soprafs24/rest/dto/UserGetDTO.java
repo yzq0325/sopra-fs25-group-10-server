@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.List;
 
 import ch.uzh.ifi.hase.soprafs24.constant.Country;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
@@ -18,7 +19,7 @@ public class UserGetDTO {
   private String email;
   private String bio;
   private int level;
-  private Map<String, GameQuickSave> gameHistory;
+  private List<GameQuickSave> gameHistory;
   private Map<Country, Integer> learningTracking;
 
   public Long getUserId() {
@@ -93,11 +94,11 @@ public class UserGetDTO {
     this.level = level;
   }
 
-  public void setGameHistory(Map<String,GameQuickSave> gameHistory){
+  public void setGameHistory(List<GameQuickSave> gameHistory){
     this.gameHistory = gameHistory;
   }
 
-  public Map<String,GameQuickSave> getGameHistory(){
+  public List<GameQuickSave> getGameHistory(){
     return gameHistory;
   }
 

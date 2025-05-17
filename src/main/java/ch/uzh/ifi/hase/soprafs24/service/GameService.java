@@ -160,8 +160,7 @@ public class GameService {
             gameCreated.setDifficulty(gameToStart.getDifficulty());
             gameCreated.setGameRunning(false);
             LocalDateTime now = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-            gameCreated.setGameCreationDate(now.format(formatter));
+            gameCreated.setGameCreationDate(now);
 
             String mode = gameToStart.getModeType();
             if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
@@ -301,8 +300,7 @@ public class GameService {
             gameCreated.setDifficulty(gameToStart.getDifficulty());
             gameCreated.setGameRunning(false);
             LocalDateTime now = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-            gameCreated.setGameCreationDate(now.format(formatter));
+            gameCreated.setGameCreationDate(now);
 
             String mode = gameToStart.getModeType();
             if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
@@ -575,8 +573,7 @@ public class GameService {
 
         //set time
         LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-        gameToStart.setGameCreationDate(now.format(formatter));
+        gameToStart.setGameCreationDate(now);
 
         //set scoreBoard
         gameToStart.updateScore(gameToStart.getOwnerId(), 0);
@@ -664,7 +661,7 @@ public class GameService {
 
     public void saveGame(Long gameId) {
         Game gameToSave = gameRepository.findBygameId(gameId);
-        if (gameToSave == null) {
+        if (gameToSave == null ) {
             return;
         }
         if(gameToSave.getModeType().equals("combat")){
@@ -673,13 +670,18 @@ public class GameService {
                 player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
                 gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime(), gameToSave.getModeType());
                 player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
-                player.setGame(null);
                 userRepository.save(player);
                 userRepository.flush();
             }
-            gameRepository.deleteByGameId(gameId);
+            gameToSave.setGameRunning(false);
+            LocalDateTime now = LocalDateTime.now();
+            gameToSave.setGameCreationDate(now);
+
+            gameRepository.save(gameToSave);
+            gameRepository.flush();
+            
         }
-        if(gameToSave.getModeType().equals("solo")){
+        else if(gameToSave.getModeType().equals("solo")){
             User player = userRepository.findByUserId(gameToSave.getOwnerId());
             player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(gameToSave.getOwnerId()), gameToSave.getCorrectAnswers(gameToSave.getOwnerId()), 
             gameToSave.getTotalQuestions(gameToSave.getOwnerId()), gameToSave.getGameCreationDate(), gameToSave.getTime(),gameToSave.getModeType());

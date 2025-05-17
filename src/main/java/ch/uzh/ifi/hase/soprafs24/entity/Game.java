@@ -61,7 +61,7 @@ public class Game implements Serializable {
   private int time;
   
   @Column(nullable = true)
-  private String gameCreationDate;
+  private LocalDateTime gameCreationDate;
 
   @Column(nullable = false)
   private boolean gameRunning;
@@ -207,11 +207,11 @@ public class Game implements Serializable {
     this.time = time;
   }
   
-  public String getGameCreationDate() {
+  public LocalDateTime getGameCreationDate() {
     return gameCreationDate;
   }
 
-  public void setGameCreationDate(String gameCreationDate) {
+  public void setGameCreationDate(LocalDateTime gameCreationDate) {
     this.gameCreationDate = gameCreationDate;
   }
 
