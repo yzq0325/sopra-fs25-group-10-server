@@ -298,6 +298,7 @@ public class UtilService {
         ### Task
         Generate %d clues for the country: **%s**.
         Each clue should help a player guess the country and should become progressively easier.
+        ** Any clue should not contain %s**
 
         - **Clue %d** must:
         - Clearly state the continent that the country is in (e.g., "This country in South America...").
@@ -336,7 +337,7 @@ public class UtilService {
 
         ### Output Format
         Return exactly %d clues in the following plain text format:
-        """, clueCount, country, clueCount, clueCount - 1, clueCount));
+        """, clueCount, country, country, clueCount, clueCount - 1, clueCount));
 
         for (int i = 1; i <= clueCount; i++) {
             prompt.append(String.format("%d. Clue: [Hint] - Difficulty: %d%n", i, i));
