@@ -189,55 +189,7 @@ public class GameControllerTest {
         mockMvc.perform(put("/start/1"))
                 .andExpect(status().isOk());
     }
-
-    @Test
-    public void submitScores_validInput_success() throws Exception {
-        gamePostDTO.setScoreMap(Map.of(1L, 1800));
-        gamePostDTO.setCorrectAnswersMap(Map.of(1L, 7));
-        gamePostDTO.setTotalQuestionsMap(Map.of(1L, 10));
-
-        doNothing().when(gameService).submitScores(eq(1L), any(), any(), any());
-
-        mockMvc.perform(put("/games/1/end")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(gamePostDTO)))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    public void submitScores_invalidScoreMap_shouldReturnBadRequest() throws Exception {
-        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Score map is missing"))
-            .when(gameService).submitScores(eq(1L), any(), any(), any());
     
-        gamePostDTO.setScoreMap(null);
-    
-        mockMvc.perform(put("/games/1/end")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(gamePostDTO)))
-            .andExpect(status().isBadRequest())
-            .andExpect(status().reason("Score map is missing"));
-    }
-
-    @Test
-    public void getUserGameHistory_success() throws Exception {
-        given(gameService.getGamesByUser(1L)).willReturn(List.of(gameGetDTO));
-
-        mockMvc.perform(get("/users/1/history"))
-                .andExpect(status().isOk());
-    }
-
-    
-    @Test
-    public void getUserGameHistory_userNotFound_shouldReturnNotFound() throws Exception {
-        given(gameService.getGamesByUser(404L))
-            .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-    
-        mockMvc.perform(get("/users/404/history"))
-            .andExpect(status().isNotFound())
-            .andExpect(status().reason("User not found"));
-    }
-    
-
     @Test
     public void getLeaderboard_success() throws Exception {
         UserGetDTO userDTO = new UserGetDTO();

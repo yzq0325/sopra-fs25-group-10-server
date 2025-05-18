@@ -4,8 +4,6 @@ import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPasswordDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserProfileDTO;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -313,7 +311,7 @@ public class UserControllerTest {
   @Test
   public void updateUserProfile_validInput_success() throws Exception {
     // given
-    UserProfileDTO updateDTO = new UserProfileDTO();
+    UserPostDTO updateDTO = new UserPostDTO();
     updateDTO.setUsername("updatedUsername");
     updateDTO.setAvatar("avatar2.png");
     updateDTO.setEmail("updated@example.com");
@@ -345,7 +343,7 @@ public class UserControllerTest {
   @Test
   public void updateUserProfile_emptyUsername_throwsException() throws Exception {
     // given
-    UserProfileDTO updateDTO = new UserProfileDTO();
+    UserPostDTO updateDTO = new UserPostDTO();
     updateDTO.setUsername("");
     updateDTO.setAvatar("avatar1.png");
     updateDTO.setEmail("test@example.com");
@@ -368,7 +366,7 @@ public class UserControllerTest {
   @Test
   public void updateUserProfile_duplicateUsername_throwsException() throws Exception {
     // given
-    UserProfileDTO updateDTO = new UserProfileDTO();
+    UserPostDTO updateDTO = new UserPostDTO();
     updateDTO.setUsername("duplicateUsername");
     updateDTO.setAvatar("avatar1.png");
     updateDTO.setEmail("test@example.com");
@@ -391,7 +389,7 @@ public class UserControllerTest {
   @Test
   public void updateUserProfile_invalidAvatar_throwsException() throws Exception {
     // given
-    UserProfileDTO updateDTO = new UserProfileDTO();
+    UserPostDTO updateDTO = new UserPostDTO();
     updateDTO.setUsername("validUsername");
     updateDTO.setAvatar("invalid-avatar.png");
     updateDTO.setEmail("test@example.com");

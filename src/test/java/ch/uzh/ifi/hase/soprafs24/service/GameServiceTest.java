@@ -16,7 +16,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,23 +32,19 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
 @ExtendWith(MockitoExtension.class)
 
 public class GameServiceTest {
-    @Autowired
+    @Mock
     private UtilService utilService;
     
     @Mock
@@ -71,9 +66,9 @@ public class GameServiceTest {
     private Game testGameCombat;
     private GameGetDTO gameGetDTO;
     private User owner;
-    
-    
-    
+    private User player2;
+    private User ownerSolo;
+
     @BeforeEach
     public void setup() {
         // Setup Game entity
@@ -85,6 +80,7 @@ public class GameServiceTest {
         testGame.setTime(5);
         testGame.setModeType("solo");
         testGame.setPassword("1234");
+        testGame.setDifficulty("easy");
         
         // Setup maps for tracking questions and answers
         Map<Long, Integer> totalQuestionsMap = new HashMap<>();
@@ -94,7 +90,7 @@ public class GameServiceTest {
         Map<Long, Integer> correctAnswersMap = new HashMap<>();
         correctAnswersMap.put(1L, 0);
         testGame.setCorrectAnswersMap(correctAnswersMap);
-        
+
         // Setup Solo Game entity
         testGameSolo = new Game();
         testGameSolo.setGameName("Test Solo Game");
@@ -103,7 +99,13 @@ public class GameServiceTest {
         testGameSolo.setPlayersNumber(1);
         testGameSolo.setTime(5);
         testGameSolo.setModeType("solo"); // Solo game mode
-        testGameSolo.setPassword("soloPass");
+        testGameSolo.setDifficulty("easy");
+        
+        // Setup User entity
+        ownerSolo = new User();
+        ownerSolo.setUserId(1L);
+        ownerSolo.setUsername("Test Owner");
+        ownerSolo.setReady(true); // Also mark owner (player1) as ready
         
         // Setup maps for tracking questions and answers for solo game
         Map<Long, Integer> totalQuestionsMapSolo = new HashMap<>();
@@ -113,33 +115,8 @@ public class GameServiceTest {
         Map<Long, Integer> correctAnswersMapSolo = new HashMap<>();
         correctAnswersMapSolo.put(1L, 0);
         testGameSolo.setCorrectAnswersMap(correctAnswersMapSolo);
-        
-        // Setup User entity
-        owner = new User();
-        owner.setUserId(1L);
-        owner.setUsername("Test Owner");
-        
-        UtilService mockUtilService = mock(UtilService.class);
-        
-        Queue<Map<Country, List<Map<String, Object>>>> mockHintQueue = new LinkedList<>();
-        
-        Country mockCountry = Country.Switzerland;
-        Map<String, Object> hintData = new HashMap<>();
-        hintData.put("hint", "It's in Europe");
-        
-        List<Map<String, Object>> hintList = new ArrayList<>();
-        hintList.add(hintData);
-        
-        Map<Country, List<Map<String, Object>>> countryHintMap = new HashMap<>();
-        countryHintMap.put(mockCountry, hintList);
-        
-        mockHintQueue.add(countryHintMap);
-        
-        // Configure mock behavior
-        when(mockUtilService.getHintCache()).thenReturn(mockHintQueue);
-        ReflectionTestUtils.setField(gameService, "utilService", mockUtilService);
-        
-        // Setup Combat Game entity
+
+         // Setup Combat Game entity
         testGameCombat = new Game();
         testGameCombat.setGameName("Test Combat Game");
         testGameCombat.setGameId(3L);
@@ -147,23 +124,19 @@ public class GameServiceTest {
         testGameCombat.setPlayersNumber(2);
         testGameCombat.setTime(5);
         testGameCombat.setModeType("combat");
-        testGameCombat.setPassword("combatPass");
+        testGameCombat.setPassword("1234");
+        testGameCombat.setDifficulty("easy");
         
-        // Setup maps for tracking questions and answers for combat game
-        Map<Long, Integer> totalQuestionsMapCombat = new HashMap<>();
-        totalQuestionsMapCombat.put(1L, 10);
-        testGameCombat.setTotalQuestionsMap(totalQuestionsMapCombat);
-        
-        Map<Long, Integer> correctAnswersMapCombat = new HashMap<>();
-        correctAnswersMapCombat.put(1L, 0);
-        testGameCombat.setCorrectAnswersMap(correctAnswersMapCombat);
-        
-        User player2 = new User();
+        // Setup User entity
+        owner = new User();
+        owner.setUserId(1L);
+        owner.setUsername("Test Owner");
+        owner.setReady(true); // Also mark owner (player1) as ready
+
+        player2 = new User();
         player2.setUserId(2L);
         player2.setUsername("PlayerTwo");
         player2.setReady(true); // Mark as ready
-        
-        owner.setReady(true); // Also mark owner (player1) as ready
         
         // Add both players to the combat game
         List<Long> combatPlayers = Arrays.asList(owner.getUserId(), player2.getUserId());
@@ -179,7 +152,24 @@ public class GameServiceTest {
         combatCorrectAnswersMap.put(owner.getUserId(), 0);
         combatCorrectAnswersMap.put(player2.getUserId(), 0);
         testGameCombat.setCorrectAnswersMap(combatCorrectAnswersMap);
+ 
+        Country mockCountryEasy = Country.Switzerland;
+        Map<String, Object> hintDataEasy = new HashMap<>();
+        hintDataEasy.put("hint", "It's in Europe");
         
+        List<Map<String, Object>> hintListEasy = new ArrayList<>();
+        hintListEasy.add(hintDataEasy);
+        
+        Map<Country, List<Map<String, Object>>> mockHintMap = new HashMap<>();
+        mockHintMap.put(mockCountryEasy, hintListEasy);
+        
+        // Configure mock behavior
+        doReturn(mockHintMap).when(gameService).getHintsOfOneCountry(any(), any(), any());
+
+        //set utilService
+        ReflectionTestUtils.setField(gameService, "utilService", utilService);
+        doReturn(mockHintMap).when(utilService).getFirstHint(any());
+
         // Mock repository behavior for both users
         when(userRepository.findByUserId(1L)).thenReturn(owner);
         when(userRepository.findByUserId(2L)).thenReturn(player2);
@@ -190,7 +180,6 @@ public class GameServiceTest {
         when(gameRepository.findBygameName("Test Game")).thenReturn(null);
         when(gameRepository.findBygameName("Test Solo Game")).thenReturn(null);
         when(gameRepository.findBygameName("Test Combat Game")).thenReturn(null);
-        // when(gameRepository.findBygameId(3L)).thenReturn(null);
         when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
         
         // Set messagingTemplate
@@ -349,7 +338,76 @@ public class GameServiceTest {
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         assertTrue(exception.getReason().contains("Wrong Password"));
     }
+
+    @Test
+    public void userExitGame_userIsNotOwner_moreThanOnePlayer() {
+        Game GameToExit = new Game();
+        GameToExit.setGameId(100L);
+        GameToExit.setPlayersNumber(4);
+        GameToExit.setRealPlayersNumber(4);
+        GameToExit.setOwnerId(10L);
+        GameToExit.setPlayers(new ArrayList<>(List.of(10L, 11L, 12L, 13L)));
+        
+        User userToExit = new User();
+        userToExit.setUserId(11L);
+        userToExit.setGame(GameToExit);
+        userToExit.setReady(true);
+        
+        when(gameRepository.findBygameId(100L)).thenReturn(GameToExit);
+        when(userRepository.findByUserId(11L)).thenReturn(userToExit);
+        gameService.userExitGame(userToExit.getUserId());
+        
+        assertEquals(GameToExit.getRealPlayersNumber(), 3);
+        assertEquals(GameToExit.getPlayers(), List.of(10L,12L,13L));
+        assertEquals(userToExit.isReady(), false);
+    }
     
+    @Test
+    public void userExitGame_userIsOwner_moreThanOnePlayer() {
+        Game GameToExit = new Game();
+        GameToExit.setGameId(100L);
+        GameToExit.setPlayersNumber(4);
+        GameToExit.setRealPlayersNumber(4);
+        GameToExit.setOwnerId(10L);
+        GameToExit.setPlayers(new ArrayList<>(List.of(10L, 11L, 12L, 13L)));
+        
+        User userToExit = new User();
+        userToExit.setUserId(10L);
+        userToExit.setGame(GameToExit);
+        userToExit.setReady(true);
+        
+        when(gameRepository.findBygameId(100L)).thenReturn(GameToExit);
+        when(userRepository.findByUserId(10L)).thenReturn(userToExit);
+        gameService.userExitGame(userToExit.getUserId());
+        
+        assertEquals(GameToExit.getRealPlayersNumber(), 3);
+        assertEquals(GameToExit.getPlayers(), List.of(11L,12L,13L));
+        assertEquals(GameToExit.getOwnerId(), 11L);
+        assertEquals(userToExit.isReady(), false);
+    }
+
+    @Test
+    public void userExitGame_onlyOnePlayer() {
+        Game GameToExit = new Game();
+        GameToExit.setGameId(100L);
+        GameToExit.setPlayersNumber(1);
+        GameToExit.setRealPlayersNumber(1);
+        GameToExit.setOwnerId(10L);
+        GameToExit.setPlayers(new ArrayList<>(List.of(10L)));
+        
+        User userToExit = new User();
+        userToExit.setUserId(10L);
+        userToExit.setGame(GameToExit);
+        userToExit.setReady(true);
+        
+        when(gameRepository.findBygameId(100L)).thenReturn(GameToExit);
+        when(userRepository.findByUserId(10L)).thenReturn(userToExit);
+        gameService.userExitGame(userToExit.getUserId());
+        
+        assertEquals(userToExit.getGame(), null);
+        assertEquals(userToExit.isReady(), false);
+    }
+
     @Test
     void chatChecksForGame_validData_passes() {
         Long gameId = 1L;
@@ -594,52 +652,6 @@ public class GameServiceTest {
         verify(userRepository, never()).save(mockUser);
     }
     
-    // @Test
-    // public void userStartGame_successfullyStartGame() {
-    //     Long gameId = 100L;
-    //     Long ownerId = 1L;
-    //     Long playerId = 2L;
-    
-    //     Game mockGame = new Game();
-    //     mockGame.setGameId(gameId);
-    //     mockGame.setOwnerId(ownerId);
-    //     mockGame.setPlayers(new ArrayList<>(List.of(ownerId, playerId)));
-    //     mockGame.setGameRunning(false);
-    //     mockGame.setTime(5); // 5 minutes game duration
-    
-    //     User owner = new User();
-    //     owner.setUserId(ownerId);
-    //     owner.setUsername("ownerUser");
-    //     User player = new User();
-    //     player.setUserId(playerId);
-    //     player.setUsername("playerUser");
-    
-    //     Map<Country, List<String>> generatedHints = new HashMap<>();
-    //     Country country = Country.Afghanistan;
-    //     generatedHints.put(country, List.of("Hint1", "Hint2","Hint3","Hint4","Hint5"));
-    
-    //     when(gameRepository.findBygameId(gameId)).thenReturn(mockGame);
-    //     when(userRepository.findByUserId(ownerId)).thenReturn(owner);
-    //     when(userRepository.findByUserId(playerId)).thenReturn(player);
-    //     when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
-    
-    //     doNothing().when(messagingTemplate).convertAndSend(any(String.class), any(Object.class));
-    //     doNothing().when(utilService).timingCounter(anyInt(), anyLong());
-    
-    //     gameService.startGame(gameId);
-    
-    //     assertTrue(mockGame.getGameRunning());
-    //     assertEquals(0, mockGame.getScore(ownerId)); 
-    //     assertEquals(0, mockGame.getScore(playerId));
-    //     assertNotNull(mockGame.getGameCreationDate()); 
-    
-    //     verify(messagingTemplate).convertAndSend(eq("/topic/start/" + gameId + "/ready-time"), eq(5));
-    //     verify(messagingTemplate).convertAndSend(eq("/topic/start/" + gameId + "/hints"), any(GameGetDTO.class));
-    //     verify(utilService).timingCounter(eq(5 * 60), eq(gameId)); // 5 minutes converted to seconds
-    //     verify(gameRepository, atLeastOnce()).save(mockGame);
-    //     verify(gameRepository).flush();
-    // }
-    
     @Test
     public void joinGamebyCode_successfully() {
         Game mockGame = new Game();
@@ -843,6 +855,7 @@ public class GameServiceTest {
 
     @Test
     public void giveupGame_onlyPlayer_gameDeletedAndUserUpdated() {
+
         Long userId = 1L;
 
         Game mockGame = mock(Game.class);
@@ -884,27 +897,25 @@ public class GameServiceTest {
         newOwner.setUserId(2L);
         newOwner.setUsername("player2");
     
-        // 配置 mockGame 的行为
         when(mockGame.getGameId()).thenReturn(1L);
         when(mockGame.getGameName()).thenReturn("TestGame");
         when(mockGame.getScore(userId)).thenReturn(50);
         when(mockGame.getCorrectAnswers(userId)).thenReturn(5);
         when(mockGame.getTotalQuestions(userId)).thenReturn(10);
-        when(mockGame.getGameCreationDate()).thenReturn("01-01-2025 12:00");
+        when(mockGame.getGameCreationDate()).thenReturn(LocalDateTime.now());
         when(mockGame.getTime()).thenReturn(60);
         when(mockGame.getModeType()).thenReturn("combat");
         when(mockGame.getRealPlayersNumber()).thenReturn(2);
-        when(mockGame.getOwnerId()).thenReturn(userId); // 初始拥有者为 1L
-        when(mockGame.getPlayers()).thenReturn(Arrays.asList(userId, 2L)); // 玩家列表 [1L, 2L]
+        when(mockGame.getOwnerId()).thenReturn(userId); 
+        when(mockGame.getPlayers()).thenReturn(Arrays.asList(userId, 2L));
         when(mockGame.getScoreBoard()).thenReturn(new HashMap<>(Map.of(userId, 50, 2L, 30)));
         when(userRepository.findByUserId(userId)).thenReturn(mockUser);
         when(userRepository.findByUserId(2L)).thenReturn(newOwner);
         when(userRepository.save(any(User.class))).thenReturn(mockUser);
         when(gameRepository.save(any(Game.class))).thenReturn(mockGame);
-    
-        // 模拟 setOwnerId 的行为，确保后续 getOwnerId 返回 2L
+
         doAnswer(invocation -> {
-            when(mockGame.getOwnerId()).thenReturn(2L); // 在 setOwnerId(2L) 后更新 getOwnerId
+            when(mockGame.getOwnerId()).thenReturn(2L); 
             return null;
         }).when(mockGame).setOwnerId(2L);
     
@@ -916,10 +927,10 @@ public class GameServiceTest {
     
         // Assert
         verify(mockGame).setRealPlayersNumber(1);
-        verify(mockGame).setOwnerId(2L); // 验证 setOwnerId(2L) 被调用
-        verify(mockGame, times(2)).removePlayer(mockUser); // 期望 removePlayer 被调用两次
+        verify(mockGame).setOwnerId(2L); 
+        verify(mockGame, times(2)).removePlayer(mockUser); 
         verify(mockGame).updateScore(eq(userId), eq(-1));
-        verify(messagingTemplate).convertAndSend(eq("/topic/game/1/owner"), eq(2L)); // 期望发送新拥有者 2L
+        verify(messagingTemplate).convertAndSend(eq("/topic/game/1/owner"), eq(2L)); 
         verify(messagingTemplate).convertAndSend(eq("/topic/user/1/scoreBoard"), any(Map.class));
         assertNull(mockUser.getGame());
         assertFalse(mockUser.isReady());
@@ -1030,6 +1041,104 @@ public class GameServiceTest {
         );
     } 
     
+    @Test
+    public void startExerciseGame_validInput_gameStartedSuccessfully() {
+        // Arrange
+        Game inputGame = new Game();
+        inputGame.setOwnerId(1L);
+        inputGame.setGameName("Exercise Game");
+        inputGame.setModeType("exercise");
+        inputGame.setTime(5);
+        inputGame.setPlayersNumber(1);
+        
+        // Mock owner
+        when(userRepository.findByUserId(1L)).thenReturn(owner);
+        when(gameRepository.findBygameName("Exercise Game")).thenReturn(null);
+        when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> {
+            Game savedGame = invocation.getArgument(0);
+            savedGame.setGameId(1L);
+            return savedGame;
+        });
+        
+        // Act
+        gameService.startExerciseGame(inputGame);
+        
+        // Assert
+        verify(gameRepository, atLeastOnce()).save(any(Game.class));
+        verify(messagingTemplate).convertAndSend(eq("/topic/startExercise/1/gameId"), eq(1L));
+        verify(messagingTemplate).convertAndSend(eq("/topic/start/1/ready-time"), eq(5));
+    }
+    
+    @Test
+    public void startExerciseGame_invalidMode_throwsException() {
+        // Arrange
+        Game inputGame = new Game();
+        inputGame.setOwnerId(1L);
+        inputGame.setGameName("Invalid Mode Game");
+        inputGame.setModeType("123");
+        
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        () -> gameService.startExerciseGame(inputGame));
+        
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertTrue(exception.getReason().contains("Invalid mode type"));
+    }
+    
+    @Test
+    public void startExerciseGame_lockNotAcquired_logsWarningAndReturns() {
+        // Arrange
+        Game inputGame = new Game();
+        inputGame.setOwnerId(1L);
+        inputGame.setGameName("Locked Game");
+        inputGame.setModeType("exercise");
+        
+        ReentrantLock lock = mock(ReentrantLock.class);
+        when(lock.tryLock()).thenReturn(false);
+        ReflectionTestUtils.setField(gameService, "userLocks", new ConcurrentHashMap<>(Map.of(1L, lock)));
+        
+        // Act
+        gameService.startExerciseGame(inputGame);
+        
+        // Assert
+        verify(gameRepository, never()).save(any());
+        verify(messagingTemplate, never()).convertAndSend(anyString(), (Object) any());
+    }
+    
+    @Test
+    void startExerciseGame_threadInterrupted_sendsTimerInterruptedMessage() {
+        // Arrange
+        Game inputGame = new Game();
+        inputGame.setOwnerId(1L);
+        inputGame.setGameName("Interrupted Exercise Game");
+        inputGame.setModeType("exercise");
+        inputGame.setTime(5);
+        inputGame.setPlayersNumber(1);
+        
+        when(userRepository.findByUserId(1L)).thenReturn(owner);
+        when(gameRepository.findBygameName("Interrupted Exercise Game")).thenReturn(null);
+        when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> {
+            Game game = invocation.getArgument(0);
+            game.setGameId(1L);
+            return game;
+        });
+        
+        Thread gameThread = new Thread(() -> gameService.startExerciseGame(inputGame));
+        gameThread.start();
+        
+        try {
+            Thread.sleep(100);
+            gameThread.interrupt();
+            gameThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // reset interrupt flag
+        }
+        
+        verify(messagingTemplate, atLeastOnce()).convertAndSend(
+        eq("/topic/game/1/timer-interrupted"), eq("TIMER_STOPPED")
+        );
+    } 
+
     @Test
     void startCombatGame_notAllPlayersReady_throwsResponseStatusException() {
         // Arrange
