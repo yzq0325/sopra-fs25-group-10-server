@@ -34,6 +34,8 @@ public class GameGetDTO {
 
     private String password;
 
+    private String difficulty;
+
     private String modeType;
 
     private String gameCode;
@@ -152,6 +154,14 @@ public class GameGetDTO {
         this.password = password;
     }
 
+    public String getDifficulty() {
+        return difficulty;
+    }
+
+    public void setDifficulty(String difficulty) {
+        this.difficulty = difficulty;
+    }
+    
     public String getModeType() {
         return modeType;
     }

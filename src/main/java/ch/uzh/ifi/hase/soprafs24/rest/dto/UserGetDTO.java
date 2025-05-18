@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
-import java.math.BigDecimal;
 import java.util.Map;
 import java.util.List;
 
@@ -11,7 +10,6 @@ import ch.uzh.ifi.hase.soprafs24.entity.User.GameQuickSave;
 public class UserGetDTO {
 
   private Long userId;
-  private String name;
   private String username;
   private UserStatus status;
   private String token;
@@ -28,14 +26,6 @@ public class UserGetDTO {
 
   public void setUserId(Long userId) {
     this.userId = userId;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
   }
 
   public String getUsername() {

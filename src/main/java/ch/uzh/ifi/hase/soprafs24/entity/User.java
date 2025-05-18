@@ -117,9 +117,6 @@ public class User implements Serializable {
     @GeneratedValue
     private Long userId;
 
-    @Column(nullable = false)
-    private String name;
-
     @Column(nullable = false, unique = true)
     private String username;
 
@@ -169,14 +166,6 @@ public class User implements Serializable {
 
     public void setUserId(Long userId) {
         this.userId = userId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getUsername() {
@@ -275,6 +264,14 @@ public class User implements Serializable {
         return gameHistory;
     }
 
+    public void updateGameHistory(String username){
+        for(GameQuickSave gameQuickSave : gameHistory){
+            if(gameQuickSave.getModeType().equals("solo")){
+                gameQuickSave.setGameName(username+"-Solo");
+            }
+        }
+    }
+    
     public void updateLearningTrack(Country country){
         learningTracking.merge(country, 1, Integer::sum);
     }

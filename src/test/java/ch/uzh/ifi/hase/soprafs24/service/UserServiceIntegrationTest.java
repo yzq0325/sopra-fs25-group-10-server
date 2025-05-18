@@ -45,7 +45,6 @@ public class UserServiceIntegrationTest {
 
     testUser = new User();
     testUser.setUsername("testUsername");
-    testUser.setName("testName");
     testUser.setPassword("testPassword");
     testUser.setStatus(UserStatus.OFFLINE);
     testUser.setToken(UUID.randomUUID().toString());
@@ -59,7 +58,6 @@ public class UserServiceIntegrationTest {
   public void createUser_validInputs_success() {
     User newUser = new User();
     newUser.setUsername("testValidUsername");
-    newUser.setName("testValidName");
     newUser.setPassword("testPassword");
     newUser.setToken(UUID.randomUUID().toString());
     newUser.setStatus(UserStatus.OFFLINE);
@@ -80,7 +78,6 @@ public class UserServiceIntegrationTest {
 
     // change the name but forget about the username
     testUser2.setUsername("testUsername");
-    testUser2.setName("testName2");
     testUser2.setPassword("testPassword"); 
     testUser2.setToken(UUID.randomUUID().toString());
 
@@ -112,8 +109,8 @@ public class UserServiceIntegrationTest {
         userService.login(loginUser);
     });
   
-    assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
-    assertEquals("Invalid username or password", exception.getReason());
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+    assertEquals("Your username is not found! Please register one or use correct username!", exception.getReason());
   }
   
   @Test
@@ -127,7 +124,7 @@ public class UserServiceIntegrationTest {
     });
   
     assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
-    assertEquals("Invalid username or password", exception.getReason());
+    assertEquals("Your password is not correct! Please type again!", exception.getReason());
   }
   
   @Test
@@ -228,7 +225,6 @@ public class UserServiceIntegrationTest {
   public void findUserById_validId_success() {
     User savedUser = new User();
     savedUser.setUsername("abc");
-    savedUser.setName("abc");
     savedUser.setPassword("abc");
     savedUser.setToken(UUID.randomUUID().toString());
     savedUser.setStatus(UserStatus.OFFLINE);
@@ -290,7 +286,6 @@ public class UserServiceIntegrationTest {
   public void updateUserProfile_usernameExists_throwsException() {
     User existing = new User();
     existing.setUsername("duplicate");
-    existing.setName("someone");
     existing.setPassword("pass");
     existing.setToken(UUID.randomUUID().toString());
     existing.setStatus(UserStatus.OFFLINE);

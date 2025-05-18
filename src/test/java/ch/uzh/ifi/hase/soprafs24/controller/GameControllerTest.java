@@ -161,11 +161,11 @@ public class GameControllerTest {
 
     @Test
     public void getGamePlayers_validInput_success() throws Exception {
-        User user = new User();
+        UserGetDTO user = new UserGetDTO();
         user.setUsername("player1");
         user.setUserId(1L);
     
-        given(gameService.getGamePlayers(1L)).willReturn(List.of(user));
+        given(gameService.getAllPlayers(1L)).willReturn(List.of(user));
     
         mockMvc.perform(get("/ready/1"))
             .andExpect(status().isOk())
@@ -174,7 +174,7 @@ public class GameControllerTest {
 
     @Test
     public void getGamePlayers_invalidGameId_shouldReturnNotFound() throws Exception {
-        given(gameService.getGamePlayers(99L))
+        given(gameService.getAllPlayers(99L))
             .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
     
         mockMvc.perform(get("/ready/99"))
