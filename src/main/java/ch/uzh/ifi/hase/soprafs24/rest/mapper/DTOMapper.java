@@ -64,6 +64,7 @@ public interface DTOMapper {
   @Mapping(source = "gameCode", target = "gameCode")  
   @Mapping(source = "endTime", target = "endTime")
   @Mapping(source = "finalScore", target = "finalScore")
+  @Mapping(source = "difficulty", target = "difficulty")
   GameGetDTO convertGameEntityToGameGetDTO(Game game);
 
   // Profile mappings
