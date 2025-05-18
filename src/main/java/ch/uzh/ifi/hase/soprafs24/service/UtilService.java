@@ -21,6 +21,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -63,6 +64,7 @@ public class UtilService {
         private final int playerNumber;
         private final List<Map<Country, List<Map<String, Object>>>> hintList = Collections.synchronizedList(new ArrayList<>());
         Map<Long /* userId */, AtomicInteger /* progress */> userProgress = new ConcurrentHashMap<>();
+        public Object queueMap;
         
         public HintList(int playerNumber) { this.playerNumber = playerNumber; }
         
@@ -213,7 +215,7 @@ public class UtilService {
     
     //<country, clue, difficulty(int)>
     public Map<Country, List<Map<String, Object>>> generateClues(int clueNumber, String difficulty, Long gameId) {
-        System.out.println("Game Id: " + gameId);
+        // System.out.println("Game Id: " + gameId);
 
         try {
             // Country[] countries = Country.values();
