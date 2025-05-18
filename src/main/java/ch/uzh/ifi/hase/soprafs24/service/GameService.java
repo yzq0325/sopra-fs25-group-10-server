@@ -29,8 +29,6 @@ import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 import ch.uzh.ifi.hase.soprafs24.service.UtilService.HintList;
@@ -343,10 +341,9 @@ public class GameService {
             gameCreated.setRealPlayersNumber(1);
             gameCreated.setDifficulty(gameToStart.getDifficulty());
             gameCreated.setGameRunning(false);
+            LocalDateTime now = LocalDateTime.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-            gameCreated.setGameCreationDate(
-                    ZonedDateTime.now(ZoneId.of("Europe/Zurich")).format(formatter)
-            );
+            gameCreated.setGameCreationDate(now.format(formatter));
 
             String mode = gameToStart.getModeType();
             if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
@@ -485,10 +482,9 @@ public class GameService {
             gameCreated.setRealPlayersNumber(1);
             gameCreated.setDifficulty(gameToStart.getDifficulty());
             gameCreated.setGameRunning(false);
+            LocalDateTime now = LocalDateTime.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-            gameCreated.setGameCreationDate(
-                    ZonedDateTime.now(ZoneId.of("Europe/Zurich")).format(formatter)
-            );
+            gameCreated.setGameCreationDate(now.format(formatter));
 
             String mode = gameToStart.getModeType();
             if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
@@ -633,10 +629,9 @@ public class GameService {
         List<Long> allPlayers = gameToStart.getPlayers();
 
         //set time
+            LocalDateTime now = LocalDateTime.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-            gameCreated.setGameCreationDate(
-                    ZonedDateTime.now(ZoneId.of("Europe/Zurich")).format(formatter)
-            );
+            gameCreated.setGameCreationDate(now.format(formatter));
 
         //set scoreBoard
         gameToStart.updateScore(gameToStart.getOwnerId(), 0);
