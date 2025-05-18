@@ -342,9 +342,8 @@ public class GameService {
             gameCreated.setDifficulty(gameToStart.getDifficulty());
             gameCreated.setGameRunning(false);
             LocalDateTime now = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-            gameCreated.setGameCreationDate(now.format(formatter));
-
+            gameCreated.setGameCreationDate(now);
+            
             String mode = gameToStart.getModeType();
             if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'");
@@ -483,8 +482,7 @@ public class GameService {
             gameCreated.setDifficulty(gameToStart.getDifficulty());
             gameCreated.setGameRunning(false);
             LocalDateTime now = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-            gameCreated.setGameCreationDate(now.format(formatter));
+            gameCreated.setGameCreationDate(now);
 
             String mode = gameToStart.getModeType();
             if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
@@ -629,9 +627,8 @@ public class GameService {
         List<Long> allPlayers = gameToStart.getPlayers();
 
         //set time
-            LocalDateTime now = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-            gameCreated.setGameCreationDate(now.format(formatter));
+        LocalDateTime now = LocalDateTime.now();
+        gameToStart.setGameCreationDate(now);
 
         //set scoreBoard
         gameToStart.updateScore(gameToStart.getOwnerId(), 0);
