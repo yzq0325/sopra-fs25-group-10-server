@@ -72,14 +72,7 @@ public class GameController {
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public List<UserGetDTO> getGamePlayers(@PathVariable Long gameId) {
-    List<User> players = gameService.getGamePlayers(gameId);
-
-    List<UserGetDTO> allPlayersDTOs = new ArrayList<>();
-    for (User player : players) {
-      allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(player));
-    }
-
-    return allPlayersDTOs;
+      return gameService.getAllPlayers(gameId);
   }
 
   

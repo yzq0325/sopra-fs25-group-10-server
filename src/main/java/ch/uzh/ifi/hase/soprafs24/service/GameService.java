@@ -277,11 +277,21 @@ public class GameService {
         for (Long userId : allPlayers) {
             players.add(userRepository.findByUserId(userId));
         }
-        messagingTemplate.convertAndSend("/topic/"+gameId+"/playersNumber", gameJoined.getPlayersNumber());
         messagingTemplate.convertAndSend("/topic/"+gameId+"/gametime", utilService.formatTime(gameJoined.getTime()*60));
         messagingTemplate.convertAndSend("/topic/"+gameId+"/gameCode", gameJoined.getGameCode());
         return players;
 
+    }
+
+    public List<UserGetDTO> getAllPlayers(Long gameId){
+        List<User> players = getGamePlayers(gameId);
+
+        List<UserGetDTO> allPlayersDTOs = new ArrayList<>();
+        for (User player : players) {
+        allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(player));
+        }
+
+        return allPlayersDTOs;
     }
 
     public boolean checkAllReady(Long gameId) {
