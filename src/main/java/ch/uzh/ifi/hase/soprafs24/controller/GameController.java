@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
@@ -98,24 +99,6 @@ public class GameController {
   @ResponseBody
   public void startGame(@PathVariable Long gameId) {
     gameService.startGame(gameId);
-  }
-
-  @PutMapping("/games/{gameId}/end")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void submitScores(@PathVariable Long gameId, @RequestBody GamePostDTO gamePostDTO) {
-      gameService.submitScores(
-          gameId,
-          gamePostDTO.getScoreMap(),
-          gamePostDTO.getCorrectAnswersMap(),
-          gamePostDTO.getTotalQuestionsMap()
-      );
-  }
-
-  @GetMapping("/users/{userId}/history")
-  @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
-  public List<GameGetDTO> getUserGameHistory(@PathVariable Long userId) {
-    return gameService.getGamesByUser(userId);
   }
 
   @GetMapping("/leaderboard")

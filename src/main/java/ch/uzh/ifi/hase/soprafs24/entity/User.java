@@ -5,17 +5,14 @@ import ch.uzh.ifi.hase.soprafs24.constant.Country;
 
 import javax.persistence.*;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+
 
 /**
  * Internal User Representation
@@ -38,6 +35,8 @@ public class User implements Serializable {
 
         public GameQuickSave() {
         }
+        @Column(name = "gameName", nullable = false)
+        private String gameName;
 
         @Column(name = "score", nullable = false)
         private int score;
@@ -49,13 +48,21 @@ public class User implements Serializable {
         private int totalQuestions;
 
         @Column(name = "gameCreationDate", nullable = false)
-        private String gameCreationDate;
+        private LocalDateTime gameCreationDate;
 
         @Column(name = "gameTime", nullable = false)
         private int gameTime;
 
         @Column(name = "modeType", nullable = false)
         private String modeType;
+
+        public String getGameName() {
+            return gameName;
+        }
+
+        public void setGameName(String gameName) {
+            this.gameName = gameName;
+        }
 
         public int getScore() {
             return score;
@@ -81,11 +88,11 @@ public class User implements Serializable {
             this.totalQuestions = totalQuestions;
         }
 
-        public String getGameCreationDate() {
+        public LocalDateTime getGameCreationDate() {
             return gameCreationDate;
         }
         
-        public void setGameCreationDate(String gameCreationDate) {
+        public void setGameCreationDate(LocalDateTime gameCreationDate) {
             this.gameCreationDate = gameCreationDate;
         }
 
@@ -146,8 +153,9 @@ public class User implements Serializable {
 
     @ElementCollection
     @CollectionTable(name = "userGameHistory", joinColumns = @JoinColumn(name = "userId"))
-    @MapKeyColumn(name = "gameName")
-    private Map<String, GameQuickSave> gameHistory = new HashMap<>();
+    @OrderBy("gameCreationDate DESC")
+    @MapKeyColumn(name = "gameId")
+    private List<GameQuickSave> gameHistory = new ArrayList<>();
 
     @ElementCollection
     @CollectionTable(name = "userLearningTrack", joinColumns = @JoinColumn(name = "userId"))
@@ -251,42 +259,20 @@ public class User implements Serializable {
         this.isReady = isReady;
     }
 
-    public void setGameHistory(String gameName, int score, int correct, int total, String gameCreationDate, int gameTime, String modeType) {
+    public void setGameHistory(String gameName, int score, int correct, int total, LocalDateTime gameCreationDate, int gameTime, String modeType) {
         GameQuickSave gameQuickSave = new GameQuickSave();
+        gameQuickSave.setGameName(gameName); 
         gameQuickSave.setScore(score);
         gameQuickSave.setCorrectAnswers(correct);
         gameQuickSave.setTotalQuestions(total);
         gameQuickSave.setGameCreationDate(gameCreationDate);
         gameQuickSave.setGameTime(gameTime);
-        if(gameName.contains("Solo")){
-            int counter = 1;
-            String uniqueName = gameName + counter;
-            while (gameHistory.containsKey(uniqueName)) {
-                counter++;
-                uniqueName = gameName + counter;
-            }
-        gameHistory.put(uniqueName, gameQuickSave);
-        }else{
-            gameHistory.put(gameName, gameQuickSave);
-        }
-        
         gameQuickSave.setModeType(modeType);
+        gameHistory.add(gameQuickSave);
     }
 
-    public Map<String, GameQuickSave> getGameHistory(){
+    public List<GameQuickSave> getGameHistory(){
         return gameHistory;
-    }
-
-    public int getGameScore(String gameName) {
-        return gameHistory.get(gameName).getScore();
-    }
-
-    public int getGameCorrectAnswer(String gameName) {
-        return gameHistory.get(gameName).getCorrectAnswers();
-    }
-
-    public int getGameTotalQuestions(String gameName) {
-        return gameHistory.get(gameName).getTotalQuestions();
     }
 
     public void updateLearningTrack(Country country){
