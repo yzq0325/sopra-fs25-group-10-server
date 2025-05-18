@@ -87,8 +87,11 @@ public class UserService {
 
   public User login(User loginUser) {
     User userInDB = userRepository.findByUsername(loginUser.getUsername());
-    if (userInDB == null || !userInDB.getPassword().equals(loginUser.getPassword())) {
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+    if (userInDB == null) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Your username is not found! Please register one or use correct username!");
+    }
+    else if(userInDB != null && !userInDB.getPassword().equals(loginUser.getPassword())){
+         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Your password is not correct! Please type again!");
     }
     if(userInDB.getStatus().equals(UserStatus.ONLINE)){
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This user has already logged in!");
@@ -153,7 +156,6 @@ public class UserService {
 
     userInDB.setUsername(updatedInfo.getUsername());
     userInDB.updateGameHistory(updatedInfo.getUsername());
-    userInDB.setName(updatedInfo.getName());
     userInDB.setAvatar(updatedInfo.getAvatar());
     userInDB.setEmail(updatedInfo.getEmail());
     userInDB.setBio(updatedInfo.getBio());
@@ -194,16 +196,10 @@ public class UserService {
    */
   private void checkIfUserExists(User userToBeCreated) {
     User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
-    User userByName = userRepository.findByName(userToBeCreated.getName());
 
     String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
-    if (userByUsername != null && userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          String.format(baseErrorMessage, "username and the name", "are"));
-    } else if (userByUsername != null) {
+    if (userByUsername != null) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username", "is"));
-    } else if (userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "name", "is"));
-    }
+    } 
   }
 }

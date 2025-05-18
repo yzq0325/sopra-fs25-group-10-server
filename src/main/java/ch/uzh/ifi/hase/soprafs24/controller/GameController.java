@@ -75,8 +75,6 @@ public class GameController {
       return gameService.getAllPlayers(gameId);
   }
 
-  
-
   @PutMapping("/start/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
