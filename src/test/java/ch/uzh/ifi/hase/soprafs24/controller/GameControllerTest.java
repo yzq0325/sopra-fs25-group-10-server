@@ -243,6 +243,44 @@ public class GameControllerTest {
             .andExpect(status().isOk());
     }
 
+    @Test
+    public void startSoloGame_success() throws Exception {
+        doNothing().when(gameService).startSoloGame(any(Game.class));
+
+        mockMvc.perform(post("/startsolo")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(gamePostDTO)))
+            .andExpect(status().isCreated());
+    }
+
+    @Test
+    public void startExerciseGame_success() throws Exception {
+        doNothing().when(gameService).startExerciseGame(any(Game.class));
+
+        mockMvc.perform(post("/startexercise")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(gamePostDTO)))
+            .andExpect(status().isCreated());
+    }
+
+    @Test
+    public void nextQuestionExerciseMode_success() throws Exception {
+        GameGetDTO responseDTO = new GameGetDTO();
+        responseDTO.setGameId(1L);
+
+        given(gameService.nextQuestion_ExerciseMode(1L)).willReturn(responseDTO);
+
+        mockMvc.perform(post("/next/1"))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    public void finishExerciseGame_success() throws Exception {
+        doNothing().when(gameService).saveGame(1L);
+
+        mockMvc.perform(put("/finishexercise/1"))
+            .andExpect(status().isOk());
+    }
 
     private String asJsonString(final Object object) {
         try {
