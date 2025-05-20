@@ -66,12 +66,5 @@ public interface DTOMapper {
   @Mapping(source = "finalScore", target = "finalScore")
   @Mapping(source = "difficulty", target = "difficulty")
   GameGetDTO convertGameEntityToGameGetDTO(Game game);
-
-  // Profile mappings
-  // @Mapping(source = "username", target = "username")
-  // @Mapping(source = "avatar", target = "avatar")
-  // @Mapping(source = "email", target = "email")
-  // @Mapping(source = "bio", target = "bio")
-  // User convertUserProfileDTOtoEntity(UserProfileDTO userProfileDTO);
-
+  
 }
