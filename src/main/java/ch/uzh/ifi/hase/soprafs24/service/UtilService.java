@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -31,10 +32,13 @@ import java.util.stream.Collectors;
 public class UtilService {
     private static final int FILL_SIZE = 4;
     private static final int HINT_NUMBER = 5;
-    private static final int CLEANUP_THRESHOLD = 10;
+    private static final int CLEANUP_THRESHOLD = 100; //changed from 10 this can be made more if one player does 200 countries at once
     
+    //hint refill logic to ensure screen freezes
+    private final Map<Long, AtomicBoolean> gameRefillInProgress = new ConcurrentHashMap<>();
+
     //adding continent order to enable better distribution
-    private static final List<String> CONTINENT_ORDER = List.of("Europe", "Asia", "Americas", "Africa", "Oceania");
+    private static final List<String> CONTINENT_ORDER = List.of("Europe", "Asia", "NorthAmerica", "SouthAmerica",  "Africa", "Oceania");
     private final Map<Long, Integer> gameToContinentIndex = new ConcurrentHashMap<>();
     private final Map<Long, Integer> gameToOceaniaCounter = new ConcurrentHashMap<>();
     
@@ -73,6 +77,7 @@ public class UtilService {
         public void add(Map<Country, List<Map<String, Object>>> hint) { hintList.add(hint); }
         public Map<Country, List<Map<String, Object>>> get(int index) { return hintList.get(index); }
         public int getMinProgressAcrossUsers() { return userProgress.values().stream().mapToInt(AtomicInteger::get).min().orElse(0); }
+        public int getMaxProgressAcrossUsers() { return userProgress.values().stream().mapToInt(AtomicInteger::get).max().orElse(0); }
         public synchronized void removeUsedHints() {
             if (userProgress.size() < playerNumber) { return; }
             
@@ -105,6 +110,9 @@ public class UtilService {
         }
     }
     private final ConcurrentMap<Long, HintList> hintCache = new ConcurrentHashMap<>();
+
+    // used countries per game to avoid repeats
+    private final Map<Long, Set<Country>> usedCountriesByGame = new ConcurrentHashMap<>();
     
     public void initHintQueue(Long gameId, List<Long> players) {
         HintList list = new HintList(players.size());
@@ -114,8 +122,14 @@ public class UtilService {
         hintCache.put(gameId, list);
     }
     
+    //game lock
+    private final Map<Long, Object> gameLocks = new ConcurrentHashMap<>();
+
     @Async
     public void refillHintQueue(Long gameId, String difficulty) {
+        //object lock to ensure no simultaneous calls <- tampers with order and hint pool
+        Object lock = gameLocks.computeIfAbsent(gameId, k -> new Object());
+        synchronized (lock) {
         HintList list = hintCache.get(gameId);
         int attempts = 0;
         while (list.size() < FILL_SIZE && attempts < FILL_SIZE * 2) {
@@ -130,9 +144,9 @@ public class UtilService {
                 log.error("Failed to generate hint (attempt {}): {}", attempts + 1, e.getMessage());
             }
             attempts++;
+        }    
+            log.info("Cache preloaded with {} hints for game {}", list.size(), gameId);
         }
-        
-        log.info("Cache preloaded with {} hints for game {}", list.size(), gameId);
     }
     
     public Map<Country, List<Map<String, Object>>> getFirstHint(Long gameId) {
@@ -155,16 +169,31 @@ public class UtilService {
         AtomicInteger currentProgress = list.userProgress.computeIfAbsent(userId, k -> new AtomicInteger(0));
         int index = currentProgress.getAndIncrement();
         synchronized (list.hintList) {
-            if (index >= list.hintList.size()) { throw new IllegalStateException("No more hints available for game " + gameId); }
+            int listSize = list.hintList.size();
+            int minProgress = list.getMinProgressAcrossUsers();
+            if ((listSize - minProgress) <= 1) {
+                log.info("Hint queue low for game {} — proactively refilling...", gameId);
+                refillHintQueue(gameId, gameRepository.findBygameId(gameId).getDifficulty());
+            }
+
+            if (index >= listSize) {
+                throw new IllegalStateException("No more hints available for game " + gameId);
+            }
+
             Map<Country, List<Map<String, Object>>> hint = list.hintList.get(index);
+
             list.removeUsedHints();
             list.compactHintList();
-            log.info("cache of game {}: {}", gameId, list.hintList.stream()
-            .filter(Objects::nonNull)
-            .map(Map::keySet)
-            .collect(Collectors.toList()));
+
+            log.info("cache of game {}: {}", gameId,
+                list.hintList.stream()
+                    .filter(Objects::nonNull)
+                    .map(Map::keySet)
+                    .collect(Collectors.toList()));
+
             return hint;
         }
+
     }
     
     @Async
@@ -227,7 +256,7 @@ public class UtilService {
             
             if (continent.equals("Oceania")) {
                 int oceaniaCount = gameToOceaniaCounter.getOrDefault(gameId, 0);
-                if (oceaniaCount % 2 == 1) { // skip Oceania this cycle
+                if (oceaniaCount % 5 != 4) { // allow only on every 5th
                     index = (index + 1) % CONTINENT_ORDER.size();
                     continent = CONTINENT_ORDER.get(index);
                 }
@@ -242,6 +271,16 @@ public class UtilService {
             .filter(c -> c.getContinent().equals(finalContinent))
             .collect(Collectors.toList());
             
+            Set<Country> used = usedCountriesByGame.getOrDefault(gameId, new HashSet<>());
+            List<Country> availableCountries = filteredCountries.stream()
+                .filter(c -> !used.contains(c))
+                .collect(Collectors.toList());
+
+            if (availableCountries.isEmpty()) {
+            used.removeAll(filteredCountries); // remove only this continent’s countries
+            availableCountries = new ArrayList<>(filteredCountries);
+            }
+
             if(difficulty.equals("easy")) {
                 List<String> easyCountryNames = List.of(
                 // Europe
@@ -263,10 +302,15 @@ public class UtilService {
                 
                 String randomCountryName = easyCountryNames.get(new Random().nextInt(easyCountryNames.size()));
                 targetCountry = Country.valueOf(randomCountryName);
-            }else{
-                targetCountry = filteredCountries.get(new Random().nextInt(filteredCountries.size()));
+            } else {
+                if (availableCountries.isEmpty()) {
+                    throw new IllegalStateException("No available countries to choose from for continent: " + finalContinent);
+                }
+                targetCountry = availableCountries.get(new Random().nextInt(availableCountries.size()));
             }
             
+            usedCountriesByGame.computeIfAbsent(gameId, k -> new HashSet<>()).add(targetCountry);
+
             String prompt = buildPrompt(targetCountry, clueNumber);
             String payload = buildPayloadJson(prompt);
             
@@ -300,7 +344,8 @@ public class UtilService {
         ### Task
         Generate %d clues for the country: **%s**.
         Each clue should help a player guess the country and should become progressively easier.
-        ** Any clue should not contain %s**
+        ** Any clue should not contain %s and any words that contain %s**
+        **Avoid politically senstive topics and political ideologies**
 
         - **Clue %d** must:
         - Clearly state the continent that the country is in (e.g., "This country in South America...").
@@ -339,7 +384,7 @@ public class UtilService {
 
         ### Output Format
         Return exactly %d clues in the following plain text format:
-        """, clueCount, country, country, clueCount, clueCount - 1, clueCount));
+        """, clueCount, country, country, country, clueCount, clueCount - 1, clueCount));
 
         for (int i = 1; i <= clueCount; i++) {
             prompt.append(String.format("%d. Clue: [Hint] - Difficulty: %d%n", i, i));

@@ -588,22 +588,52 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/canStart", allReady);
     }
 
+    //curently you have to wait for slowest player to enable refill cache which is not good when there are more players
+    // public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(Long gameId, Long userId, String difficulty) {
+    //     if(difficulty == null || difficulty.isEmpty()){
+    //         throw new ResponseStatusException(HttpStatus.BAD_REQUEST,  " Difficulty is not set!");
+    //     }
+    //     log.info("size of hintCache with game {}: {}", gameId, utilService.getHintCache().get(gameId).size());
+    //     Map<Country, List<Map<String, Object>>> hint = utilService.getHintForUser(gameId, userId);
+
+    //     HintList list = utilService.getHintCache().get(gameId);
+    //     synchronized (list) {
+    //         int minProgress = list.getMinProgressAcrossUsers();
+    //         int remainingHints = list.size() - minProgress;
+
+    //         if (remainingHints < 10) {
+    //             AtomicBoolean flag = refillInProgress.computeIfAbsent(gameId, id -> new AtomicBoolean(false));
+    //             if (flag.compareAndSet(false, true)) {
+    //                 for (int i = 0; i < 10 - remainingHints; ++i) {
+    //                     utilService.addHintForGame(gameId, difficulty);
+    //                 }
+    //                 flag.set(false);
+    //             }
+    //         }
+    //     }
+    //     return hint;
+    // }
+
+    //this one accounts for fastest player and aims to ensure game flow
     public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(Long gameId, Long userId, String difficulty) {
-        if(difficulty == null || difficulty.isEmpty()){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,  " Difficulty is not set!");
+        if (difficulty == null || difficulty.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, " Difficulty is not set!");
         }
         log.info("size of hintCache with game {}: {}", gameId, utilService.getHintCache().get(gameId).size());
         Map<Country, List<Map<String, Object>>> hint = utilService.getHintForUser(gameId, userId);
 
         HintList list = utilService.getHintCache().get(gameId);
         synchronized (list) {
-            int minProgress = list.getMinProgressAcrossUsers();
-            int remainingHints = list.size() - minProgress;
+            int maxProgress = list.getMaxProgressAcrossUsers();
+            //threshold based on the fastest player's progress
+            int refillThreshold = list.size() - 5;
 
-            if (remainingHints < 10) {
+            if (maxProgress >= refillThreshold) {
                 AtomicBoolean flag = refillInProgress.computeIfAbsent(gameId, id -> new AtomicBoolean(false));
                 if (flag.compareAndSet(false, true)) {
-                    for (int i = 0; i < 10 - remainingHints; ++i) {
+                    // refill to ensure there are always enough new hints for the fastest player
+                    int numToRefill = 10; // refill by a fixed amount
+                    for (int i = 0; i < numToRefill; ++i) {
                         utilService.addHintForGame(gameId, difficulty);
                     }
                     flag.set(false);
