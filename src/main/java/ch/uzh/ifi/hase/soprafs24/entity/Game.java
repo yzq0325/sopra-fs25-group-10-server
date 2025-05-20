@@ -99,6 +99,12 @@ public class Game implements Serializable {
   @Column(name = "summary")
   private Map<Long, String> resultSummaryMap = new HashMap<>();
 
+  @ElementCollection
+  @CollectionTable(name = "readymap", joinColumns = @JoinColumn(name = "gameId"))
+  @MapKeyColumn(name = "userId")
+  @Column(name = "readystatus")
+  private Map<Long, Boolean> readyMap = new HashMap<>();
+
   public Long getGameId() {
     return gameId;
   }
@@ -296,11 +302,38 @@ public class Game implements Serializable {
   }
 
   public String getDifficulty() {
-    return difficulty;
+      return difficulty;
   }
 
   public void setDifficulty(String difficulty) {
-    this.difficulty = difficulty;
+      this.difficulty = difficulty;
   }
 
+  public void setReadyStatus(Long userId) {
+      readyMap.put(userId, true);
+  }
+
+  public Boolean setNotReadyStatus(Long userId) {
+      return readyMap.getOrDefault(userId, false);
+  }
+
+  public void removeReadyStatus(Long userId) {
+      readyMap.remove(userId);
+  }
+
+  public Boolean getReadyStatus(Long userId) {
+      return readyMap.get(userId);
+  }
+
+  public Boolean switchReadyStatus(Long userId, Boolean status) {
+      return readyMap.put(userId, !status);
+  }
+
+  public Map<Long, Boolean> getReadyMap() {
+      return this.readyMap;
+  }
+
+  public void setReadyMap(Map<Long, Boolean> readyMap) {
+      this.readyMap = readyMap;
+  }
 }

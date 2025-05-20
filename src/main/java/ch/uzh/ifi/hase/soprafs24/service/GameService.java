@@ -78,6 +78,7 @@ public class GameService {
         Map<Long, Integer> scoreBoard = new HashMap<>();
         Map<Long, Integer> correctAnswersMap = new HashMap<>();
         Map<Long, Integer> totalQuestionsMap = new HashMap<>();
+        Map<Long, Boolean> readyMap = new HashMap<>();
 
         checkIfOwnerExists(gameToCreate.getOwnerId());
         checkIfGameHaveSameOwner(gameToCreate.getOwnerId());
@@ -96,6 +97,7 @@ public class GameService {
         gameCreated.setRealPlayersNumber(1);
         gameCreated.setDifficulty(gameToCreate.getDifficulty());
         gameCreated.setGameRunning(false);
+        gameCreated.setReadyMap(readyMap);
 
         String mode = gameToCreate.getModeType();
         if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
@@ -137,6 +139,7 @@ public class GameService {
                 if (gameToBeJoined.getPassword().equals(targetGame.getPassword())) {
                     targetGame.addPlayer(userRepository.findByUserId(userId));
                     targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() + 1);
+                    targetGame.setNotReadyStatus(userId);
                     gameRepository.save(targetGame);
                     gameRepository.flush();
 
@@ -176,15 +179,16 @@ public class GameService {
 
     public void userExitGame(Long userId) {
         Game targetGame = userRepository.findByUserId(userId).getGame();
+        User targetUser = userRepository.findByUserId(userId);
+
         if (userId != targetGame.getOwnerId()) {
-            targetGame.removePlayer(userRepository.findByUserId(userId));
+            targetGame.removePlayer(targetUser);
             targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() - 1);
+            targetGame.removeReadyStatus(userId);
             gameRepository.save(targetGame);
             gameRepository.flush();
 
-            User targetUser = userRepository.findByUserId(userId);
             targetUser.setGame(null);
-            targetUser.setReady(false);
             userRepository.save(targetUser);
             userRepository.flush();
 
@@ -198,29 +202,26 @@ public class GameService {
         else if (targetGame.getRealPlayersNumber() == 1) {
             gameRepository.deleteByGameId(targetGame.getGameId());
 
-            User targetUser = userRepository.findByUserId(userId);
             targetUser.setGame(null);
-            targetUser.setReady(false);
             userRepository.save(targetUser);
             userRepository.flush();
 
             getGameLobby();
         }
         else {
-            targetGame.removePlayer(userRepository.findByUserId(userId));
+            targetGame.removePlayer(targetUser);
             targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() - 1);
             targetGame.setOwnerId((targetGame.getPlayers()).get(0));
+            Long newOwnerId = targetGame.getOwnerId();
+            targetGame.removeReadyStatus(newOwnerId);
             gameRepository.save(targetGame);
             gameRepository.flush();
 
-            User targetUser = userRepository.findByUserId(userId);
             targetUser.setGame(null);
-            targetUser.setReady(false);
             userRepository.save(targetUser);
             userRepository.flush();
 
             User newOwner = userRepository.findByUserId(targetGame.getPlayers().get(0));
-            newOwner.setReady(false);
             userRepository.save(newOwner);
             userRepository.flush();
 
@@ -304,13 +305,13 @@ public class GameService {
     }
 
     public boolean checkAllReady(Long gameId) {
-        List<User> players = getGamePlayers(gameId);
         Game game = gameRepository.findBygameId(gameId);
+        Map<Long, Boolean> readyMap = game.getReadyMap();
         Long ownerId = game.getOwnerId();
-    
-        return players.stream()
-            .filter(p -> !p.getUserId().equals(ownerId))
-            .allMatch(User::isReady);
+
+        return readyMap.entrySet().stream()
+                .filter(entry -> !entry.getKey().equals(ownerId))
+                .allMatch(Map.Entry::getValue);
     }
 
     public void startSoloGame(Game gameToStart){
@@ -569,21 +570,20 @@ public class GameService {
     }
 
     public void toggleReadyStatus(Long gameId, Long userId) {
-        User user = userRepository.findByUserId(userId);
-        if (user == null || user.getGame() == null || !user.getGame().getGameId().equals(gameId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid user or game");
+        Game game = gameRepository.findBygameId(gameId);
+        if (game == null || !game.getPlayers().contains(userId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid game or user");
         }
-    
-        Game game = user.getGame();
-        if (user.getUserId().equals(game.getOwnerId())) {
+
+        if (userId.equals(game.getOwnerId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Owner cannot toggle ready");
         }
-    
-        user.setReady(!user.isReady());
-        userRepository.save(user);
-        userRepository.flush();
-    
-        List<User> players = getGamePlayers(gameId);
+
+        boolean currentStatus = game.getReadyStatus(userId);
+        game.switchReadyStatus(userId, currentStatus);
+
+        gameRepository.save(game);
+        gameRepository.flush();
 
         broadcastReadyStatus(gameId);
     }
@@ -707,11 +707,10 @@ public class GameService {
 
         // reset ready status
         for (Long userId : gameToStart.getPlayers()) {
-            User player = userRepository.findByUserId(userId);
-            player.setReady(false);
-            userRepository.save(player);
+            gameToStart.getReadyMap().put(userId, false);
         }
-        userRepository.flush();
+        gameRepository.save(gameToStart);
+        gameRepository.flush();
     }
 
     public GameGetDTO processingAnswer(GamePostDTO gamePostDTO, Long userId) {
@@ -864,7 +863,6 @@ public class GameService {
             playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId), 
             gameToEnd.getTotalQuestions(userId), gameToEnd.getGameCreationDate(), gameToEnd.getTime(),gameToEnd.getModeType());
             playerToEnd.setGame(null);
-            playerToEnd.setReady(false);
             userRepository.save(playerToEnd);
             userRepository.flush();
             gameRepository.deleteByGameId(gameToEnd.getGameId());
@@ -875,13 +873,13 @@ public class GameService {
                 gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
                 User playerToEnd = userRepository.findByUserId(userId);
                 gameToEnd.setOwnerId(gameToEnd.getPlayers().get(1));
+                gameToEnd.removeReadyStatus(gameToEnd.getPlayers().get(1));
                 gameToEnd.removePlayer(playerToEnd);
                 messagingTemplate.convertAndSend("/topic/game/"+gameToEnd.getGameId()+"/owner", gameToEnd.getOwnerId());
                 gameToEnd.updateScore(userId, -1);
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
                 gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(), gameToEnd.getModeType());
                 playerToEnd.setGame(null);
-                playerToEnd.setReady(false);
                 userRepository.save(playerToEnd);
                 userRepository.flush();
                 getGameLobby();
@@ -891,11 +889,11 @@ public class GameService {
                 gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
                 User playerToEnd = userRepository.findByUserId(userId);
                 gameToEnd.removePlayer(playerToEnd);
+                gameToEnd.removeReadyStatus(userId);
                 gameToEnd.updateScore(userId, -1);
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
                 gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(),gameToEnd.getModeType());
                 playerToEnd.setGame(null);
-                playerToEnd.setReady(false);
                 userRepository.save(playerToEnd);
                 userRepository.flush();
                 getGameLobby();
@@ -944,15 +942,24 @@ public class GameService {
     }
 
     private void broadcastReadyStatus(Long gameId) {
-        List<User> players = getGamePlayers(gameId);
-        Map<Long, Boolean> readinessMap = players.stream()
-                .collect(Collectors.toMap(User::getUserId, User::isReady));
-        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/status", readinessMap);
-
         Game game = gameRepository.findBygameId(gameId);
-        boolean allReady = players.stream()
-                .filter(p -> !p.getUserId().equals(game.getOwnerId()))
-                .allMatch(User::isReady);
+        Map<Long, Boolean> readyMap = game.getReadyMap();
+
+        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/status", readyMap);
+
+        // boolean allReady = readyMap.entrySet().stream()
+        //     .filter(entry -> !entry.getKey().equals(game.getOwnerId()))
+        //     .allMatch(Map.Entry::getValue);
+        boolean allReady = true;
+        for(Long userId : game.getPlayers()){
+            if(game.getReadyMap().containsKey(userId)){
+                if(game.getReadyMap().get(userId) == false){
+                    allReady = false;
+                    break;
+                };
+            }
+        }
+
         messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/canStart", allReady);
     }
 }

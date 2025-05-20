@@ -138,9 +138,6 @@ public class User implements Serializable {
     @Column
     private String bio;
 
-    @Column(name = "isReady", nullable = false)
-    private boolean isReady = false;
-
     @ManyToOne
     @JoinColumn(name = "gameId", nullable = true)
     private Game game;
@@ -240,13 +237,6 @@ public class User implements Serializable {
         this.level = level;
     }
 
-    public boolean isReady() {
-        return isReady;
-    }
-    
-    public void setReady(boolean isReady) {
-        this.isReady = isReady;
-    }
 
     public void setGameHistory(String gameName, int score, int correct, int total, LocalDateTime gameCreationDate, int gameTime, String modeType) {
         GameQuickSave gameQuickSave = new GameQuickSave();
