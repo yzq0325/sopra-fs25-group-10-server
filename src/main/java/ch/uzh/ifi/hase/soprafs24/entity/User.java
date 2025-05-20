@@ -56,6 +56,9 @@ public class User implements Serializable {
         @Column(name = "modeType", nullable = false)
         private String modeType;
 
+        @Column(name = "Difficulty", nullable = false)
+        private String difficulty;
+
         public String getGameName() {
             return gameName;
         }
@@ -111,6 +114,14 @@ public class User implements Serializable {
         public void setModeType(String modeType) {
            this.modeType = modeType;
         }
+
+        public String getDifficulty() {
+            return difficulty;
+        }
+
+        public void setDifficulty(String difficulty) {
+            this.difficulty = difficulty;
+  }
     }
 
     @Id
@@ -248,7 +259,7 @@ public class User implements Serializable {
         this.isReady = isReady;
     }
 
-    public void setGameHistory(String gameName, int score, int correct, int total, LocalDateTime gameCreationDate, int gameTime, String modeType) {
+    public void setGameHistory(String gameName, int score, int correct, int total, LocalDateTime gameCreationDate, int gameTime, String modeType, String difficulty) {
         GameQuickSave gameQuickSave = new GameQuickSave();
         gameQuickSave.setGameName(gameName); 
         gameQuickSave.setScore(score);
@@ -257,6 +268,7 @@ public class User implements Serializable {
         gameQuickSave.setGameCreationDate(gameCreationDate);
         gameQuickSave.setGameTime(gameTime);
         gameQuickSave.setModeType(modeType);
+        gameQuickSave.setDifficulty(difficulty);
         gameHistory.add(gameQuickSave);
     }
 

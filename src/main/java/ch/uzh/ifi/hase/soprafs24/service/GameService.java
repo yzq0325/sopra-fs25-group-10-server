@@ -841,8 +841,13 @@ public class GameService {
             for (Long userId : gameToSave.getScoreBoard().keySet()) {
                 User player = userRepository.findByUserId(userId);
                 player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
-                gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime(), gameToSave.getModeType());
-                player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
+                gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime(), gameToSave.getModeType(), gameToSave.getDifficulty());
+                if(gameToSave.getDifficulty().equals("easy")){
+                    player.setLevel((new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel())
+                    .multiply(new BigDecimal("0.9"))).setScale(1, RoundingMode.HALF_UP));
+                }else{
+                    player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
+                }
                 userRepository.save(player);
                 userRepository.flush();
             }
@@ -856,7 +861,7 @@ public class GameService {
         else if(gameToSave.getModeType().equals("solo")){
             User player = userRepository.findByUserId(gameToSave.getOwnerId());
             player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(gameToSave.getOwnerId()), gameToSave.getCorrectAnswers(gameToSave.getOwnerId()), 
-            gameToSave.getTotalQuestions(gameToSave.getOwnerId()), gameToSave.getGameCreationDate(), gameToSave.getTime(),gameToSave.getModeType());
+            gameToSave.getTotalQuestions(gameToSave.getOwnerId()), gameToSave.getGameCreationDate(), gameToSave.getTime(),gameToSave.getModeType(),gameToSave.getDifficulty());
             player.setGame(null);
             userRepository.save(player);
             userRepository.flush();
@@ -881,7 +886,7 @@ public class GameService {
             User playerToEnd = userRepository.findByUserId(userId);
             gameToEnd.updateScore(userId, -1);
             playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId), 
-            gameToEnd.getTotalQuestions(userId), gameToEnd.getGameCreationDate(), gameToEnd.getTime(),gameToEnd.getModeType());
+            gameToEnd.getTotalQuestions(userId), gameToEnd.getGameCreationDate(), gameToEnd.getTime(),gameToEnd.getModeType(),gameToEnd.getDifficulty());
             playerToEnd.setGame(null);
             playerToEnd.setReady(false);
             userRepository.save(playerToEnd);
@@ -898,7 +903,7 @@ public class GameService {
                 messagingTemplate.convertAndSend("/topic/game/"+gameToEnd.getGameId()+"/owner", gameToEnd.getOwnerId());
                 gameToEnd.updateScore(userId, -1);
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
-                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(), gameToEnd.getModeType());
+                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(), gameToEnd.getModeType(), gameToEnd.getDifficulty());
                 playerToEnd.setGame(null);
                 playerToEnd.setReady(false);
                 userRepository.save(playerToEnd);
@@ -911,7 +916,7 @@ public class GameService {
                 gameToEnd.removePlayer(playerToEnd);
                 gameToEnd.updateScore(userId, -1);
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
-                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(),gameToEnd.getModeType());
+                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(),gameToEnd.getModeType(), gameToEnd.getDifficulty());
                 playerToEnd.setGame(null);
                 playerToEnd.setReady(false);
                 userRepository.save(playerToEnd);
