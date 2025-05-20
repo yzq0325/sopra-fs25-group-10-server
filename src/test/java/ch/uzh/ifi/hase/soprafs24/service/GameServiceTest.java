@@ -361,7 +361,7 @@ public class GameServiceTest {
         assertEquals(GameToExit.getPlayers(), List.of(10L,12L,13L));
         assertEquals(userToExit.isReady(), false);
     }
-    
+
     @Test
     public void userExitGame_userIsOwner_moreThanOnePlayer() {
         Game GameToExit = new Game();
@@ -370,22 +370,29 @@ public class GameServiceTest {
         GameToExit.setRealPlayersNumber(4);
         GameToExit.setOwnerId(10L);
         GameToExit.setPlayers(new ArrayList<>(List.of(10L, 11L, 12L, 13L)));
-        
+
         User userToExit = new User();
         userToExit.setUserId(10L);
         userToExit.setGame(GameToExit);
         userToExit.setReady(true);
-        
+
+        User newOwner = new User();
+        newOwner.setUserId(11L);
+        newOwner.setReady(true);
+        newOwner.setGame(GameToExit);
+
         when(gameRepository.findBygameId(100L)).thenReturn(GameToExit);
         when(userRepository.findByUserId(10L)).thenReturn(userToExit);
+        when(userRepository.findByUserId(11L)).thenReturn(newOwner);
         gameService.userExitGame(userToExit.getUserId());
-        
+
         assertEquals(GameToExit.getRealPlayersNumber(), 3);
-        assertEquals(GameToExit.getPlayers(), List.of(11L,12L,13L));
+        assertEquals(GameToExit.getPlayers(), List.of(11L, 12L, 13L));
         assertEquals(GameToExit.getOwnerId(), 11L);
         assertEquals(userToExit.isReady(), false);
+        assertEquals(newOwner.isReady(), false);
     }
-
+    
     @Test
     public void userExitGame_onlyOnePlayer() {
         Game GameToExit = new Game();
