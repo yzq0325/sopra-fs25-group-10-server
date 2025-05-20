@@ -33,9 +33,6 @@ public class UtilService {
     private static final int FILL_SIZE = 4;
     private static final int HINT_NUMBER = 5;
     private static final int CLEANUP_THRESHOLD = 100; //changed from 10 this can be made more if one player does 200 countries at once
-    
-    //hint refill logic to ensure screen freezes
-    private final Map<Long, AtomicBoolean> gameRefillInProgress = new ConcurrentHashMap<>();
 
     //adding continent order to enable better distribution
     private static final List<String> CONTINENT_ORDER = List.of("Europe", "Asia", "NorthAmerica", "SouthAmerica",  "Africa", "Oceania");
@@ -346,6 +343,7 @@ public class UtilService {
         Each clue should help a player guess the country and should become progressively easier.
         ** Any clue should not contain %s and any words that contain %s**
         **Avoid politically senstive topics and political ideologies**
+        **Avoid clues that contain any type of bias.**.
 
         - **Clue %d** must:
         - Clearly state the continent that the country is in (e.g., "This country in South America...").
