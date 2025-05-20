@@ -14,7 +14,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000") // or wherever your frontend runs
+                        .allowedOrigins("http://localhost:3000", "https://sopra-fs25-group-10-client.vercel.app") // or wherever your frontend runs
                         .allowedMethods("*")
                         .allowCredentials(true); // important for cookies or sessions
             }

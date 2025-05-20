@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+
 import ch.uzh.ifi.hase.soprafs24.service.UtilService.HintList;
 
 /**
@@ -216,6 +217,11 @@ public class GameService {
             userRepository.save(targetUser);
             userRepository.flush();
 
+            User newOwner = userRepository.findByUserId(targetGame.getPlayers().get(0));
+            newOwner.setReady(false);
+            userRepository.save(newOwner);
+            userRepository.flush();
+
             List<User> players = getGamePlayers(targetGame.getGameId());
             messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
             log.info("websocket send: players!");
@@ -341,7 +347,7 @@ public class GameService {
             gameCreated.setGameRunning(false);
             LocalDateTime now = LocalDateTime.now();
             gameCreated.setGameCreationDate(now);
-
+            
             String mode = gameToStart.getModeType();
             if (mode == null || (!mode.equals("solo") && !mode.equals("combat") && !mode.equals("exercise"))) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'");
@@ -828,10 +834,9 @@ public class GameService {
             gameToSave.setGameRunning(false);
             LocalDateTime now = LocalDateTime.now();
             gameToSave.setGameCreationDate(now);
-
             gameRepository.save(gameToSave);
             gameRepository.flush();
-            
+           
         }
         else if(gameToSave.getModeType().equals("solo")){
             User player = userRepository.findByUserId(gameToSave.getOwnerId());
@@ -930,6 +935,7 @@ public class GameService {
 
         for (User user : allUsers) {
             UserGetDTO userGetDTO = new UserGetDTO();
+            userGetDTO.setUserId(user.getUserId()); 
             userGetDTO.setLevel((user.getLevel().multiply(new BigDecimal(100))).intValue());
             userGetDTO.setUsername(user.getUsername());
             userGetDTO.setAvatar(user.getAvatar());
