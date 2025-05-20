@@ -441,7 +441,6 @@ public class GameService {
             }
             gameHintDTO.setScoreBoard(scoreBoardFront);
             gameHintDTO.setTime(gameCreated.getTime());
-            gameHintDTO.setGameId(gameCreated.getGameId());
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
             log.info("websocket send: hints!");
 
