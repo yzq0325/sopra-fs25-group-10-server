@@ -148,6 +148,7 @@ public class GameService {
                     List<User> players = getGamePlayers(gameToBeJoined.getGameId());
                     messagingTemplate.convertAndSend("/topic/ready/" + gameToBeJoined.getGameId() + "/players", players);
                     log.info("websocket send: players!");
+                    broadcastReadyStatus(targetGame.getGameId());
                     getGameLobby();
                 }
                 else {
@@ -190,6 +191,7 @@ public class GameService {
             List<User> players = getGamePlayers(targetGame.getGameId());
             messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
             log.info("websocket send: players!");
+            broadcastReadyStatus(targetGame.getGameId());
 
             getGameLobby();
         }
@@ -225,6 +227,7 @@ public class GameService {
             List<User> players = getGamePlayers(targetGame.getGameId());
             messagingTemplate.convertAndSend("/topic/ready/" + targetGame.getGameId() + "/players", players);
             log.info("websocket send: players!");
+            broadcastReadyStatus(targetGame.getGameId());
 
             getGameLobby();
         }
@@ -581,15 +584,8 @@ public class GameService {
         userRepository.flush();
     
         List<User> players = getGamePlayers(gameId);
-    
-        Map<Long, Boolean> readinessMap = players.stream()
-                .collect(Collectors.toMap(User::getUserId, User::isReady));
-        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/status", readinessMap);
-    
-        boolean allReady = players.stream()
-                .filter(p -> !p.getUserId().equals(game.getOwnerId()))
-                .allMatch(User::isReady);
-        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/canStart", allReady);
+
+        broadcastReadyStatus(gameId);
     }
 
     public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(Long gameId, Long userId, String difficulty) {
@@ -889,6 +885,7 @@ public class GameService {
                 userRepository.save(playerToEnd);
                 userRepository.flush();
                 getGameLobby();
+                broadcastReadyStatus(gameToEnd.getGameId());
             }
             else {
                 gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
@@ -902,6 +899,7 @@ public class GameService {
                 userRepository.save(playerToEnd);
                 userRepository.flush();
                 getGameLobby();
+                broadcastReadyStatus(gameToEnd.getGameId());
             }
             Map<String, Integer> scoreBoardFront = new HashMap<>();
             for (Long userid : gameToEnd.getScoreBoard().keySet()) {
@@ -943,5 +941,18 @@ public class GameService {
         }
         leaderBoard.sort(Comparator.comparing(UserGetDTO::getLevel).reversed());
         return leaderBoard;
+    }
+
+    private void broadcastReadyStatus(Long gameId) {
+        List<User> players = getGamePlayers(gameId);
+        Map<Long, Boolean> readinessMap = players.stream()
+                .collect(Collectors.toMap(User::getUserId, User::isReady));
+        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/status", readinessMap);
+
+        Game game = gameRepository.findBygameId(gameId);
+        boolean allReady = players.stream()
+                .filter(p -> !p.getUserId().equals(game.getOwnerId()))
+                .allMatch(User::isReady);
+        messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/canStart", allReady);
     }
 }
