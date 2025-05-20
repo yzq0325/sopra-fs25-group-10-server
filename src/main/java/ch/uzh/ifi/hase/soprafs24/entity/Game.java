@@ -314,7 +314,7 @@ public class Game implements Serializable {
   }
 
   public Boolean setNotReadyStatus(Long userId) {
-      return readyMap.getOrDefault(userId, false);
+      return readyMap.put(userId, false);
   }
 
   public void removeReadyStatus(Long userId) {

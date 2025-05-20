@@ -947,9 +947,6 @@ public class GameService {
 
         messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/status", readyMap);
 
-        // boolean allReady = readyMap.entrySet().stream()
-        //     .filter(entry -> !entry.getKey().equals(game.getOwnerId()))
-        //     .allMatch(Map.Entry::getValue);
         boolean allReady = true;
         for(Long userId : game.getPlayers()){
             if(game.getReadyMap().containsKey(userId)){
