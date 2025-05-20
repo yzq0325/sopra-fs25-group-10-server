@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 import ch.uzh.ifi.hase.soprafs24.service.UtilService.HintList;
 
@@ -216,6 +215,11 @@ public class GameService {
             targetUser.setGame(null);
             targetUser.setReady(false);
             userRepository.save(targetUser);
+            userRepository.flush();
+
+            User newOwner = userRepository.findByUserId(targetGame.getPlayers().get(0));
+            newOwner.setReady(false);
+            userRepository.save(newOwner);
             userRepository.flush();
 
             List<User> players = getGamePlayers(targetGame.getGameId());
