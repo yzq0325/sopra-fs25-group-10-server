@@ -152,11 +152,4 @@ public class GameController {
   public void finishexercisegame (@PathVariable Long gameId){
     gameService.saveGame(gameId);
   }
-
-  @PutMapping("/startcounter/{gameId}")
-  @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
-  public void startGameCounter (@PathVariable Long gameId){
-    gameService.startcounter(gameId);
-  }
 }

@@ -444,6 +444,19 @@ public class GameService {
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
             log.info("websocket send: hints!");
 
+            // countdown
+            // utilService.countdown(gameId, gameToStart.getTime());
+            try {
+                Thread.sleep(3000);
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+            }
+            Game finalGameToStart = gameCreated;
+            if(finalGameToStart.getTime()==-1){return;}
+            Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
+            timingThread.start();
         } finally {
             lock.unlock();
             userLocks.remove(gameUserId);
@@ -699,6 +712,18 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/start/" + gameId + "/hints", gameHintDTO);
         log.info("websocket send: hints!");
 
+        try {
+            Thread.sleep(6000);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+        }
+
+        Game finalGameToStart = gameToStart;
+        Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, gameId));
+        timingThread.start();
+
         // reset ready status
         for (Long userId : gameToStart.getPlayers()) {
             User player = userRepository.findByUserId(userId);
@@ -706,13 +731,6 @@ public class GameService {
             userRepository.save(player);
         }
         userRepository.flush();
-    }
-
-    public void startcounter(Long gameId){
-        Game gameToStart = gameRepository.findBygameId(gameId);
-         if(gameToStart.getTime()==-1){return;}
-            Thread timingThread = new Thread(() -> utilService.timingCounter((gameToStart.getTime()) * 60, gameToStart.getGameId()));
-            timingThread.start();
     }
 
     public GameGetDTO processingAnswer(GamePostDTO gamePostDTO, Long userId) {
