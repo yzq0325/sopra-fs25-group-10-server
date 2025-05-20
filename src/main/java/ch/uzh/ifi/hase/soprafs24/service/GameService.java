@@ -447,7 +447,7 @@ public class GameService {
             // countdown
             // utilService.countdown(gameId, gameToStart.getTime());
             try {
-                Thread.sleep(3000);
+                Thread.sleep(2000);
             }
             catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -713,7 +713,7 @@ public class GameService {
         log.info("websocket send: hints!");
 
         try {
-            Thread.sleep(6000);
+            Thread.sleep(2000);
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
