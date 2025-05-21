@@ -55,8 +55,9 @@ public class UserService {
     newUser.setToken(UUID.randomUUID().toString());
     newUser.setStatus(UserStatus.ONLINE);
     checkIfUserExists(newUser);
-    // saves the given entity but data is only persisted in the database once
-    // flush() is called
+    checkIfUsernameCorrect(newUser.getUsername());
+    checkIfPasswordCorrect(newUser.getPassword());
+
     newUser.setAvatar(VALID_AVATARS.iterator().next());
     newUser = userRepository.save(newUser);
     userRepository.flush();
@@ -154,12 +155,17 @@ public class UserService {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid avatar selection");
     }
 
+    checkIfUsernameCorrect(updatedInfo.getUsername());
+    checkIfEmailCorrect(updatedInfo.getEmail());
+    checkIfBioCorrect(updatedInfo.getBio());
     userInDB.setUsername(updatedInfo.getUsername());
     userInDB.updateGameHistory(updatedInfo.getUsername());
     userInDB.setAvatar(updatedInfo.getAvatar());
     userInDB.setEmail(updatedInfo.getEmail());
     userInDB.setBio(updatedInfo.getBio());
-    if((updatedInfo.getPassword()) != null){ userInDB.setPassword(updatedInfo.getPassword());}
+    if((updatedInfo.getPassword()) != null){ 
+      
+      userInDB.setPassword(updatedInfo.getPassword());}
 
     userRepository.save(userInDB);
     return userInDB;
@@ -202,4 +208,46 @@ public class UserService {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username", "is"));
     } 
   }
+
+  private void checkIfPasswordCorrect(String password){
+    if (password.equals(null)){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password can not be null! Please change one!");
+      }
+    else if(password.contains(" ")){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password can not contain space! Please change one!");
+    }
+    else if(password.length()>20){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password is too long! Please change one!");
+    }
+  }
+
+  private void checkIfUsernameCorrect(String username){
+    if (username.equals(null)){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The username can not be null! Please change one!");
+      }
+    else if(username.contains(" ")){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The username can not contain space! Please change one!");
+    }
+    else if(username.length()>20){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The username is too long! Please change one!");
+    }
+  }
+
+  private void checkIfEmailCorrect(String email) {
+    String emailFormat = "^[A-Za-z0-9+_.-]+@([A-Za-z0-9-]+\\.)+[A-Za-z]{2,}$";
+    if(!(email == null)){
+      if(!email.matches(emailFormat)) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The email is not correct! Please change one!");
+      }
+    }
+  }
+
+  private void checkIfBioCorrect(String bio){
+    if(!(bio == null)){
+      if(bio.length() > 200) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The bio is too long! Please change!");
+      }
+    }
+  }
 }
+
