@@ -843,7 +843,9 @@ public class GameService {
                 }else{
                     player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
                 }
-                gameToSave.setNotReadyStatus(userId);
+                if(userId != gameToSave.getOwnerId()){
+                    gameToSave.setNotReadyStatus(userId);
+                }
                 broadcastReadyStatus(gameId);
 
                 userRepository.save(player);
