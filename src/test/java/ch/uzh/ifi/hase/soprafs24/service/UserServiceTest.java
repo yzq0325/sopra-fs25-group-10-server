@@ -4,6 +4,8 @@ import java.util.Optional;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -14,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 
 import java.util.UUID;
 
@@ -35,6 +38,7 @@ public class UserServiceTest {
     testUser = new User();
     testUser.setUserId(1L);
     testUser.setUsername("testUsername");
+    testUser.setPassword("testPassword");
 
     // when -> any object is being save in the userRepository -> return the dummy
     // testUser
@@ -46,7 +50,6 @@ public class UserServiceTest {
     // when -> any object is being save in the userRepository -> return the dummy
     // testUser
     User createdUser = userService.createUser(testUser);
-
     // then
     Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any());
 
@@ -73,58 +76,50 @@ public class UserServiceTest {
   public void changePassword_validInputs_success() {
       // given: a user with existing password
       testUser.setPassword("oldPassword");
-      Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
-  
+      Mockito.when(userRepository.findByUserId(any())).thenReturn(testUser);
+    
+      UserPostDTO  userPostDTO = new UserPostDTO();
+      userPostDTO.setPassword("newPassword");
+      userPostDTO.setUserId(1L);
       // when: user changes password with correct current password
-      userService.changePassword(testUser.getUserId(), "oldPassword", "newPassword123");
+      userService.changePassword(userPostDTO);
   
       // then: password should be updated and saved
-      assertEquals("newPassword123", testUser.getPassword());
+      assertEquals("newPassword", testUser.getPassword());
       Mockito.verify(userRepository).save(testUser);
   }
 
   @Test
-  public void changePassword_incorrectCurrentPassword_throwsException() {
+  public void changePassword_incorrectPasswordFormat_throwsException() {
       // given: current password is incorrect
-      testUser.setPassword("correctPassword");
-      Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
-  
-      // when + then: expect 400 BAD_REQUEST
-      ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
-          userService.changePassword(testUser.getUserId(), "wrongPassword", "newPassword")
-      );
-  
-      assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-      assertTrue(exception.getReason().contains("Incorrect current password"));
-  }
+      testUser.setPassword("oldPassword");
+      Mockito.when(userRepository.findByUserId(any())).thenReturn(testUser);
 
-  @Test
-  public void changePassword_emptyNewPassword_throwsException() {
-      // given: new password is empty
-      testUser.setPassword("correctPassword");
-      Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
-  
+      UserPostDTO  userPostDTO = new UserPostDTO();
+      userPostDTO.setPassword(" ");
       // when + then: expect 400 BAD_REQUEST
       ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
-          userService.changePassword(testUser.getUserId(), "correctPassword", "")
+          userService.changePassword(userPostDTO)
       );
   
       assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-      assertTrue(exception.getReason().contains("New password must not be empty"));
+      assertTrue(exception.getReason().contains("The password can not contain space! Please change one!"));
   }
 
   @Test
   public void changePassword_userNotFound_throwsException() {
       // given: repository returns empty
-      Mockito.when(userRepository.findById(999L)).thenReturn(Optional.empty());
+      Mockito.when(userRepository.findByUserId(any())).thenReturn(null);
   
       // when + then: expect 404 NOT_FOUND
+      UserPostDTO  userPostDTO = new UserPostDTO();
+      userPostDTO.setPassword("newPassword");
       ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
-          userService.changePassword(999L, "any", "new")
+          userService.changePassword(userPostDTO)
       );
   
       assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
-      assertTrue(exception.getReason().contains("User not found"));
+      assertTrue(exception.getReason().contains("User not found!"));
   }
 
   @Test
@@ -266,9 +261,8 @@ public class UserServiceTest {
     updateInfo.setAvatar("/avatar_1.png");
     updateInfo.setEmail("new@email.com");
     updateInfo.setBio("new bio");
-    updateInfo.setPassword("password");
 
-    Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
+    Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
     Mockito.when(userRepository.findByUsername("newUsername")).thenReturn(null);
 
     // when
@@ -279,36 +273,35 @@ public class UserServiceTest {
     assertEquals("/avatar_1.png", testUser.getAvatar());
     assertEquals("new@email.com", testUser.getEmail());
     assertEquals("new bio", testUser.getBio());
-    assertEquals("password", testUser.getPassword());
   }
 
   @Test
   public void updateUserProfile_userNotFound_throwsException() {
     // given
-    Mockito.when(userRepository.findById(999L)).thenReturn(Optional.empty());
+    Mockito.when(userRepository.findByUserId(999L)).thenReturn(null);
 
     // when + then
     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
         userService.updateUserProfile(999L, new User())
     );
     assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
-    assertTrue(exception.getReason().contains("User not found"));
+    assertTrue(exception.getReason().contains("User not found!"));
   }
 
   @Test
   public void updateUserProfile_emptyUsername_throwsException() {
     // given
     User updateInfo = new User();
-    updateInfo.setUsername("   "); // blank
+    updateInfo.setUsername(""); // blank
 
-    Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
+    Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
 
     // when + then
     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
         userService.updateUserProfile(testUser.getUserId(), updateInfo)
     );
     assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-    assertTrue(exception.getReason().contains("Username must not be empty"));
+    assertTrue(exception.getReason().contains("The username can not be empty! Please change one!"));
   }
 
   @Test
@@ -320,15 +313,15 @@ public class UserServiceTest {
     User existingUser = new User();
     existingUser.setUsername("duplicateUsername");
 
-    Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
+    Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
     Mockito.when(userRepository.findByUsername("duplicateUsername")).thenReturn(existingUser);
 
     // when + then
     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
         userService.updateUserProfile(testUser.getUserId(), updateInfo)
     );
-    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-    assertTrue(exception.getReason().contains("Username already exists"));
+    assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+    assertTrue(exception.getReason().contains("Username exists! Please change one!"));
   }
 
   @Test
@@ -338,7 +331,7 @@ public class UserServiceTest {
     updateInfo.setUsername("newUsername");
     updateInfo.setAvatar("invalid_avatar.png");
 
-    Mockito.when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
+    Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
     Mockito.when(userRepository.findByUsername("newUsername")).thenReturn(null);
 
     // when + then

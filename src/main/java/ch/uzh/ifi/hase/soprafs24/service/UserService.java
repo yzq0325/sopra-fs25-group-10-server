@@ -4,6 +4,7 @@ import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 
 import org.slf4j.Logger;
@@ -66,24 +67,15 @@ public class UserService {
     return newUser;
   }
 
-  public void changePassword(Long userId, String currentPassword, String newPassword) {
-    // search user by ID
-    User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+  public void changePassword(UserPostDTO userPostDTO) {
+    User userToBeChanged = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
 
-    // check if current password is correct
-    if (!user.getPassword().equals(currentPassword)) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Incorrect current password");
-    }
-
-    // Check if new password is valid
-    if (newPassword == null || newPassword.trim().isEmpty()) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password must not be empty");
-    }
-
-    // update password
-    user.setPassword(newPassword);
-    userRepository.save(user);
+    checkIfUserNotExist(userToBeChanged.getUserId());
+    checkIfPasswordCorrect(userToBeChanged.getPassword());
+    
+    User userInDB = userRepository.findByUserId(userToBeChanged.getUserId());
+    userInDB.setPassword(userToBeChanged.getPassword());
+    userRepository.save(userInDB);
   }
 
   public User login(User loginUser) {
@@ -136,25 +128,10 @@ public class UserService {
   }
   
   public User updateUserProfile(Long userId, User updatedInfo) {
-    User userInDB = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
-    // username empty check
-    if (updatedInfo.getUsername() == null || updatedInfo.getUsername().trim().isEmpty()) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username must not be empty");
-    }
-
-    // username duplication check
-    if (!userInDB.getUsername().equals(updatedInfo.getUsername())
-            && userRepository.findByUsername(updatedInfo.getUsername()) != null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists");
-    }
-
-    // avatar check
-    if (updatedInfo.getAvatar() != null && !VALID_AVATARS.contains(updatedInfo.getAvatar())) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid avatar selection");
-    }
-
+    User userInDB = userRepository.findByUserId(userId);
+    checkIfUserNotExist(userId);
+    checkIfAvatarCorrect(updatedInfo);
+    checkIfUsernameExist(updatedInfo.getUsername());
     checkIfUsernameCorrect(updatedInfo.getUsername());
     checkIfEmailCorrect(updatedInfo.getEmail());
     checkIfBioCorrect(updatedInfo.getBio());
@@ -163,9 +140,6 @@ public class UserService {
     userInDB.setAvatar(updatedInfo.getAvatar());
     userInDB.setEmail(updatedInfo.getEmail());
     userInDB.setBio(updatedInfo.getBio());
-    if((updatedInfo.getPassword()) != null){ 
-      
-      userInDB.setPassword(updatedInfo.getPassword());}
 
     userRepository.save(userInDB);
     return userInDB;
@@ -200,6 +174,27 @@ public class UserService {
    * @throws org.springframework.web.server.ResponseStatusException
    * @see User
    */
+
+  private void checkIfUsernameExist(String username){
+    User userByUsername = userRepository.findByUsername(username);
+
+    if (userByUsername != null) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Username exists! Please change one!");
+    } 
+  }
+  private void checkIfUserNotExist(Long userId){
+    User userByUsername = userRepository.findByUserId(userId);
+
+    if (userByUsername == null) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found!");
+    } 
+  }
+  private void checkIfAvatarCorrect(User user){
+    if (user.getAvatar() != null && !VALID_AVATARS.contains(user.getAvatar())) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid avatar selection");
+    }
+  }
+
   private void checkIfUserExists(User userToBeCreated) {
     User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
 
@@ -210,8 +205,8 @@ public class UserService {
   }
 
   private void checkIfPasswordCorrect(String password){
-    if (password.equals(null)){
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password can not be null! Please change one!");
+    if (password == ""){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password can not be empty! Please change one!");
       }
     else if(password.contains(" ")){
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password can not contain space! Please change one!");
@@ -222,8 +217,8 @@ public class UserService {
   }
 
   private void checkIfUsernameCorrect(String username){
-    if (username.equals(null)){
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The username can not be null! Please change one!");
+    if (username == ""){
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The username can not be empty! Please change one!");
       }
     else if(username.contains(" ")){
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The username can not contain space! Please change one!");
@@ -235,7 +230,7 @@ public class UserService {
 
   private void checkIfEmailCorrect(String email) {
     String emailFormat = "^[A-Za-z0-9+_.-]+@([A-Za-z0-9-]+\\.)+[A-Za-z]{2,}$";
-    if(!(email == null)){
+    if(!(email == "")&&!(email == null)){
       if(!email.matches(emailFormat)) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The email is not correct! Please change one!");
       }
@@ -243,7 +238,7 @@ public class UserService {
   }
 
   private void checkIfBioCorrect(String bio){
-    if(!(bio == null)){
+    if(!(bio == "")&&!(bio == null)){
       if(bio.length() > 200) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The bio is too long! Please change!");
       }
