@@ -35,6 +35,7 @@ public class UserServiceTest {
     testUser = new User();
     testUser.setUserId(1L);
     testUser.setUsername("testUsername");
+    testUser.setPassword("testPassword");
 
     // when -> any object is being save in the userRepository -> return the dummy
     // testUser
@@ -46,7 +47,6 @@ public class UserServiceTest {
     // when -> any object is being save in the userRepository -> return the dummy
     // testUser
     User createdUser = userService.createUser(testUser);
-
     // then
     Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any());
 
