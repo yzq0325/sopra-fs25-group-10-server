@@ -212,17 +212,12 @@ public class GameService {
             targetGame.removePlayer(targetUser);
             targetGame.setRealPlayersNumber(targetGame.getRealPlayersNumber() - 1);
             targetGame.setOwnerId((targetGame.getPlayers()).get(0));
-            Long newOwnerId = targetGame.getOwnerId();
-            targetGame.removeReadyStatus(newOwnerId);
+            targetGame.removeReadyStatus(targetGame.getOwnerId());
             gameRepository.save(targetGame);
             gameRepository.flush();
 
             targetUser.setGame(null);
             userRepository.save(targetUser);
-            userRepository.flush();
-
-            User newOwner = userRepository.findByUserId(targetGame.getPlayers().get(0));
-            userRepository.save(newOwner);
             userRepository.flush();
 
             List<User> players = getGamePlayers(targetGame.getGameId());
