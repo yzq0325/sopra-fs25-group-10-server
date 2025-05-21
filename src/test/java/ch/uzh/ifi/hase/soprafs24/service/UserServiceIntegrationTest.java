@@ -300,7 +300,7 @@ public class UserServiceIntegrationTest {
 
   @Test
   public void getGameHistory_success() {
-    testUser.setGameHistory("game1", 100, 8, 10, LocalDateTime.now(), 5, "solo");
+    testUser.setGameHistory("game1", 100, 8, 10, LocalDateTime.now(), 5, "solo", "easy");
     userRepository.save(testUser);
 
     UserGetDTO result = userService.getHistory(testUser.getUserId());
