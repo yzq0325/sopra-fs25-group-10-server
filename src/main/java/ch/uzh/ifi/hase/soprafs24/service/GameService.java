@@ -293,7 +293,9 @@ public class GameService {
 
         List<UserGetDTO> allPlayersDTOs = new ArrayList<>();
         for (User player : players) {
-        allPlayersDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(player));
+            UserGetDTO userGetDTO = DTOMapper.INSTANCE.convertEntityToUserGetDTO(player);
+            userGetDTO.setReadyMap(gameRepository.findBygameId(gameId).getReadyMap());
+            allPlayersDTOs.add(userGetDTO);
         }
 
         return allPlayersDTOs;
@@ -841,7 +843,6 @@ public class GameService {
                 if(userId != gameToSave.getOwnerId()){
                     gameToSave.setNotReadyStatus(userId);
                 }
-                broadcastReadyStatus(gameId);
 
                 userRepository.save(player);
                 userRepository.flush();
