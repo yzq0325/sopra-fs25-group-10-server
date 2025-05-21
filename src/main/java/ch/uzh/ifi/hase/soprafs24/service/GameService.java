@@ -775,20 +775,20 @@ public class GameService {
                 gameHintDTO.setAnswer(answers.get(userId).ordinal());
 
                 Map<String, Integer> scoreBoardFront = new HashMap<>();
-                for (Long userid : targetGame.getPlayers()) {
+                for (Long userid : targetGame.getScoreBoard().keySet()) {
                     String username = (userRepository.findByUserId(userid)).getUsername();
                     int score = targetGame.getScore(userid);
                     scoreBoardFront.put(username, score);
                 }
-                scoreBoardFront.entrySet()
-                        .stream()
-                        .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                Map.Entry::getValue,
-                                (e1, e2) -> e1,
-                                LinkedHashMap::new
-                        ));
+                // scoreBoardFront.entrySet()
+                //         .stream()
+                //         .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
+                //         .collect(Collectors.toMap(
+                //                 Map.Entry::getKey,
+                //                 Map.Entry::getValue,
+                //                 (e1, e2) -> e1,
+                //                 LinkedHashMap::new
+                //         ));
                 messagingTemplate.convertAndSend("/topic/user/"+targetGame.getGameId()+"/scoreBoard", scoreBoardFront);
                 log.info("websocket send!");
 
@@ -805,20 +805,20 @@ public class GameService {
                 gameHintDTO.setAnswer(answers.get(userId).ordinal());
                 gameHintDTO.setJudgement(false);
                 Map<String, Integer> scoreBoardFront = new HashMap<>();
-                for (Long userid : targetGame.getPlayers()) {
+                for (Long userid : targetGame.getScoreBoard().keySet()) {
                     String username = (userRepository.findByUserId(userid)).getUsername();
                     int score = (targetGame.getScoreBoard()).get(userid);
                     scoreBoardFront.put(username, score);
                 }
-                scoreBoardFront.entrySet()
-                        .stream()
-                        .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                Map.Entry::getValue,
-                                (e1, e2) -> e1,
-                                LinkedHashMap::new
-                        ));
+                // scoreBoardFront.entrySet()
+                //         .stream()
+                //         .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
+                //         .collect(Collectors.toMap(
+                //                 Map.Entry::getKey,
+                //                 Map.Entry::getValue,
+                //                 (e1, e2) -> e1,
+                //                 LinkedHashMap::new
+                //         ));
                 messagingTemplate.convertAndSend("/topic/user/"+targetGame.getGameId()+"/scoreBoard", scoreBoardFront);
                 log.info("websocket send!");
 
@@ -843,6 +843,9 @@ public class GameService {
                 }else{
                     player.setLevel(new BigDecimal(gameToSave.getScore(userId)).divide(new BigDecimal(100), 1, RoundingMode.HALF_UP).add(player.getLevel()));
                 }
+                gameToSave.setNotReadyStatus(userId);
+                broadcastReadyStatus(gameId);
+
                 userRepository.save(player);
                 userRepository.flush();
             }
@@ -885,12 +888,14 @@ public class GameService {
             playerToEnd.setGame(null);
             userRepository.save(playerToEnd);
             userRepository.flush();
+
             gameRepository.deleteByGameId(gameToEnd.getGameId());
             utilService.removeCacheForGame(gameToEnd.getGameId());
         }
         else {
             if (gameToEnd.getOwnerId().equals(userId)) {
                 gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
+
                 User playerToEnd = userRepository.findByUserId(userId);
                 gameToEnd.setOwnerId(gameToEnd.getPlayers().get(1));
                 gameToEnd.removeReadyStatus(gameToEnd.getPlayers().get(1));
@@ -900,6 +905,7 @@ public class GameService {
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
                 gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(), gameToEnd.getModeType(), gameToEnd.getDifficulty());
                 playerToEnd.setGame(null);
+
                 userRepository.save(playerToEnd);
                 userRepository.flush();
                 getGameLobby();
@@ -907,6 +913,7 @@ public class GameService {
             }
             else {
                 gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
+
                 User playerToEnd = userRepository.findByUserId(userId);
                 gameToEnd.removePlayer(playerToEnd);
                 gameToEnd.removeReadyStatus(userId);
@@ -914,6 +921,7 @@ public class GameService {
                 playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
                 gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(),gameToEnd.getModeType(), gameToEnd.getDifficulty());
                 playerToEnd.setGame(null);
+
                 userRepository.save(playerToEnd);
                 userRepository.flush();
                 getGameLobby();
@@ -925,15 +933,15 @@ public class GameService {
                 int score = (gameToEnd.getScoreBoard()).get(userid);
                 scoreBoardFront.put(username, score);
             }
-            scoreBoardFront.entrySet()
-                    .stream()
-                    .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
-                    .collect(Collectors.toMap(
-                            Map.Entry::getKey,
-                            Map.Entry::getValue,
-                            (e1, e2) -> e1,
-                            LinkedHashMap::new
-                    ));
+            // scoreBoardFront.entrySet()
+            //         .stream()
+            //         .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
+            //         .collect(Collectors.toMap(
+            //                 Map.Entry::getKey,
+            //                 Map.Entry::getValue,
+            //                 (e1, e2) -> e1,
+            //                 LinkedHashMap::new
+            //         ));
             messagingTemplate.convertAndSend("/topic/user/"+gameToEnd.getGameId()+"/scoreBoard", scoreBoardFront);
             log.info("websocket send: scoreBoard!");
 
