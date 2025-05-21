@@ -58,17 +58,11 @@ public class UserController {
   }
     
 
-  // @PutMapping("/users/pwd")
-  // @ResponseStatus(HttpStatus.NO_CONTENT)
-  // public void changePassword(@RequestBody UserPasswordDTO userPasswordDTO) {
-  //     // verification
-  //     User userInput = new User();
-  //     userInput.setToken(userPasswordDTO.getToken());
-  //     User authenticatedUser = userService.userAuthenticate(userInput);
-  
-  //     // change password
-  //     userService.changePassword(authenticatedUser.getUserId(), userPasswordDTO.getCurrentPassword(), userPasswordDTO.getNewPassword());
-  // }
+  @PutMapping("/users/pwd")
+  @ResponseStatus(HttpStatus.OK)
+  public void changePassword(@RequestBody UserPostDTO userPostDTO) {
+      userService.changePassword(userPostDTO);
+  }
 
   @PostMapping("/auth")
   @ResponseStatus(HttpStatus.OK)
