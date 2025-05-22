@@ -198,8 +198,19 @@ public class UserService {
     return userGetDTO;
   }
 
-  public void updateUserHeartBeatTime(Long userId) {
-        userLastHeartBeatMap.put(userId, System.currentTimeMillis());
+  public List<UserGetDTO> updateUserHeartBeatTime(Long userId) {
+
+      List<UserGetDTO> allusersDTO =  new ArrayList<>();
+
+      for(Long userid : userLastHeartBeatMap.keySet() ){
+          UserGetDTO userGetDTO = new UserGetDTO();
+          userGetDTO.setUserId(userid);
+          allusersDTO.add(userGetDTO);
+      }
+      userLastHeartBeatMap.put(userId, System.currentTimeMillis());
+
+      return allusersDTO;
+
   }
 
   /**
