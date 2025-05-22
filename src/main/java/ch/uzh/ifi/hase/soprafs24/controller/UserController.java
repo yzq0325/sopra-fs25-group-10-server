@@ -122,4 +122,12 @@ public class UserController {
   public UserGetDTO getStatistics(@PathVariable Long userId){
     return userService.getLearningTracking(userId);
   }
+
+  @PutMapping("/heartbeat")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void updateUserHeartBeatTime(@PathVariable Long userId){
+    userService.updateUserHeartBeatTime(userId);
+  }
+
 }

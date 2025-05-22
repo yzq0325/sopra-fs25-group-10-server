@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.entity.Game;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
@@ -18,6 +19,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.PostConstruct;
 
 /**
  * User Service
@@ -32,7 +39,23 @@ public class UserService {
 
   private final Logger log = LoggerFactory.getLogger(UserService.class);
 
+  private final ConcurrentHashMap<Long, Long> userLastHeartBeatMap = new ConcurrentHashMap<>();
+
+  private static final long HEARTBEAT_TIMEOUT = 30000;
+    
+  private static final long CHECK_INTERVAL = 10000;
+
+  @PostConstruct
+  public void init() {
+      ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+      scheduler.scheduleAtFixedRate(this::checkInactiveUsers, CHECK_INTERVAL, CHECK_INTERVAL, TimeUnit.MILLISECONDS);
+  }
+
   private final UserRepository userRepository;
+
+  @Autowired
+    private GameService gameService;
+
 
   private static final Set<String> VALID_AVATARS = Set.of(
     "/avatar_1.png",
@@ -175,6 +198,10 @@ public class UserService {
     return userGetDTO;
   }
 
+  public void updateUserHeartBeatTime(Long userId) {
+        userLastHeartBeatMap.put(userId, System.currentTimeMillis());
+  }
+
   /**
    * This is a helper method that will check the uniqueness criteria of the
    * username and the name
@@ -255,5 +282,22 @@ public class UserService {
       }
     }
   }
+
+  private void checkInactiveUsers() {
+        long currentTime = System.currentTimeMillis();
+        
+        userLastHeartBeatMap.forEach((userId, lastActiveTime) -> {
+            if (currentTime - lastActiveTime > HEARTBEAT_TIMEOUT) {
+                User userNotActive = userRepository.findByUserId(userId);
+                Game gameToExit = userNotActive.getGame();
+                if(gameToExit != null){
+                    gameService.giveupGame(userId);
+                }
+                logout(userNotActive);
+
+                userLastHeartBeatMap.remove(userId);
+            }
+        });
+    }
 }
 
