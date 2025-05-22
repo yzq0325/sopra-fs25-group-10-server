@@ -123,7 +123,7 @@ public class UserController {
     return userService.getLearningTracking(userId);
   }
 
-  @PutMapping("/heartbeat")
+  @PutMapping("/heartbeat/{userId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
   public void updateUserHeartBeatTime(@PathVariable Long userId){
