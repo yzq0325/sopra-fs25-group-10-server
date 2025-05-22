@@ -207,7 +207,10 @@ public class UserService {
           userGetDTO.setUserId(userid);
           allusersDTO.add(userGetDTO);
       }
-      userLastHeartBeatMap.put(userId, System.currentTimeMillis());
+      if(userLastHeartBeatMap.containsKey(userId)){
+          userLastHeartBeatMap.put(userId, System.currentTimeMillis());
+      }
+
 
       return allusersDTO;
 
