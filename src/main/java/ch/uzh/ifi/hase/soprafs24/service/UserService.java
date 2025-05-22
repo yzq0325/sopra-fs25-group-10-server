@@ -223,7 +223,7 @@ public class UserService {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password can not contain space! Please change one!");
     }
     else if(password.length()>20){
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password is too long! Please change one!");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password is too long! Password cannot exceed 20 characters, please change one!");
     }
   }
 
@@ -235,7 +235,7 @@ public class UserService {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The username can not contain space! Please change one!");
     }
     else if(username.length()>20){
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The username is too long! Please change one!");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The username is too long! Username cannot exceed 20 characters, please change one!");
     }
   }
 
@@ -251,7 +251,7 @@ public class UserService {
   private void checkIfBioCorrect(String bio){
     if(!(bio == "")){
       if(bio.length() > 200) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The bio is too long! Please change!");
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The bio is too long! Bio cannot exceed 200 characters, please change!");
       }
     }
   }
