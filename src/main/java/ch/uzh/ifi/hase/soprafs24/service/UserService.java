@@ -199,7 +199,7 @@ public class UserService {
   }
 
   public List<UserGetDTO> updateUserHeartBeatTime(Long userId) {
-
+      log.info("heartbeat: {}", userId);
       List<UserGetDTO> allusersDTO =  new ArrayList<>();
 
       for(Long userid : userLastHeartBeatMap.keySet() ){
@@ -207,7 +207,7 @@ public class UserService {
           userGetDTO.setUserId(userid);
           allusersDTO.add(userGetDTO);
       }
-      if(userLastHeartBeatMap.containsKey(userId)){
+      if(userRepository.findByUserId(userId).getStatus().equals(UserStatus.ONLINE)){
           userLastHeartBeatMap.put(userId, System.currentTimeMillis());
       }
 
@@ -300,6 +300,7 @@ public class UserService {
   private void checkInactiveUsers() {
         long currentTime = System.currentTimeMillis();
         log.info("check!");
+        log.info("userLastHeartBeatMap: {}", userLastHeartBeatMap);
         userLastHeartBeatMap.forEach((userId, lastActiveTime) -> {
             if (currentTime - lastActiveTime > HEARTBEAT_TIMEOUT) {
               log.info("logout!");
