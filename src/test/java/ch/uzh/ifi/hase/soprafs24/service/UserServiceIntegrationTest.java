@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 /**
  * Test class for the UserResource REST resource.
@@ -73,6 +74,11 @@ public class UserServiceIntegrationTest {
     assertEquals("testValidUsername", createdUser.getUsername());
     assertNotNull(createdUser.getToken());
     assertEquals(UserStatus.ONLINE, createdUser.getStatus());
+    assertNotNull(createdUser.getAvatar());
+    assertEquals("", createdUser.getEmail());
+    assertEquals("", createdUser.getBio());
+    assertNotNull(createdUser.getLevel());
+    assertEquals(new BigDecimal("0.0"), createdUser.getLevel());
   }
 
   @Test

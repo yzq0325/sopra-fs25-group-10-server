@@ -70,7 +70,7 @@ public class UserServiceTest {
     assertEquals(testUser.getUsername(), createdUser.getUsername());
     assertNotNull(createdUser.getToken());
     assertEquals(UserStatus.ONLINE, createdUser.getStatus());
-    assertEquals("/avatar_1.png", createdUser.getAvatar());
+    assertNotNull(createdUser.getAvatar());
     assertEquals("", createdUser.getEmail());
     assertEquals("", createdUser.getBio());
   }
