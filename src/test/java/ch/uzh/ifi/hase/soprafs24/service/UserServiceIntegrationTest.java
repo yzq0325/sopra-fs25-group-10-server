@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 /**
  * Test class for the UserResource REST resource.
@@ -47,6 +48,9 @@ public class UserServiceIntegrationTest {
     testUser = new User();
     testUser.setUsername("testUsername");
     testUser.setPassword("testPassword");
+    testUser.setAvatar("/avatar_1.png");
+    testUser.setEmail("");
+    testUser.setBio("");
     testUser.setStatus(UserStatus.OFFLINE);
     testUser.setToken(UUID.randomUUID().toString());
     userRepository.save(testUser);
@@ -70,6 +74,11 @@ public class UserServiceIntegrationTest {
     assertEquals("testValidUsername", createdUser.getUsername());
     assertNotNull(createdUser.getToken());
     assertEquals(UserStatus.ONLINE, createdUser.getStatus());
+    assertNotNull(createdUser.getAvatar());
+    assertEquals("", createdUser.getEmail());
+    assertEquals("", createdUser.getBio());
+    assertNotNull(createdUser.getLevel());
+    assertEquals(new BigDecimal("0.0"), createdUser.getLevel());
   }
 
   @Test
@@ -226,6 +235,9 @@ public class UserServiceIntegrationTest {
     savedUser.setPassword("abc");
     savedUser.setToken(UUID.randomUUID().toString());
     savedUser.setStatus(UserStatus.OFFLINE);
+    savedUser.setAvatar("/avatar_1.png");
+    savedUser.setEmail("");
+    savedUser.setBio("");
 
     savedUser = userRepository.saveAndFlush(savedUser);
 
@@ -273,6 +285,8 @@ public class UserServiceIntegrationTest {
     User update = new User();
     update.setUsername("newName");
     update.setAvatar("/invalid.png");
+    update.setEmail("");
+    update.setBio("");
   
     assertThrows(ResponseStatusException.class, () ->
         userService.updateUserProfile(testUser.getUserId(), update));
@@ -285,10 +299,16 @@ public class UserServiceIntegrationTest {
     existing.setPassword("pass");
     existing.setToken(UUID.randomUUID().toString());
     existing.setStatus(UserStatus.OFFLINE);
+    existing.setAvatar("/avatar_1.png");
+    existing.setEmail("");
+    existing.setBio("");
     userRepository.saveAndFlush(existing);
   
     User update = new User();
     update.setUsername("duplicate");
+    update.setAvatar("/avatar_1.png");
+    update.setEmail("");
+    update.setBio("");
   
     assertThrows(ResponseStatusException.class, () ->
         userService.updateUserProfile(testUser.getUserId(), update));

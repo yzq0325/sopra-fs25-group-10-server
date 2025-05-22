@@ -60,6 +60,8 @@ public class UserService {
     checkIfPasswordCorrect(newUser.getPassword());
 
     newUser.setAvatar(VALID_AVATARS.iterator().next());
+    newUser.setEmail("");
+    newUser.setBio("");
     newUser = userRepository.save(newUser);
     userRepository.flush();
 
@@ -130,16 +132,25 @@ public class UserService {
   public User updateUserProfile(Long userId, User updatedInfo) {
     User userInDB = userRepository.findByUserId(userId);
     checkIfUserNotExist(userId);
-    checkIfAvatarCorrect(updatedInfo);
-    checkIfUsernameExist(updatedInfo.getUsername());
-    checkIfUsernameCorrect(updatedInfo.getUsername());
-    checkIfEmailCorrect(updatedInfo.getEmail());
-    checkIfBioCorrect(updatedInfo.getBio());
-    userInDB.setUsername(updatedInfo.getUsername());
-    userInDB.updateGameHistory(updatedInfo.getUsername());
-    userInDB.setAvatar(updatedInfo.getAvatar());
-    userInDB.setEmail(updatedInfo.getEmail());
-    userInDB.setBio(updatedInfo.getBio());
+    
+    if(!updatedInfo.getUsername().equals(userInDB.getUsername())){
+      checkIfUsernameExist(updatedInfo.getUsername());
+      checkIfUsernameCorrect(updatedInfo.getUsername());
+      userInDB.setUsername(updatedInfo.getUsername());
+      userInDB.updateGameHistory(updatedInfo.getUsername());
+    }
+    if(!updatedInfo.getEmail().equals(userInDB.getEmail())){
+      checkIfEmailCorrect(updatedInfo.getEmail());
+      userInDB.setEmail(updatedInfo.getEmail());
+    }
+    if(!updatedInfo.getBio().equals(userInDB.getBio())){
+      checkIfBioCorrect(updatedInfo.getBio());
+      userInDB.setBio(updatedInfo.getBio());
+    }
+    if(!updatedInfo.getAvatar().equals(userInDB.getAvatar())){
+      checkIfAvatarCorrect(updatedInfo);
+      userInDB.setAvatar(updatedInfo.getAvatar());
+    }
 
     userRepository.save(userInDB);
     return userInDB;
@@ -230,7 +241,7 @@ public class UserService {
 
   private void checkIfEmailCorrect(String email) {
     String emailFormat = "^[A-Za-z0-9+_.-]+@([A-Za-z0-9-]+\\.)+[A-Za-z]{2,}$";
-    if(!(email == "")&&!(email == null)){
+    if(!(email == "")){
       if(!email.matches(emailFormat)) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The email is not correct! Please change one!");
       }
@@ -238,7 +249,7 @@ public class UserService {
   }
 
   private void checkIfBioCorrect(String bio){
-    if(!(bio == "")&&!(bio == null)){
+    if(!(bio == "")){
       if(bio.length() > 200) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The bio is too long! Please change!");
       }

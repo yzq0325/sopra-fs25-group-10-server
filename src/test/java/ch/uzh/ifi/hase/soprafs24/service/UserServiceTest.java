@@ -2,9 +2,11 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import java.util.Optional;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.constant.Country;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 
 import java.util.UUID;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
+import java.util.Optional;
+import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 public class UserServiceTest {
 
@@ -39,6 +49,9 @@ public class UserServiceTest {
     testUser.setUserId(1L);
     testUser.setUsername("testUsername");
     testUser.setPassword("testPassword");
+    testUser.setAvatar("/avatar_1.png");
+    testUser.setBio("");
+    testUser.setEmail("");
 
     // when -> any object is being save in the userRepository -> return the dummy
     // testUser
@@ -57,6 +70,9 @@ public class UserServiceTest {
     assertEquals(testUser.getUsername(), createdUser.getUsername());
     assertNotNull(createdUser.getToken());
     assertEquals(UserStatus.ONLINE, createdUser.getStatus());
+    assertNotNull(createdUser.getAvatar());
+    assertEquals("", createdUser.getEmail());
+    assertEquals("", createdUser.getBio());
   }
 
   @Test
@@ -330,6 +346,8 @@ public class UserServiceTest {
     User updateInfo = new User();
     updateInfo.setUsername("newUsername");
     updateInfo.setAvatar("invalid_avatar.png");
+    updateInfo.setBio("");
+    updateInfo.setEmail("");
 
     Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
     Mockito.when(userRepository.findByUsername("newUsername")).thenReturn(null);
@@ -340,5 +358,104 @@ public class UserServiceTest {
     );
     assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
     assertTrue(exception.getReason().contains("Invalid avatar selection"));
+  }
+
+  @Test
+  public void updateUserProfile_invalidEmailFormat_throwsException() {
+      User updateInfo = new User();
+      updateInfo.setUsername("validUsername");
+      updateInfo.setAvatar("/avatar_1.png");
+      updateInfo.setEmail("invalid-email");
+      updateInfo.setBio("");
+
+      Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
+      Mockito.when(userRepository.findByUsername("validUsername")).thenReturn(null);
+
+      ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+          userService.updateUserProfile(testUser.getUserId(), updateInfo)
+      );
+
+      assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+      assertTrue(exception.getReason().contains("The email is not correct"));
+  }
+
+  @Test
+  public void updateUserProfile_bioTooLong_throwsException() {
+      User updateInfo = new User();
+      updateInfo.setUsername("validUsername");
+      updateInfo.setAvatar("/avatar_1.png");
+      updateInfo.setEmail("valid@email.com");
+      updateInfo.setBio("a".repeat(201)); // 201 chars
+
+      Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
+      Mockito.when(userRepository.findByUsername("validUsername")).thenReturn(null);
+
+      ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+          userService.updateUserProfile(testUser.getUserId(), updateInfo)
+      );
+
+      assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+      assertTrue(exception.getReason().contains("The bio is too long"));
+  }
+
+  @Test
+  public void getUsers_returnsUserList_success() {
+      List<User> mockUsers = Collections.singletonList(testUser);
+      Mockito.when(userRepository.findAll()).thenReturn(mockUsers);
+
+      List<User> result = userService.getUsers();
+
+      assertEquals(1, result.size());
+      assertEquals(testUser.getUsername(), result.get(0).getUsername());
+  }
+
+  @Test
+  public void getUser_validId_returnsCorrectUserGetDTO() {
+      testUser.setLevel(new BigDecimal("3.0"));
+      Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+      UserGetDTO dto = userService.getUser(1L);
+
+      assertEquals("testUsername", dto.getUsername());
+      assertEquals(300, dto.getLevel()); // 3.0 * 100
+  }
+
+  @Test
+  public void getHistory_validUser_returnsGameHistory() {
+      User userWithHistory = new User();
+      userWithHistory.setUserId(1L);
+      userWithHistory.setUsername("testUser");
+      userWithHistory.setAvatar("/avatar_1.png");
+      userWithHistory.setBio("");
+      userWithHistory.setEmail("");
+
+      userWithHistory.setGameHistory("TestGame", 100, 5, 10, LocalDateTime.now(), 60, "combat", "easy");
+
+      Mockito.when(userRepository.findByUserId(1L)).thenReturn(userWithHistory);
+
+      UserGetDTO result = userService.getHistory(1L);
+
+      assertNotNull(result);
+      assertNotNull(result.getGameHistory());
+      assertEquals(1, result.getGameHistory().size());
+      assertEquals("TestGame", result.getGameHistory().get(0).getGameName());
+  }
+
+  @Test
+  public void getLearningTracking_validUser_returnsMap() {
+      User userWithTracking = new User();
+      userWithTracking.setUserId(1L);
+
+      userWithTracking.updateLearningTrack(Country.France);
+      userWithTracking.updateLearningTrack(Country.France);
+      userWithTracking.updateLearningTrack(Country.Germany);
+
+      Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(userWithTracking));
+
+      UserGetDTO dto = userService.getLearningTracking(1L);
+
+      assertNotNull(dto);
+      assertEquals(2, dto.getLearningTracking().get(Country.France));
+      assertEquals(1, dto.getLearningTracking().get(Country.Germany));
   }
 }

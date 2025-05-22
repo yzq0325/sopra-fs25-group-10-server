@@ -140,13 +140,13 @@ public class User implements Serializable {
     @Column(nullable = false)
     private String password;
 
-    @Column
+    @Column(nullable = false)
     private String avatar;
 
-    @Column
+    @Column(nullable = false)
     private String email;
 
-    @Column
+    @Column(nullable = false)
     private String bio;
 
     @ManyToOne
