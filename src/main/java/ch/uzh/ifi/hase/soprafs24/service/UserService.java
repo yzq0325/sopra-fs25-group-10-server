@@ -285,9 +285,10 @@ public class UserService {
 
   private void checkInactiveUsers() {
         long currentTime = System.currentTimeMillis();
-        
+        log.info("check!");
         userLastHeartBeatMap.forEach((userId, lastActiveTime) -> {
             if (currentTime - lastActiveTime > HEARTBEAT_TIMEOUT) {
+              log.info("logout!");
                 User userNotActive = userRepository.findByUserId(userId);
                 Game gameToExit = userNotActive.getGame();
                 if(gameToExit != null){
