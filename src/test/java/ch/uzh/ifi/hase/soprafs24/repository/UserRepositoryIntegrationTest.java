@@ -30,6 +30,9 @@ public class UserRepositoryIntegrationTest {
     user.setPassword("dummyPassword");
     user.setStatus(UserStatus.OFFLINE);
     user.setToken("1");
+    user.setAvatar("/avatar_1.png");
+    user.setBio("");
+    user.setEmail("");
 
     entityManager.persist(user);
     entityManager.flush();
@@ -52,6 +55,9 @@ public class UserRepositoryIntegrationTest {
     user.setPassword("dummyPassword");
     user.setStatus(UserStatus.OFFLINE);
     user.setToken("1");
+    user.setAvatar("/avatar_1.png");
+    user.setBio("");
+    user.setEmail("");
 
     entityManager.persist(user);
     entityManager.flush();

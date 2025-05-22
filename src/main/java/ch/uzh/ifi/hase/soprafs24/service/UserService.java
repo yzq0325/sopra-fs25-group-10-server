@@ -60,6 +60,8 @@ public class UserService {
     checkIfPasswordCorrect(newUser.getPassword());
 
     newUser.setAvatar(VALID_AVATARS.iterator().next());
+    newUser.setEmail("");
+    newUser.setBio("");
     newUser = userRepository.save(newUser);
     userRepository.flush();
 
@@ -137,11 +139,11 @@ public class UserService {
       userInDB.setUsername(updatedInfo.getUsername());
       userInDB.updateGameHistory(updatedInfo.getUsername());
     }
-    if(updatedInfo.getEmail()!= null){
+    if(!updatedInfo.getEmail().equals(userInDB.getEmail())){
       checkIfEmailCorrect(updatedInfo.getEmail());
       userInDB.setEmail(updatedInfo.getEmail());
     }
-    if(updatedInfo.getBio()!= null){
+    if(!updatedInfo.getBio().equals(userInDB.getBio())){
       checkIfBioCorrect(updatedInfo.getBio());
       userInDB.setBio(updatedInfo.getBio());
     }

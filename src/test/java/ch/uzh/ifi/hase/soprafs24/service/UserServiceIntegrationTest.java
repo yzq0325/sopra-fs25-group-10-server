@@ -47,6 +47,9 @@ public class UserServiceIntegrationTest {
     testUser = new User();
     testUser.setUsername("testUsername");
     testUser.setPassword("testPassword");
+    testUser.setAvatar("/avatar_1.png");
+    testUser.setEmail("");
+    testUser.setBio("");
     testUser.setStatus(UserStatus.OFFLINE);
     testUser.setToken(UUID.randomUUID().toString());
     userRepository.save(testUser);
@@ -226,6 +229,9 @@ public class UserServiceIntegrationTest {
     savedUser.setPassword("abc");
     savedUser.setToken(UUID.randomUUID().toString());
     savedUser.setStatus(UserStatus.OFFLINE);
+    savedUser.setAvatar("/avatar_1.png");
+    savedUser.setEmail("");
+    savedUser.setBio("");
 
     savedUser = userRepository.saveAndFlush(savedUser);
 
@@ -273,6 +279,8 @@ public class UserServiceIntegrationTest {
     User update = new User();
     update.setUsername("newName");
     update.setAvatar("/invalid.png");
+    update.setEmail("");
+    update.setBio("");
   
     assertThrows(ResponseStatusException.class, () ->
         userService.updateUserProfile(testUser.getUserId(), update));
@@ -285,10 +293,16 @@ public class UserServiceIntegrationTest {
     existing.setPassword("pass");
     existing.setToken(UUID.randomUUID().toString());
     existing.setStatus(UserStatus.OFFLINE);
+    existing.setAvatar("/avatar_1.png");
+    existing.setEmail("");
+    existing.setBio("");
     userRepository.saveAndFlush(existing);
   
     User update = new User();
     update.setUsername("duplicate");
+    update.setAvatar("/avatar_1.png");
+    update.setEmail("");
+    update.setBio("");
   
     assertThrows(ResponseStatusException.class, () ->
         userService.updateUserProfile(testUser.getUserId(), update));

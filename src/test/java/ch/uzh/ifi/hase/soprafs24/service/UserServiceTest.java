@@ -39,6 +39,9 @@ public class UserServiceTest {
     testUser.setUserId(1L);
     testUser.setUsername("testUsername");
     testUser.setPassword("testPassword");
+    testUser.setAvatar("/avatar_1.png");
+    testUser.setBio("");
+    testUser.setEmail("");
 
     // when -> any object is being save in the userRepository -> return the dummy
     // testUser
@@ -330,6 +333,8 @@ public class UserServiceTest {
     User updateInfo = new User();
     updateInfo.setUsername("newUsername");
     updateInfo.setAvatar("invalid_avatar.png");
+    updateInfo.setBio("");
+    updateInfo.setEmail("");
 
     Mockito.when(userRepository.findByUserId(testUser.getUserId())).thenReturn(testUser);
     Mockito.when(userRepository.findByUsername("newUsername")).thenReturn(null);
