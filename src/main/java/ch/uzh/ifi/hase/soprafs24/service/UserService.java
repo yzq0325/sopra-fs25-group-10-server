@@ -251,7 +251,7 @@ public class UserService {
   private void checkIfBioCorrect(String bio){
     if(!(bio == "")){
       if(bio.length() > 200) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The bio is too long! Please change!");
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The bio is too long! Bio cannot exceed 200 characters, please change!");
       }
     }
   }
