@@ -718,8 +718,8 @@ public class GameService {
         timingThread.start();
 
         // reset ready status
-        for (Long userId : gameToStart.getPlayers()) {
-            gameToStart.getReadyMap().put(userId, false);
+        for (Long userId : gameToStart.getReadyMap().keySet()) {
+            gameToStart.setNotReadyStatus(userId);
         }
         gameRepository.save(gameToStart);
         gameRepository.flush();
@@ -974,13 +974,11 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/status", readyMap);
 
         boolean allReady = true;
-        for(Long userId : game.getPlayers()){
-            if(game.getReadyMap().containsKey(userId)){
-                if(game.getReadyMap().get(userId) == false){
-                    allReady = false;
-                    break;
-                };
-            }
+        for(Long userId : game.getReadyMap().keySet()){
+            if(game.getReadyMap().get(userId) == false){
+                allReady = false;
+                break;
+            };
         }
 
         messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/canStart", allReady);
