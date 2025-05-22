@@ -829,7 +829,7 @@ public class GameService {
             return;
         }
         if(gameToSave.getModeType().equals("combat")){
-            for (Long userId : gameToSave.getScoreBoard().keySet()) {
+            for (Long userId : gameToSave.getPlayers()) {
                 User player = userRepository.findByUserId(userId);
                 player.setGameHistory(gameToSave.getGameName(), gameToSave.getScore(userId), gameToSave.getCorrectAnswers(userId), 
                 gameToSave.getTotalQuestions(userId), gameToSave.getGameCreationDate(), gameToSave.getTime(), gameToSave.getModeType(), gameToSave.getDifficulty());
