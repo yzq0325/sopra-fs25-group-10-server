@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -34,6 +35,9 @@ public class UserServiceTest {
 
   @Mock
   private UserRepository userRepository;
+
+  @Mock
+  private final ConcurrentHashMap<Long, Long> userLastHeartBeatMap = new ConcurrentHashMap<>();
 
   @InjectMocks
   private UserService userService;
@@ -203,19 +207,17 @@ public class UserServiceTest {
     // given
     User user = new User();
     user.setToken("validToken");
+    user.setUserId(1L);
+    userLastHeartBeatMap.put(1L, 0L);
 
-    User userInDB = new User();
-    userInDB.setToken("validToken");
-    userInDB.setStatus(UserStatus.ONLINE);
-
-    Mockito.when(userRepository.findByToken("validToken")).thenReturn(userInDB);
+    Mockito.when(userRepository.findByToken("validToken")).thenReturn(user);
 
     // when
     userService.logout(user);
 
     // then
-    Mockito.verify(userRepository).save(userInDB);
-    assertEquals(UserStatus.OFFLINE, userInDB.getStatus());
+    Mockito.verify(userRepository).save(user);
+    assertEquals(UserStatus.OFFLINE, user.getStatus());
   }
   
   @Test
