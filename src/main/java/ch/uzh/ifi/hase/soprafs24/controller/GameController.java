@@ -152,10 +152,10 @@ public class GameController {
     gameService.saveGame(gameId);
   }
 
-  @PutMapping("/checkready/{gameId}}")
+  @PutMapping("/checkready/{gameId}")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
-  public void checkReady (@PathVariable Long gameId){
-    gameService.broadcastReadyStatus(gameId);
+  public void restartCheckReady (@PathVariable Long gameId){
+    gameService.restartCheckReady(gameId);
   }
 }

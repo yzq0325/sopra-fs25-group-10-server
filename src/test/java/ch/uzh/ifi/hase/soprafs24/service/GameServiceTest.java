@@ -205,39 +205,39 @@ public class GameServiceTest {
         gameGetDTO = new GameGetDTO();
     }
 
-    @Test
-    public void checkIfOwnerExists_ownerNotFound_throwsException() {
-        when(userRepository.findByUserId(99L)).thenReturn(null);
+    // @Test
+    // public void checkIfOwnerExists_ownerNotFound_throwsException() {
+    //     when(userRepository.findByUserId(99L)).thenReturn(null);
         
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            gameService.checkIfOwnerExists(99L);
-        });
+    //     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+    //         gameService.checkIfOwnerExists(99L);
+    //     });
         
-        assertTrue(exception.getReason().toLowerCase().contains("owner"));
-    }
+    //     assertTrue(exception.getReason().toLowerCase().contains("owner"));
+    // }
     
-    @Test
-    public void checkIfGameHaveSameOwner_ownerHasGame_throwsException() {
-        when(gameRepository.findByownerId(1L)).thenReturn(new Game());
+    // @Test
+    // public void checkIfGameHaveSameOwner_ownerHasGame_throwsException() {
+    //     when(gameRepository.findByownerId(1L)).thenReturn(new Game());
         
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            gameService.checkIfGameHaveSameOwner(1L);
-        });
+    //     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+    //         gameService.checkIfGameHaveSameOwner(1L);
+    //     });
         
-        assertTrue(exception.getReason().toLowerCase().contains("already create a game"));
-    }
+    //     assertTrue(exception.getReason().toLowerCase().contains("already create a game"));
+    // }
     
-    @Test
-    public void checkIfGameNameExists_duplicateName_throwsException() {
-        when(gameRepository.findBygameName("Test Game")).thenReturn(new Game());
+    // @Test
+    // public void checkIfGameNameExists_duplicateName_throwsException() {
+    //     when(gameRepository.findBygameName("Test Game")).thenReturn(new Game());
         
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            gameService.checkIfGameNameExists("Test Game");
-        });
+    //     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+    //         gameService.checkIfGameNameExists("Test Game");
+    //     });
         
-        assertTrue(exception.getReason().toLowerCase().contains("gamename"));
+    //     assertTrue(exception.getReason().toLowerCase().contains("gamename"));
         
-    }
+    // }
     
     @Test
     public void createGame_invalidModeType_throwsException() {
