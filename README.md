@@ -124,9 +124,28 @@ You need to have:
 - Access to the [GitHub project](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server) for the CI/CD
   Pipeline.
 - Access to the GCP project `sopra-fs25-group-10-server`
-- MailJet API credentials for sending notifications from the dev session.
 - Installed and initialized the gcloud cli: https://cloud.google.com/sdk/docs/install-sdk
 
+**Important:**  
+You must set up your Gemini API key in the project by adding your Gemini API key to your [`UtilService.java`](./src/main/java/ch/uzh/ifi/hase/soprafs24/service/UtilService.java)
+```java
+private static final String GEMINI_API_KEY = "<YOUR KEY HERE>"; 
+```
+You can also setup `.env` file:
+Create a `.env` file in the root of your backend project (make sure to add `.env` to your `.gitignore` to keep it private):
+`
+GEMINI_API_KEY=<YOUR KEY HERE>
+`
+Then, in your J[`UtilService.java`](./src/main/java/ch/uzh/ifi/hase/soprafs24/service/UtilService.java) you can load it like this:
+
+```java
+import java.util.Optional;
+
+public class ApiKeyUtil {
+    public static final String GEMINI_API_KEY = Optional.ofNullable(System.getenv("GEMINI_API_KEY"))
+        .orElseThrow(() -> new RuntimeException("GEMINI_API_KEY not set in environment variables"));
+}
+```
 #### Setup Instructions
 As for developing locally, everything is managed via an in memory H2 Database. So no setup is necessary.
 
