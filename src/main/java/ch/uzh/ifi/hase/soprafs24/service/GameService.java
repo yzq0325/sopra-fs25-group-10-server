@@ -942,7 +942,7 @@ public class GameService {
             User playerToEnd = userRepository.findByUserId(userId);
             gameToEnd.updateScore(userId, -1);
             playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ),
-                    gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(),gameToEnd.getModeType(), gameToEnd.getDifficulty());
+            gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(),gameToEnd.getModeType(), gameToEnd.getDifficulty());
             playerToEnd.setGame(null);
             userRepository.save(playerToEnd);
             userRepository.flush();
