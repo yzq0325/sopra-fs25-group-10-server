@@ -203,21 +203,14 @@ public class UserService {
       log.info("heartbeat: {}", userId);
       List<UserGetDTO> allusersDTO =  new ArrayList<>();
 
-      for(Long userid : userLastHeartBeatMap.keySet() ){
-          UserGetDTO userGetDTO = new UserGetDTO();
-          userGetDTO.setUserId(userid);
-          if(userRepository.findByUserId(userid).getGame()!=null && userRepository.findByUserId(userid).getGame().getGameRunning() == true){
-            userGetDTO.setIsPlayingGame(true);
-          }else{
-            userGetDTO.setIsPlayingGame(false);
-          }
-          allusersDTO.add(userGetDTO);
-      }
       if(userRepository.findByUserId(userId).getStatus().equals(UserStatus.ONLINE)){
           userLastHeartBeatMap.put(userId, System.currentTimeMillis());
       }
-
-
+      for(Long userid : userLastHeartBeatMap.keySet() ){
+          UserGetDTO userGetDTO = new UserGetDTO();
+          userGetDTO.setUserId(userid);
+          allusersDTO.add(userGetDTO);
+      }
       return allusersDTO;
 
   }
@@ -303,23 +296,43 @@ public class UserService {
     }
   }
 
-  private void checkInactiveUsers() {
+    private void checkInactiveUsers() {
         long currentTime = System.currentTimeMillis();
         log.info("check!");
         log.info("userLastHeartBeatMap: {}", userLastHeartBeatMap);
+
+        List<Long> toRemove = new ArrayList<>();
+
         userLastHeartBeatMap.forEach((userId, lastActiveTime) -> {
             if (currentTime - lastActiveTime > HEARTBEAT_TIMEOUT) {
-              log.info("logout!");
-                User userNotActive = userRepository.findByUserId(userId);
-                Game gameToExit = userNotActive.getGame();
-                if(gameToExit != null){
-                    gameService.giveupGame(userId);
-                }
-                logout(userNotActive);
+                log.info("logout user: {}", userId);
+                try {
+                    User userNotActive = userRepository.findByUserId(userId);
+                    if (userNotActive == null) {
+                        toRemove.add(userId);
+                        return;
+                    }
 
-                userLastHeartBeatMap.remove(userId);
+                    Game gameToExit = userNotActive.getGame();
+                    if (gameToExit != null) {
+                        if (gameToExit.getModeType().equals("exercise")) {
+                            gameService.saveGame(gameToExit.getGameId());
+                        } else {
+                            gameService.giveupGame(userId);
+                        }
+                    }
+                    logout(userNotActive);
+
+                    toRemove.add(userId);
+                } catch (Exception e) {
+                    log.error("Error while logging out inactive user: {}", userId, e);
+                }
             }
         });
+
+        // Safe removal after traversal
+        toRemove.forEach(userLastHeartBeatMap::remove);
     }
+
 }
 
