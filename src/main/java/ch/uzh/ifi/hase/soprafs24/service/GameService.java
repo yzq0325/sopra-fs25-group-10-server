@@ -132,7 +132,11 @@ public class GameService {
 
     public void userJoinGame(Game gameToBeJoined, Long userId) {
         Game targetGame = gameRepository.findBygameId(gameToBeJoined.getGameId());
+        if(targetGame == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"This game does not exist!");
+        }
         if(targetGame.getPlayers().contains(userId)){return;}
+       
         if (targetGame.getGameRunning().equals(false)) {
             if (targetGame.getRealPlayersNumber() != targetGame.getPlayersNumber()) {
                 if (gameToBeJoined.getPassword().equals(targetGame.getPassword())) {
@@ -275,6 +279,9 @@ public class GameService {
 
     public List<User> getGamePlayers(Long gameId) {
         Game gameJoined = gameRepository.findBygameId(gameId);
+        if(gameJoined == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"This game does not exist!");
+        }
         List<Long> allPlayers = gameJoined.getPlayers();
 
         List<User> players = new ArrayList<>();
