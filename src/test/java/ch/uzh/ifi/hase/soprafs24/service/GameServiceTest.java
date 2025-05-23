@@ -81,6 +81,8 @@ public class GameServiceTest {
     private User owner;
     private User player2;
     private User ownerSolo;
+    private Map<Long, Country> answers;
+    private Map<Country, List<Map<String, Object>>> generatedHints;
 
     @BeforeEach
     public void setup() {
@@ -214,6 +216,11 @@ public class GameServiceTest {
         testGameReadyMap.put(2L, true); // Player
         testGame.setReadyMap(testGameReadyMap);
         testGame.setPlayers(new ArrayList<>(Arrays.asList(1L, 2L)));
+
+        answers = new HashMap<>();
+        generatedHints = new HashMap<>();
+        ReflectionTestUtils.setField(gameService, "answers", answers);
+        ReflectionTestUtils.setField(gameService, "generatedHints", generatedHints);
     }
 
     // @Test
@@ -1499,5 +1506,71 @@ void restartCheckReady_allPlayersReady_noExceptionThrown() {
     }
 
 
+@Test
+    void nextQuestion_ExerciseMode_gameExists_returnsGameGetDTO() {
+        // Arrange
+        Long gameId = 1L;
+        Map<Country, List<Map<String, Object>>> hints = new HashMap<>();
+        List<Map<String, Object>> hintList = Collections.singletonList(Map.of("hint", "In Europe"));
+        hints.put(Country.Switzerland, hintList);
 
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGame);
+        // Mock getHintsOfOneCountry（假设在 GameService 中）
+        doReturn(hints).when(gameService).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+
+        // Act
+        GameGetDTO result = gameService.nextQuestion_ExerciseMode(gameId);
+
+        // Assert
+        assertNotNull(result, "GameGetDTO should not be null");
+        assertEquals(hintList, result.getHints(), "Hints should match");
+        assertEquals(Country.Switzerland.ordinal(), result.getAnswer(), "Answer should match Switzerland's ordinal");
+        assertEquals(Country.Switzerland, answers.get(testGame.getOwnerId()), "Answers map should contain ownerId and Switzerland");
+
+        verify(gameRepository, times(1)).findBygameId(gameId);
+        verify(gameService, times(1)).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+    }
+
+    @Test
+    void nextQuestion_ExerciseMode_emptyHints_throwsException() {
+        // Arrange
+        Long gameId = 1L;
+        Map<Country, List<Map<String, Object>>> emptyHints = new HashMap<>();
+
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGame);
+        doReturn(emptyHints).when(gameService).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+
+        // Act & Assert
+        assertThrows(NoSuchElementException.class, () -> {
+            gameService.nextQuestion_ExerciseMode(gameId);
+        }, "Should throw NoSuchElementException for empty hints");
+
+        verify(gameRepository, times(1)).findBygameId(gameId);
+        verify(gameService, times(1)).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+        assertTrue(answers.isEmpty(), "Answers map should remain empty");
+    }
+
+    @Test
+    void nextQuestion_ExerciseMode_singleHint_returnsGameGetDTO() {
+        // Arrange
+        Long gameId = 1L;
+        Map<Country, List<Map<String, Object>>> hints = new HashMap<>();
+        List<Map<String, Object>> hintList = Collections.singletonList(Map.of("hint", "Capital is Bern"));
+        hints.put(Country.Switzerland, hintList);
+
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGame);
+        doReturn(hints).when(gameService).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+
+        // Act
+        GameGetDTO result = gameService.nextQuestion_ExerciseMode(gameId);
+
+        // Assert
+        assertNotNull(result, "GameGetDTO should not be null");
+        assertEquals(hintList, result.getHints(), "Hints should match");
+        assertEquals(Country.Switzerland.ordinal(), result.getAnswer(), "Answer should match Switzerland's ordinal");
+        assertEquals(Country.Switzerland, answers.get(testGame.getOwnerId()), "Answers map should contain ownerId and Switzerland");
+
+        verify(gameRepository, times(1)).findBygameId(gameId);
+        verify(gameService, times(1)).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+    }
 }
