@@ -206,6 +206,11 @@ public class UserService {
       for(Long userid : userLastHeartBeatMap.keySet() ){
           UserGetDTO userGetDTO = new UserGetDTO();
           userGetDTO.setUserId(userid);
+          if(userRepository.findByUserId(userid).getGame()!=null){
+            userGetDTO.setIsPlayingGame(true);
+          }else{
+            userGetDTO.setIsPlayingGame(false);
+          }
           allusersDTO.add(userGetDTO);
       }
       if(userRepository.findByUserId(userId).getStatus().equals(UserStatus.ONLINE)){
