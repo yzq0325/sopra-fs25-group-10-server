@@ -43,7 +43,7 @@ public class UserService {
 
   private static final long HEARTBEAT_TIMEOUT = 5000;
     
-  private static final long CHECK_INTERVAL = 5000;
+  private static final long CHECK_INTERVAL = 2000;
 
   @PostConstruct
   public void init() {
