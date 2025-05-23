@@ -10,6 +10,8 @@
     <i style="font-weight: bold;">Server</i>
 </p>
 
+<h4 align="center">
+
 [![build](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/actions/workflows/build.yml/badge.svg)](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/actions/workflows/build.yml)
 [![coverage](https://sonarcloud.io/api/project_badges/measure?project=T0hsakaR1n126_sopra-fs25-group-10-server&metric=coverage)](https://sonarcloud.io/summary/overview?id=T0hsakaR1n126_sopra-fs25-group-10-server)
 [![dockerize](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/actions/workflows/dockerize.yml/badge.svg)](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/actions/workflows/dockerize.yml)
@@ -79,6 +81,7 @@ Here we show you the component tree at L1 for this repository where you see most
 └── service
     ├── GameService.java
     ├── UserService.java
+    ├── UtilService.java
 ```
 
 ### [`main app folder`](./src/main/java/ch/uzh/ifi/hase/soprafs24/)
