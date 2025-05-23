@@ -14,7 +14,6 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.Payload;
 
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
 /**
@@ -151,5 +150,19 @@ public class GameController {
   @ResponseBody
   public void finishexercisegame (@PathVariable Long gameId){
     gameService.saveGame(gameId);
+  }
+
+  @PutMapping("/checkready/{gameId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void restartCheckReady (@PathVariable Long gameId){
+    gameService.restartCheckReady(gameId);
+  }
+
+  @PutMapping("/startcounter/{gameId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void startTimeCounter(@PathVariable Long gameId){
+    gameService.startTimeCounter(gameId);
   }
 }

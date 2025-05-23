@@ -222,7 +222,16 @@ public class UtilService {
         int seconds = totalSeconds % 60;
         return String.format("%02d:%02d", minutes, seconds);
     }
-    
+
+    @Async
+    public void startTimingCounter(int seconds, Long gameId) {
+        try {
+            timingCounter(seconds, gameId);
+        } catch (Exception e) {
+            log.error("Countdown failed for game {}", gameId, e);
+        }
+    }
+
     public void timingCounter(int seconds, Long gameId) {
         try {
             if (gameRepository.findBygameId(gameId) == null) { return; }

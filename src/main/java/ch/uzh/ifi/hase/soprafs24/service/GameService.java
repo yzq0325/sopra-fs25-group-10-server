@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +54,7 @@ public class GameService {
     private Map<Long, Country> answers = new HashMap<>();
 
     private final ConcurrentHashMap<Long, ReentrantLock> userLocks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, ReentrantLock> gameLocks = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, AtomicBoolean> refillInProgress = new ConcurrentHashMap<>();
 
     @Autowired
@@ -103,7 +106,7 @@ public class GameService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid mode type: must be 'solo' or 'combat'");
         }
         gameCreated.setModeType(mode);
-
+        checkIfGamePasswordCorrect(gameToCreate.getPassword());
         gameCreated.setPassword(gameToCreate.getPassword());
         gameCreated = gameRepository.save(gameCreated);
         gameRepository.flush();
@@ -132,7 +135,11 @@ public class GameService {
 
     public void userJoinGame(Game gameToBeJoined, Long userId) {
         Game targetGame = gameRepository.findBygameId(gameToBeJoined.getGameId());
+        if(targetGame == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"This game does not exist!");
+        }
         if(targetGame.getPlayers().contains(userId)){return;}
+       
         if (targetGame.getGameRunning().equals(false)) {
             if (targetGame.getRealPlayersNumber() != targetGame.getPlayersNumber()) {
                 if (gameToBeJoined.getPassword().equals(targetGame.getPassword())) {
@@ -229,24 +236,33 @@ public class GameService {
         utilService.removeCacheForGame(targetGame.getGameId());
     }
 
-    public void checkIfOwnerExists(Long userId) {
+    private void checkIfOwnerExists(Long userId) {
         User userwithUserId = userRepository.findByUserId(userId);
         if (userwithUserId == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner doesn't exists! Please try an existed ownername");
         }
     }
 
-    public void checkIfGameHaveSameOwner(Long userId) {
+    private void checkIfGameHaveSameOwner(Long userId) {
         Game gameWithSameOwner = gameRepository.findByownerId(userId);
         if (gameWithSameOwner != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This owner have already create a game! Please use another one!");
         }
     }
 
-    public void checkIfGameNameExists(String gameName) {
+    private void checkIfGameNameExists(String gameName) {
         Game gameWithSameName = gameRepository.findBygameName(gameName);
         if (gameWithSameName != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "GameName exists! Please try a new one!");
+        }
+    }
+
+    private void checkIfGamePasswordCorrect(String password){
+        if(password.contains(" ")){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password can not contain space! Please change one!");
+        }
+        else if(password.length()>4){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password is too long! Game password cannot exceed 4 characters, please change one!");
         }
     }
 
@@ -275,6 +291,9 @@ public class GameService {
 
     public List<User> getGamePlayers(Long gameId) {
         Game gameJoined = gameRepository.findBygameId(gameId);
+        if(gameJoined == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"This game does not exist!");
+        }
         List<Long> allPlayers = gameJoined.getPlayers();
 
         List<User> players = new ArrayList<>();
@@ -354,7 +373,6 @@ public class GameService {
             }
             gameCreated.setModeType(mode);
 
-            gameCreated.setPassword(gameToStart.getPassword());
             gameCreated = gameRepository.save(gameCreated);
             gameRepository.flush();
 
@@ -366,13 +384,13 @@ public class GameService {
             messagingTemplate.convertAndSend("/topic/startsolo/" + gameCreated.getOwnerId() + "/gameId", gameCreated.getGameId());
             log.info("websocket send: gameId!");
 
-            try {
-                Thread.sleep(500);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
+             try {
+                 Thread.sleep(500);
+             }
+             catch (InterruptedException e) {
+                 Thread.currentThread().interrupt();
+                 messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+             }
 
             gameCreated.updateScore(gameCreated.getOwnerId(), 0);
             for (Long userId : gameCreated.getPlayers()) {
@@ -412,13 +430,13 @@ public class GameService {
             utilService.refillHintQueue(gameCreated.getGameId(), gameCreated.getDifficulty());
 
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
-            try {
-                Thread.sleep(6000);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
+             try {
+                 Thread.sleep(6000);
+             }
+             catch (InterruptedException e) {
+                 Thread.currentThread().interrupt();
+                 messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+             }
 
             // push hints
             GameGetDTO gameHintDTO = new GameGetDTO();
@@ -446,17 +464,17 @@ public class GameService {
 
             // countdown
             // utilService.countdown(gameId, gameToStart.getTime());
-            try {
-                Thread.sleep(2000);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
-            Game finalGameToStart = gameCreated;
-            if(finalGameToStart.getTime()==-1){return;}
-            Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
-            timingThread.start();
+//             try {
+//                 Thread.sleep(2000);
+//             }
+//             catch (InterruptedException e) {
+//                 Thread.currentThread().interrupt();
+//                 messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+//             }
+            // Game finalGameToStart = gameCreated;
+            // if(finalGameToStart.getTime()==-1){return;}
+            // Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
+            // timingThread.start();
         } finally {
             lock.unlock();
             userLocks.remove(gameUserId);
@@ -501,7 +519,6 @@ public class GameService {
             }
             gameCreated.setModeType(mode);
 
-            gameCreated.setPassword(gameToStart.getPassword());
             gameCreated = gameRepository.save(gameCreated);
             gameRepository.flush();
 
@@ -513,13 +530,13 @@ public class GameService {
             messagingTemplate.convertAndSend("/topic/startExercise/" + gameCreated.getOwnerId() + "/gameId", gameCreated.getGameId());
             log.info("websocket send: gameId!");
 
-            try {
-                Thread.sleep(500);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
+             try {
+                 Thread.sleep(500);
+             }
+             catch (InterruptedException e) {
+                 Thread.currentThread().interrupt();
+                 messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+             }
             
             gameCreated.setGameRunning(true);
 
@@ -531,13 +548,13 @@ public class GameService {
 
             // countdown
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
-            try {
-                Thread.sleep(6000);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
+             try {
+                 Thread.sleep(6000);
+             }
+             catch (InterruptedException e) {
+                 Thread.currentThread().interrupt();
+                 messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+             }
 
             // push hints
             GameGetDTO gameHintDTO = new GameGetDTO();
@@ -645,6 +662,11 @@ public class GameService {
         }
         return hint;
     }
+    
+    public void startTimeCounter(Long gameId) {
+        Game gameToStart = gameRepository.findBygameId(gameId);
+        utilService.startTimingCounter(gameToStart.getTime() * 60, gameToStart.getGameId());
+    }
 
     public void startGame(Long gameId) {
         Game gameToStart = gameRepository.findBygameId(gameId);
@@ -703,13 +725,13 @@ public class GameService {
 
         // countdown
         messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", 5);
-        try {
-            Thread.sleep(6000);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-        }
+         try {
+             Thread.sleep(6000);
+         }
+         catch (InterruptedException e) {
+             Thread.currentThread().interrupt();
+             messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+         }
 
         // push hints
         GameGetDTO gameHintDTO = new GameGetDTO();
@@ -734,17 +756,17 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/start/" + gameId + "/hints", gameHintDTO);
         log.info("websocket send: hints!");
 
-        try {
-            Thread.sleep(2000);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-        }
+//         try {
+//             Thread.sleep(2000);
+//         }
+//         catch (InterruptedException e) {
+//             Thread.currentThread().interrupt();
+//             messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+//         }
 
-        Game finalGameToStart = gameToStart;
-        Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, gameId));
-        timingThread.start();
+        // Game finalGameToStart = gameToStart;
+        // Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, gameId));
+        // timingThread.start();
 
         // reset ready status
         for (Long userId : gameToStart.getReadyMap().keySet()) {
@@ -806,15 +828,6 @@ public class GameService {
                     int score = targetGame.getScore(userid);
                     scoreBoardFront.put(username, score);
                 }
-                // scoreBoardFront.entrySet()
-                //         .stream()
-                //         .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
-                //         .collect(Collectors.toMap(
-                //                 Map.Entry::getKey,
-                //                 Map.Entry::getValue,
-                //                 (e1, e2) -> e1,
-                //                 LinkedHashMap::new
-                //         ));
                 messagingTemplate.convertAndSend("/topic/user/"+targetGame.getGameId()+"/scoreBoard", scoreBoardFront);
                 log.info("websocket send!");
 
@@ -836,15 +849,6 @@ public class GameService {
                     int score = (targetGame.getScoreBoard()).get(userid);
                     scoreBoardFront.put(username, score);
                 }
-                // scoreBoardFront.entrySet()
-                //         .stream()
-                //         .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
-                //         .collect(Collectors.toMap(
-                //                 Map.Entry::getKey,
-                //                 Map.Entry::getValue,
-                //                 (e1, e2) -> e1,
-                //                 LinkedHashMap::new
-                //         ));
                 messagingTemplate.convertAndSend("/topic/user/"+targetGame.getGameId()+"/scoreBoard", scoreBoardFront);
                 log.info("websocket send!");
 
@@ -854,8 +858,18 @@ public class GameService {
     }
     
     public void saveGame(Long gameId) {
-        Game gameToSave = gameRepository.findBygameId(gameId);
+        ReentrantLock lock = gameLocks.computeIfAbsent(gameId, k -> new ReentrantLock());
+        boolean acquired = lock.tryLock();
+        if (!acquired) {
+            log.warn("Another createGame is already running for user {}", gameId);
+            return;
+        }
+        try{
+             Game gameToSave = gameRepository.findBygameId(gameId);
         if (gameToSave == null ) {
+            return;
+        }
+        if(gameToSave.getGameRunning() == false){
             return;
         }
         if(gameToSave.getModeType().equals("combat")){
@@ -900,6 +914,11 @@ public class GameService {
             gameRepository.deleteByGameId(gameId);
         }
         utilService.removeCacheForGame(gameId);
+        }
+        finally{    
+            lock.unlock();
+            gameLocks.remove(gameId);
+        }
     }
 
     public void giveupGame(Long userId) {
@@ -960,15 +979,6 @@ public class GameService {
                 int score = (gameToEnd.getScoreBoard()).get(userid);
                 scoreBoardFront.put(username, score);
             }
-            // scoreBoardFront.entrySet()
-            //         .stream()
-            //         .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
-            //         .collect(Collectors.toMap(
-            //                 Map.Entry::getKey,
-            //                 Map.Entry::getValue,
-            //                 (e1, e2) -> e1,
-            //                 LinkedHashMap::new
-            //         ));
             messagingTemplate.convertAndSend("/topic/user/"+gameToEnd.getGameId()+"/scoreBoard", scoreBoardFront);
             log.info("websocket send: scoreBoard!");
 
@@ -996,7 +1006,7 @@ public class GameService {
         return leaderBoard;
     }
 
-    void broadcastReadyStatus(Long gameId) { //change permissions for test
+    public void broadcastReadyStatus(Long gameId) { //change permissions for test
         Game game = gameRepository.findBygameId(gameId);
         Map<Long, Boolean> readyMap = game.getReadyMap();
 
@@ -1011,5 +1021,19 @@ public class GameService {
         }
 
         messagingTemplate.convertAndSend("/topic/ready/" + gameId + "/canStart", allReady);
+    }
+
+    public void restartCheckReady(Long gameId){
+        Game game = gameRepository.findBygameId(gameId);
+        boolean allReady = true;
+        for(Long userId : game.getReadyMap().keySet()){
+            if(game.getReadyMap().get(userId) == false){
+                allReady = false;
+                break;
+            };
+        }
+        if(allReady == false){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Someone is not ready!");
+        }
     }
 }

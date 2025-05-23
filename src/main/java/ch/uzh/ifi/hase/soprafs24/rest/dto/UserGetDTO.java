@@ -20,6 +20,7 @@ public class UserGetDTO {
   private List<GameQuickSave> gameHistory;
   private Map<Country, Integer> learningTracking;
   private Map<Long, Boolean> readyMap;
+  private boolean isPlayingGame;
 
   public Long getUserId() {
     return userId;
@@ -107,5 +108,13 @@ public class UserGetDTO {
 
   public Map<Long, Boolean> getReadyMap(){
     return readyMap;
+  }
+
+  public void setIsPlayingGame(boolean isPlayingGame){
+    this.isPlayingGame = isPlayingGame;
+  }
+
+  public boolean getIsPlayingGame(){
+    return isPlayingGame;
   }
 }
