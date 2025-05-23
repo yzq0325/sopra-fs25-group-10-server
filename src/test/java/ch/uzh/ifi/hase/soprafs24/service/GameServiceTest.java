@@ -234,40 +234,6 @@ public class GameServiceTest {
         ReflectionTestUtils.setField(gameService, "answers", answers);
         ReflectionTestUtils.setField(gameService, "generatedHints", generatedHints);
     }
-
-    // @Test
-    // public void checkIfOwnerExists_ownerNotFound_throwsException() {
-    //     when(userRepository.findByUserId(99L)).thenReturn(null);
-        
-    //     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-    //         gameService.checkIfOwnerExists(99L);
-    //     });
-        
-    //     assertTrue(exception.getReason().toLowerCase().contains("owner"));
-    // }
-    
-    // @Test
-    // public void checkIfGameHaveSameOwner_ownerHasGame_throwsException() {
-    //     when(gameRepository.findByownerId(1L)).thenReturn(new Game());
-        
-    //     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-    //         gameService.checkIfGameHaveSameOwner(1L);
-    //     });
-        
-    //     assertTrue(exception.getReason().toLowerCase().contains("already create a game"));
-    // }
-    
-    // @Test
-    // public void checkIfGameNameExists_duplicateName_throwsException() {
-    //     when(gameRepository.findBygameName("Test Game")).thenReturn(new Game());
-        
-    //     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-    //         gameService.checkIfGameNameExists("Test Game");
-    //     });
-        
-    //     assertTrue(exception.getReason().toLowerCase().contains("gamename"));
-        
-    // }
     
     @Test
     public void createGame_invalidModeType_throwsException() {
@@ -1171,7 +1137,7 @@ public class GameServiceTest {
     }
     
     @Test
-    void startExerciseGame_threadInterrupted_sendsTimerInterruptedMessage() {
+    public void startExerciseGame_threadInterrupted_sendsTimerInterruptedMessage() {
         // Arrange
         Game inputGame = new Game();
         inputGame.setOwnerId(1L);
@@ -1205,7 +1171,7 @@ public class GameServiceTest {
     } 
 
     @Test
-    void startCombatGame_notAllPlayersReady_throwsResponseStatusException() {
+    public void startCombatGame_notAllPlayersReady_throwsResponseStatusException() {
         // Arrange
         Long gameId = 3L;
         when(gameRepository.findBygameId(gameId)).thenReturn(testGameCombat);
@@ -1222,7 +1188,7 @@ public class GameServiceTest {
     }
     
     @Test
-    void startCombatGame_gameNotFound_throwsResponseStatusException() {
+    public void startCombatGame_gameNotFound_throwsResponseStatusException() {
         // Arrange
         Long gameId = 3L;
         when(gameRepository.findBygameId(gameId)).thenReturn(null);
@@ -1239,7 +1205,7 @@ public class GameServiceTest {
     }
     
     @Test
-   void startCombatGame_validGame_startGameSuccessfully() throws InterruptedException {
+    public void startCombatGame_validGame_startGameSuccessfully() throws InterruptedException {
         // Arrange
         Long gameId = 3L;
         Map<Long, Boolean> currentReadyMap = testGameCombat.getReadyMap();
@@ -1260,7 +1226,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void startCombatGame_threadInterrupted_sendsTimerInterruptedMessage() {
+    public void startCombatGame_threadInterrupted_sendsTimerInterruptedMessage() {
         // Arrange
         Long gameId = 1L;
 
@@ -1286,7 +1252,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void getHintsOfOneCountry_shouldReturnHints_withoutRefill() {
+    public void getHintsOfOneCountry_shouldReturnHints_withoutRefill() {
         Long gameId = 1L;
         Long userId = 1L;
         String difficulty = "easy";
@@ -1319,7 +1285,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void restartCheckReady_allPlayersReady_noExceptionThrown() {
+    public void restartCheckReady_allPlayersReady_noExceptionThrown() {
         // Arrange
         Long gameId = 1L;
         when(gameRepository.findBygameId(gameId)).thenReturn(testGame);
@@ -1332,7 +1298,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void restartCheckReady_somePlayersNotReady_throwsBadRequest() {
+    public void restartCheckReady_somePlayersNotReady_throwsBadRequest() {
         // Arrange
         Long gameId = 3L; // Use testGameCombat where player2 is not ready
         when(gameRepository.findBygameId(gameId)).thenReturn(testGameCombat);
@@ -1348,7 +1314,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void restartCheckReady_gameNotFound_throwsNotFound() {
+    public void restartCheckReady_gameNotFound_throwsNotFound() {
         // Arrange
         Long gameId = 999L;
         when(gameRepository.findBygameId(gameId)).thenReturn(null);
@@ -1364,7 +1330,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void restartCheckReady_emptyReadyMap_noExceptionThrown() {
+    public void restartCheckReady_emptyReadyMap_noExceptionThrown() {
         // Arrange
         Long gameId = 2L;
         testGameSolo.setReadyMap(new HashMap<>()); // Empty readyMap
@@ -1378,7 +1344,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void getLeaderboard_multipleUsers_returnsSortedList() {
+    public void getLeaderboard_multipleUsers_returnsSortedList() {
         // Arrange
         User user1 = new User();
         user1.setUserId(1L);
@@ -1426,7 +1392,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void getLeaderboard_emptyUserList_returnsEmptyList() {
+    public void getLeaderboard_emptyUserList_returnsEmptyList() {
         // Arrange
         when(userRepository.findAll()).thenReturn(Collections.emptyList());
 
@@ -1439,7 +1405,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void getLeaderboard_singleUser_returnsSingleDTO() {
+    public void getLeaderboard_singleUser_returnsSingleDTO() {
         // Arrange
         User user = new User();
         user.setUserId(1L);
@@ -1463,7 +1429,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void getLeaderboard_usersWithDecimalAndNegativeLevels_handlesCorrectly() {
+    public void getLeaderboard_usersWithDecimalAndNegativeLevels_handlesCorrectly() {
         // Arrange
         User user1 = new User();
         user1.setUserId(1L);
@@ -1494,7 +1460,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void getLeaderboard_nullUsernameOrAvatar_handlesCorrectly() {
+    public void getLeaderboard_nullUsernameOrAvatar_handlesCorrectly() {
         // Arrange
         User user = new User();
         user.setUserId(1L);
@@ -1518,8 +1484,8 @@ public class GameServiceTest {
     }
 
 
-@Test
-    void nextQuestion_ExerciseMode_gameExists_returnsGameGetDTO() {
+    @Test
+    public void nextQuestion_ExerciseMode_gameExists_returnsGameGetDTO() {
         // Arrange
         Long gameId = 1L;
         Map<Country, List<Map<String, Object>>> hints = new HashMap<>();
@@ -1544,7 +1510,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void nextQuestion_ExerciseMode_emptyHints_throwsException() {
+    public void nextQuestion_ExerciseMode_emptyHints_throwsException() {
         // Arrange
         Long gameId = 1L;
         Map<Country, List<Map<String, Object>>> emptyHints = new HashMap<>();
@@ -1563,7 +1529,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void nextQuestion_ExerciseMode_singleHint_returnsGameGetDTO() {
+    public void nextQuestion_ExerciseMode_singleHint_returnsGameGetDTO() {
         // Arrange
         Long gameId = 1L;
         Map<Country, List<Map<String, Object>>> hints = new HashMap<>();
@@ -1584,8 +1550,10 @@ public class GameServiceTest {
 
         verify(gameRepository, times(1)).findBygameId(gameId);
         verify(gameService, times(1)).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
-
-    void testGiveupGame_SoloPlayer_GameDeleted() {
+    }
+    
+    @Test
+    public void testGiveupGame_SoloPlayer_GameDeleted() {
         Long userId = 1L;
         Game game = spy(new Game());
         game.setGameId(100L);
@@ -1622,7 +1590,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void testGiveupGame_Multiplayer_OwnerQuits() {
+    public void testGiveupGame_Multiplayer_OwnerQuits() {
         // Given
         Long ownerId = owner.getUserId();        // 1L
         Long newOwnerId = player2.getUserId();   // 2L
@@ -1684,7 +1652,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void testSaveGame_GameNotFoundOrNotRunning() {
+    public void testSaveGame_GameNotFoundOrNotRunning() {
         Long gameId = 4L;
 
         when(gameRepository.findBygameId(gameId)).thenReturn(null);
@@ -1702,7 +1670,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void testSaveGame_SoloMode() {
+    public void testSaveGame_SoloMode() {
         Long gameId = 2L;
 
         // Mock the Game object (not real)
@@ -1741,7 +1709,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void testGetHintsOfOneCountry() {
+    public void testGetHintsOfOneCountry() {
         Long gameId = 1L;
         Long userId = 100L;
         String difficulty = "easy";
