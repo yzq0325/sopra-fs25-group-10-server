@@ -15,8 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
-import org.springframework.messaging.handler.annotation.DestinationVariable;
-import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -939,50 +937,38 @@ public class GameService {
             utilService.removeCacheForGame(gameToEnd.getGameId());
         }
         else {
-            if (gameToEnd.getOwnerId().equals(userId)) {
-                gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
+            gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
 
-                User playerToEnd = userRepository.findByUserId(userId);
+            User playerToEnd = userRepository.findByUserId(userId);
+            gameToEnd.updateScore(userId, -1);
+            playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ),
+                    gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(),gameToEnd.getModeType(), gameToEnd.getDifficulty());
+            playerToEnd.setGame(null);
+            userRepository.save(playerToEnd);
+            userRepository.flush();
+
+            if (gameToEnd.getOwnerId().equals(userId)) {
                 gameToEnd.setOwnerId(gameToEnd.getPlayers().get(1));
                 gameToEnd.removeReadyStatus(gameToEnd.getPlayers().get(1));
                 gameToEnd.removePlayer(playerToEnd);
-                messagingTemplate.convertAndSend("/topic/game/"+gameToEnd.getGameId()+"/owner", gameToEnd.getOwnerId());
-                gameToEnd.updateScore(userId, -1);
-                playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
-                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(), gameToEnd.getModeType(), gameToEnd.getDifficulty());
-                playerToEnd.setGame(null);
-
-                userRepository.save(playerToEnd);
-                userRepository.flush();
-                getGameLobby();
-                broadcastReadyStatus(gameToEnd.getGameId());
-            }
-            else {
-                gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
-
-                User playerToEnd = userRepository.findByUserId(userId);
+                messagingTemplate.convertAndSend("/topic/game/" + gameToEnd.getGameId() + "/owner", gameToEnd.getOwnerId());
+            } else {
                 gameToEnd.removePlayer(playerToEnd);
                 gameToEnd.removeReadyStatus(userId);
-                gameToEnd.updateScore(userId, -1);
-                playerToEnd.setGameHistory(gameToEnd.getGameName(), gameToEnd.getScore(userId ), gameToEnd.getCorrectAnswers(userId ), 
-                gameToEnd.getTotalQuestions(userId ), gameToEnd.getGameCreationDate(),gameToEnd.getTime(),gameToEnd.getModeType(), gameToEnd.getDifficulty());
-                playerToEnd.setGame(null);
-
-                userRepository.save(playerToEnd);
-                userRepository.flush();
-                getGameLobby();
-                broadcastReadyStatus(gameToEnd.getGameId());
             }
+
+            getGameLobby();
+            broadcastReadyStatus(gameToEnd.getGameId());
+
             Map<String, Integer> scoreBoardFront = new HashMap<>();
             for (Long userid : gameToEnd.getScoreBoard().keySet()) {
                 String username = (userRepository.findByUserId(userid)).getUsername();
-                int score = (gameToEnd.getScoreBoard()).get(userid);
+                int score = gameToEnd.getScoreBoard().get(userid);
                 scoreBoardFront.put(username, score);
             }
-            messagingTemplate.convertAndSend("/topic/user/"+gameToEnd.getGameId()+"/scoreBoard", scoreBoardFront);
+            messagingTemplate.convertAndSend("/topic/user/" + gameToEnd.getGameId() + "/scoreBoard", scoreBoardFront);
             log.info("websocket send: scoreBoard!");
 
-            gameToEnd.removePlayer(userRepository.findByUserId(userId));
             gameRepository.save(gameToEnd);
             gameRepository.flush();
             utilService.removeExitPlayer(gameToEnd.getGameId(), userId);
