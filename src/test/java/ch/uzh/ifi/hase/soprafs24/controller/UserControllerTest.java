@@ -398,6 +398,24 @@ public class UserControllerTest {
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.learningTracking").isMap());
   }
+
+  @Test
+  public void updateUserHeartBeatTime_validUserId_returnsList() throws Exception {
+      Long userId = 1L;
+      UserGetDTO dto = new UserGetDTO();
+      dto.setUserId(userId);
+      List<UserGetDTO> mockList = Collections.singletonList(dto);
+
+      given(userService.updateUserHeartBeatTime(userId)).willReturn(mockList);
+
+      MockHttpServletRequestBuilder request = post("/heartbeat/{userId}", userId)
+          .contentType(MediaType.APPLICATION_JSON);
+
+      mockMvc.perform(request)
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$", hasSize(1)))
+          .andExpect(jsonPath("$[0].userId").value(userId.intValue()));
+  }
   /**
    * Helper Method to convert userPostDTO into a JSON string such that the input
    * can be processed

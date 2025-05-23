@@ -460,4 +460,30 @@ public class UserServiceTest {
       assertEquals(2, dto.getLearningTracking().get(Country.France));
       assertEquals(1, dto.getLearningTracking().get(Country.Germany));
   }
+
+  @Test
+  public void updateUserHeartBeatTime_validUserId_addsToMap() {
+      User user = new User();
+      user.setUserId(1L);
+      user.setStatus(UserStatus.ONLINE);
+    
+      Mockito.when(userRepository.findByUserId(1L)).thenReturn(user);
+
+      List<UserGetDTO> result = userService.updateUserHeartBeatTime(1L);
+
+      assertTrue(result.stream().anyMatch(dto -> dto.getUserId().equals(1L)));
+  }
+
+  @Test
+  public void updateUserHeartBeatTime_offlineUser_doesNotAddToMap() {
+      User user = new User();
+      user.setUserId(2L);
+      user.setStatus(UserStatus.OFFLINE);
+
+      Mockito.when(userRepository.findByUserId(2L)).thenReturn(user);
+
+      List<UserGetDTO> result = userService.updateUserHeartBeatTime(2L);
+
+      assertTrue(result.stream().noneMatch(dto -> dto.getUserId().equals(2L)));
+  }
 }
