@@ -82,6 +82,8 @@ public class GameServiceTest {
     private User owner;
     private User player2;
     private User ownerSolo;
+    private Map<Long, Country> answers;
+    private Map<Country, List<Map<String, Object>>> generatedHints;
 
     @BeforeEach
     public void setup() {
@@ -219,6 +221,18 @@ public class GameServiceTest {
         
         // Initialize DTO
         gameGetDTO = new GameGetDTO();
+
+        // Initialize readyMap for testGame
+        Map<Long, Boolean> testGameReadyMap = new HashMap<>();
+        testGameReadyMap.put(1L, true); // Owner
+        testGameReadyMap.put(2L, true); // Player
+        testGame.setReadyMap(testGameReadyMap);
+        testGame.setPlayers(new ArrayList<>(Arrays.asList(1L, 2L)));
+
+        answers = new HashMap<>();
+        generatedHints = new HashMap<>();
+        ReflectionTestUtils.setField(gameService, "answers", answers);
+        ReflectionTestUtils.setField(gameService, "generatedHints", generatedHints);
     }
 
     // @Test
@@ -1305,6 +1319,272 @@ public class GameServiceTest {
     }
 
     @Test
+    void restartCheckReady_allPlayersReady_noExceptionThrown() {
+        // Arrange
+        Long gameId = 1L;
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGame);
+
+        // Act
+        assertDoesNotThrow(() -> gameService.restartCheckReady(gameId));
+
+        // Assert
+        verify(gameRepository, times(1)).findBygameId(gameId);
+    }
+
+    @Test
+    void restartCheckReady_somePlayersNotReady_throwsBadRequest() {
+        // Arrange
+        Long gameId = 3L; // Use testGameCombat where player2 is not ready
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGameCombat);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.restartCheckReady(gameId);
+        }, "Should throw ResponseStatusException when some players are not ready");
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Someone is not ready!", exception.getReason());
+        verify(gameRepository, times(1)).findBygameId(gameId);
+    }
+
+    @Test
+    void restartCheckReady_gameNotFound_throwsNotFound() {
+        // Arrange
+        Long gameId = 999L;
+        when(gameRepository.findBygameId(gameId)).thenReturn(null);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.restartCheckReady(gameId);
+        }, "Should throw ResponseStatusException when game is not found");
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("Game not found", exception.getReason());
+        verify(gameRepository, times(1)).findBygameId(gameId);
+    }
+
+    @Test
+    void restartCheckReady_emptyReadyMap_noExceptionThrown() {
+        // Arrange
+        Long gameId = 2L;
+        testGameSolo.setReadyMap(new HashMap<>()); // Empty readyMap
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGameSolo);
+
+        // Act
+        assertDoesNotThrow(() -> gameService.restartCheckReady(gameId));
+
+        // Assert
+        verify(gameRepository, times(1)).findBygameId(gameId);
+    }
+
+    @Test
+    void getLeaderboard_multipleUsers_returnsSortedList() {
+        // Arrange
+        User user1 = new User();
+        user1.setUserId(1L);
+        user1.setUsername("User1");
+        user1.setAvatar("avatar1.png");
+        user1.setLevel(new BigDecimal("5.50")); // 550 after *100
+
+        User user2 = new User();
+        user2.setUserId(2L);
+        user2.setUsername("User2");
+        user2.setAvatar("avatar2.png");
+        user2.setLevel(new BigDecimal("10.00")); // 1000 after *100
+
+        User user3 = new User();
+        user3.setUserId(3L);
+        user3.setUsername("User3");
+        user3.setAvatar("avatar3.png");
+        user3.setLevel(new BigDecimal("3.25")); // 325 after *100
+
+        List<User> users = Arrays.asList(user1, user2, user3);
+        when(userRepository.findAll()).thenReturn(users);
+
+        // Act
+        List<UserGetDTO> leaderboard = gameService.getLeaderboard();
+
+        // Assert
+        assertEquals(3, leaderboard.size(), "Leaderboard should contain 3 users");
+        // 验证按 level 降序排序：user2 (1000), user1 (550), user3 (325)
+        assertEquals(2L, leaderboard.get(0).getUserId());
+        assertEquals("User2", leaderboard.get(0).getUsername());
+        assertEquals("avatar2.png", leaderboard.get(0).getAvatar());
+        assertEquals(1000, leaderboard.get(0).getLevel());
+
+        assertEquals(1L, leaderboard.get(1).getUserId());
+        assertEquals("User1", leaderboard.get(1).getUsername());
+        assertEquals("avatar1.png", leaderboard.get(1).getAvatar());
+        assertEquals(550, leaderboard.get(1).getLevel());
+
+        assertEquals(3L, leaderboard.get(2).getUserId());
+        assertEquals("User3", leaderboard.get(2).getUsername());
+        assertEquals("avatar3.png", leaderboard.get(2).getAvatar());
+        assertEquals(325, leaderboard.get(2).getLevel());
+
+        verify(userRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getLeaderboard_emptyUserList_returnsEmptyList() {
+        // Arrange
+        when(userRepository.findAll()).thenReturn(Collections.emptyList());
+
+        // Act
+        List<UserGetDTO> leaderboard = gameService.getLeaderboard();
+
+        // Assert
+        assertTrue(leaderboard.isEmpty(), "Leaderboard should be empty");
+        verify(userRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getLeaderboard_singleUser_returnsSingleDTO() {
+        // Arrange
+        User user = new User();
+        user.setUserId(1L);
+        user.setUsername("User1");
+        user.setAvatar("avatar1.png");
+        user.setLevel(new BigDecimal("7.89")); // 789 after *100
+
+        when(userRepository.findAll()).thenReturn(Collections.singletonList(user));
+
+        // Act
+        List<UserGetDTO> leaderboard = gameService.getLeaderboard();
+
+        // Assert
+        assertEquals(1, leaderboard.size(), "Leaderboard should contain 1 user");
+        UserGetDTO dto = leaderboard.get(0);
+        assertEquals(1L, dto.getUserId());
+        assertEquals("User1", dto.getUsername());
+        assertEquals("avatar1.png", dto.getAvatar());
+        assertEquals(789, dto.getLevel());
+        verify(userRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getLeaderboard_usersWithDecimalAndNegativeLevels_handlesCorrectly() {
+        // Arrange
+        User user1 = new User();
+        user1.setUserId(1L);
+        user1.setUsername("User1");
+        user1.setAvatar("avatar1.png");
+        user1.setLevel(new BigDecimal("0.123")); // 12 after *100 (round down)
+
+        User user2 = new User();
+        user2.setUserId(2L);
+        user2.setUsername("User2");
+        user2.setAvatar("avatar2.png");
+        user2.setLevel(new BigDecimal("-1.50")); // -150 after *100
+
+        List<User> users = Arrays.asList(user1, user2);
+        when(userRepository.findAll()).thenReturn(users);
+
+        // Act
+        List<UserGetDTO> leaderboard = gameService.getLeaderboard();
+
+        // Assert
+        assertEquals(2, leaderboard.size(), "Leaderboard should contain 2 users");
+        // 验证排序：user1 (12), user2 (-150)
+        assertEquals(1L, leaderboard.get(0).getUserId());
+        assertEquals(12, leaderboard.get(0).getLevel());
+        assertEquals(2L, leaderboard.get(1).getUserId());
+        assertEquals(-150, leaderboard.get(1).getLevel());
+        verify(userRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getLeaderboard_nullUsernameOrAvatar_handlesCorrectly() {
+        // Arrange
+        User user = new User();
+        user.setUserId(1L);
+        user.setUsername(null); // 模拟 null username
+        user.setAvatar(null); // 模拟 null avatar
+        user.setLevel(new BigDecimal("5.00")); // 500 after *100
+
+        when(userRepository.findAll()).thenReturn(Collections.singletonList(user));
+
+        // Act
+        List<UserGetDTO> leaderboard = gameService.getLeaderboard();
+
+        // Assert
+        assertEquals(1, leaderboard.size(), "Leaderboard should contain 1 user");
+        UserGetDTO dto = leaderboard.get(0);
+        assertEquals(1L, dto.getUserId());
+        assertNull(dto.getUsername(), "Username should be null");
+        assertNull(dto.getAvatar(), "Avatar should be null");
+        assertEquals(500, dto.getLevel());
+        verify(userRepository, times(1)).findAll();
+    }
+
+
+@Test
+    void nextQuestion_ExerciseMode_gameExists_returnsGameGetDTO() {
+        // Arrange
+        Long gameId = 1L;
+        Map<Country, List<Map<String, Object>>> hints = new HashMap<>();
+        List<Map<String, Object>> hintList = Collections.singletonList(Map.of("hint", "In Europe"));
+        hints.put(Country.Switzerland, hintList);
+
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGame);
+        // Mock getHintsOfOneCountry（假设在 GameService 中）
+        doReturn(hints).when(gameService).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+
+        // Act
+        GameGetDTO result = gameService.nextQuestion_ExerciseMode(gameId);
+
+        // Assert
+        assertNotNull(result, "GameGetDTO should not be null");
+        assertEquals(hintList, result.getHints(), "Hints should match");
+        assertEquals(Country.Switzerland.ordinal(), result.getAnswer(), "Answer should match Switzerland's ordinal");
+        assertEquals(Country.Switzerland, answers.get(testGame.getOwnerId()), "Answers map should contain ownerId and Switzerland");
+
+        verify(gameRepository, times(1)).findBygameId(gameId);
+        verify(gameService, times(1)).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+    }
+
+    @Test
+    void nextQuestion_ExerciseMode_emptyHints_throwsException() {
+        // Arrange
+        Long gameId = 1L;
+        Map<Country, List<Map<String, Object>>> emptyHints = new HashMap<>();
+
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGame);
+        doReturn(emptyHints).when(gameService).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+
+        // Act & Assert
+        assertThrows(NoSuchElementException.class, () -> {
+            gameService.nextQuestion_ExerciseMode(gameId);
+        }, "Should throw NoSuchElementException for empty hints");
+
+        verify(gameRepository, times(1)).findBygameId(gameId);
+        verify(gameService, times(1)).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+        assertTrue(answers.isEmpty(), "Answers map should remain empty");
+    }
+
+    @Test
+    void nextQuestion_ExerciseMode_singleHint_returnsGameGetDTO() {
+        // Arrange
+        Long gameId = 1L;
+        Map<Country, List<Map<String, Object>>> hints = new HashMap<>();
+        List<Map<String, Object>> hintList = Collections.singletonList(Map.of("hint", "Capital is Bern"));
+        hints.put(Country.Switzerland, hintList);
+
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGame);
+        doReturn(hints).when(gameService).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+
+        // Act
+        GameGetDTO result = gameService.nextQuestion_ExerciseMode(gameId);
+
+        // Assert
+        assertNotNull(result, "GameGetDTO should not be null");
+        assertEquals(hintList, result.getHints(), "Hints should match");
+        assertEquals(Country.Switzerland.ordinal(), result.getAnswer(), "Answer should match Switzerland's ordinal");
+        assertEquals(Country.Switzerland, answers.get(testGame.getOwnerId()), "Answers map should contain ownerId and Switzerland");
+
+        verify(gameRepository, times(1)).findBygameId(gameId);
+        verify(gameService, times(1)).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
+
     void testGiveupGame_SoloPlayer_GameDeleted() {
         Long userId = 1L;
         Game game = spy(new Game());
@@ -1493,5 +1773,6 @@ public class GameServiceTest {
         assertEquals(1, result.size());
         assertTrue(result.containsKey(Country.Switzerland));
         assertEquals("It's in Europe", result.get(Country.Switzerland).get(0).get("hint"));
+
     }
 }
