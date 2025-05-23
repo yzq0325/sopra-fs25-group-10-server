@@ -233,6 +233,7 @@ public class UserService {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Username exists! Please change one!");
     } 
   }
+
   private void checkIfUserNotExist(Long userId){
     User userByUsername = userRepository.findByUserId(userId);
 
@@ -240,6 +241,7 @@ public class UserService {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found!");
     } 
   }
+  
   private void checkIfAvatarCorrect(User user){
     if (user.getAvatar() != null && !VALID_AVATARS.contains(user.getAvatar())) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid avatar selection");
