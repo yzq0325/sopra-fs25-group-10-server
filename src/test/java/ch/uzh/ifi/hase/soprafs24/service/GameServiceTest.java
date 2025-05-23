@@ -207,6 +207,13 @@ public class GameServiceTest {
         
         // Initialize DTO
         gameGetDTO = new GameGetDTO();
+
+        // Initialize readyMap for testGame
+        Map<Long, Boolean> testGameReadyMap = new HashMap<>();
+        testGameReadyMap.put(1L, true); // Owner
+        testGameReadyMap.put(2L, true); // Player
+        testGame.setReadyMap(testGameReadyMap);
+        testGame.setPlayers(new ArrayList<>(Arrays.asList(1L, 2L)));
     }
 
     // @Test
@@ -1290,5 +1297,64 @@ public class GameServiceTest {
 
         assertEquals(expectedHints, hints);
         verify(utilService, never()).addHintForGame(anyLong(), anyString());
+    }
+
+    @Test
+void restartCheckReady_allPlayersReady_noExceptionThrown() {
+    // Arrange
+    Long gameId = 1L;
+    when(gameRepository.findBygameId(gameId)).thenReturn(testGame);
+
+    // Act
+    assertDoesNotThrow(() -> gameService.restartCheckReady(gameId));
+
+    // Assert
+    verify(gameRepository, times(1)).findBygameId(gameId);
+}
+
+    @Test
+    void restartCheckReady_somePlayersNotReady_throwsBadRequest() {
+        // Arrange
+        Long gameId = 3L; // Use testGameCombat where player2 is not ready
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGameCombat);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.restartCheckReady(gameId);
+        }, "Should throw ResponseStatusException when some players are not ready");
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Someone is not ready!", exception.getReason());
+        verify(gameRepository, times(1)).findBygameId(gameId);
+    }
+
+    @Test
+    void restartCheckReady_gameNotFound_throwsNotFound() {
+        // Arrange
+        Long gameId = 999L;
+        when(gameRepository.findBygameId(gameId)).thenReturn(null);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            gameService.restartCheckReady(gameId);
+        }, "Should throw ResponseStatusException when game is not found");
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("Game not found", exception.getReason());
+        verify(gameRepository, times(1)).findBygameId(gameId);
+    }
+
+    @Test
+    void restartCheckReady_emptyReadyMap_noExceptionThrown() {
+        // Arrange
+        Long gameId = 2L;
+        testGameSolo.setReadyMap(new HashMap<>()); // Empty readyMap
+        when(gameRepository.findBygameId(gameId)).thenReturn(testGameSolo);
+
+        // Act
+        assertDoesNotThrow(() -> gameService.restartCheckReady(gameId));
+
+        // Assert
+        verify(gameRepository, times(1)).findBygameId(gameId);
     }
 }

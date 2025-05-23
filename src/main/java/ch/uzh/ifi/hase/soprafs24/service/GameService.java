@@ -1025,6 +1025,9 @@ public class GameService {
 
     public void restartCheckReady(Long gameId){
         Game game = gameRepository.findBygameId(gameId);
+        if (game == null) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found");
+    }
         boolean allReady = true;
         for(Long userId : game.getReadyMap().keySet()){
             if(game.getReadyMap().get(userId) == false){
