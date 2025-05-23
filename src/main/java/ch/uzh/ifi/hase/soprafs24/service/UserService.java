@@ -41,7 +41,7 @@ public class UserService {
 
   private final ConcurrentHashMap<Long, Long> userLastHeartBeatMap = new ConcurrentHashMap<>();
 
-  private static final long HEARTBEAT_TIMEOUT = 5000;
+  private static final long HEARTBEAT_TIMEOUT = 6000;
     
   private static final long CHECK_INTERVAL = 2000;
 
