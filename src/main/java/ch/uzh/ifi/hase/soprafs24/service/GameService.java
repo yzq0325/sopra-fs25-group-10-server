@@ -460,19 +460,6 @@ public class GameService {
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/hints", gameHintDTO);
             log.info("websocket send: hints!");
 
-            // countdown
-            // utilService.countdown(gameId, gameToStart.getTime());
-//             try {
-//                 Thread.sleep(2000);
-//             }
-//             catch (InterruptedException e) {
-//                 Thread.currentThread().interrupt();
-//                 messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-//             }
-            // Game finalGameToStart = gameCreated;
-            // if(finalGameToStart.getTime()==-1){return;}
-            // Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
-            // timingThread.start();
         } finally {
             lock.unlock();
             userLocks.remove(gameUserId);
@@ -605,32 +592,6 @@ public class GameService {
 
         broadcastReadyStatus(gameId);
     }
-
-    //curently you have to wait for slowest player to enable refill cache which is not good when there are more players
-    // public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(Long gameId, Long userId, String difficulty) {
-    //     if(difficulty == null || difficulty.isEmpty()){
-    //         throw new ResponseStatusException(HttpStatus.BAD_REQUEST,  " Difficulty is not set!");
-    //     }
-    //     log.info("size of hintCache with game {}: {}", gameId, utilService.getHintCache().get(gameId).size());
-    //     Map<Country, List<Map<String, Object>>> hint = utilService.getHintForUser(gameId, userId);
-
-    //     HintList list = utilService.getHintCache().get(gameId);
-    //     synchronized (list) {
-    //         int minProgress = list.getMinProgressAcrossUsers();
-    //         int remainingHints = list.size() - minProgress;
-
-    //         if (remainingHints < 10) {
-    //             AtomicBoolean flag = refillInProgress.computeIfAbsent(gameId, id -> new AtomicBoolean(false));
-    //             if (flag.compareAndSet(false, true)) {
-    //                 for (int i = 0; i < 10 - remainingHints; ++i) {
-    //                     utilService.addHintForGame(gameId, difficulty);
-    //                 }
-    //                 flag.set(false);
-    //             }
-    //         }
-    //     }
-    //     return hint;
-    // }
 
     //this one accounts for fastest player and aims to ensure game flow
     public Map<Country, List<Map<String, Object>>> getHintsOfOneCountry(Long gameId, Long userId, String difficulty) {
