@@ -384,13 +384,13 @@ public class GameService {
             messagingTemplate.convertAndSend("/topic/startsolo/" + gameCreated.getOwnerId() + "/gameId", gameCreated.getGameId());
             log.info("websocket send: gameId!");
 
-            try {
-                Thread.sleep(500);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
+            // try {
+            //     Thread.sleep(500);
+            // }
+            // catch (InterruptedException e) {
+            //     Thread.currentThread().interrupt();
+            //     messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+            // }
 
             gameCreated.updateScore(gameCreated.getOwnerId(), 0);
             for (Long userId : gameCreated.getPlayers()) {
@@ -430,13 +430,13 @@ public class GameService {
             utilService.refillHintQueue(gameCreated.getGameId(), gameCreated.getDifficulty());
 
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
-            try {
-                Thread.sleep(6000);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
+            // try {
+            //     Thread.sleep(6000);
+            // }
+            // catch (InterruptedException e) {
+            //     Thread.currentThread().interrupt();
+            //     messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+            // }
 
             // push hints
             GameGetDTO gameHintDTO = new GameGetDTO();
@@ -464,17 +464,17 @@ public class GameService {
 
             // countdown
             // utilService.countdown(gameId, gameToStart.getTime());
-            try {
-                Thread.sleep(2000);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
-            Game finalGameToStart = gameCreated;
-            if(finalGameToStart.getTime()==-1){return;}
-            Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
-            timingThread.start();
+            // try {
+            //     Thread.sleep(2000);
+            // }
+            // catch (InterruptedException e) {
+            //     Thread.currentThread().interrupt();
+            //     messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+            // }
+            // Game finalGameToStart = gameCreated;
+            // if(finalGameToStart.getTime()==-1){return;}
+            // Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, finalGameToStart.getGameId()));
+            // timingThread.start();
         } finally {
             lock.unlock();
             userLocks.remove(gameUserId);
@@ -530,13 +530,13 @@ public class GameService {
             messagingTemplate.convertAndSend("/topic/startExercise/" + gameCreated.getOwnerId() + "/gameId", gameCreated.getGameId());
             log.info("websocket send: gameId!");
 
-            try {
-                Thread.sleep(500);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
+            // try {
+            //     Thread.sleep(500);
+            // }
+            // catch (InterruptedException e) {
+            //     Thread.currentThread().interrupt();
+            //     messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+            // }
             
             gameCreated.setGameRunning(true);
 
@@ -548,13 +548,13 @@ public class GameService {
 
             // countdown
             messagingTemplate.convertAndSend("/topic/start/" + gameCreated.getGameId() + "/ready-time", 5);
-            try {
-                Thread.sleep(6000);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
-            }
+            // try {
+            //     Thread.sleep(6000);
+            // }
+            // catch (InterruptedException e) {
+            //     Thread.currentThread().interrupt();
+            //     messagingTemplate.convertAndSend("/topic/game/" + gameCreated.getGameId() + "/timer-interrupted", "TIMER_STOPPED");
+            // }
 
             // push hints
             GameGetDTO gameHintDTO = new GameGetDTO();
@@ -632,8 +632,8 @@ public class GameService {
         }
         return hint;
     }
-    @MessageMapping("/game/{gameId}/start-timer")
-    public void startTimer(@DestinationVariable Long gameId) {
+    
+    public void startTimeCounter(Long gameId) {
         Game gameToStart = gameRepository.findBygameId(gameId);
         Thread timingThread = new Thread(() -> utilService.timingCounter((gameToStart.getTime()) * 60, gameId));
         timingThread.start();
@@ -696,13 +696,13 @@ public class GameService {
 
         // countdown
         messagingTemplate.convertAndSend("/topic/start/" + gameId + "/ready-time", 5);
-        try {
-            Thread.sleep(6000);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-        }
+        // try {
+        //     Thread.sleep(6000);
+        // }
+        // catch (InterruptedException e) {
+        //     Thread.currentThread().interrupt();
+        //     messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+        // }
 
         // push hints
         GameGetDTO gameHintDTO = new GameGetDTO();
@@ -727,17 +727,17 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/start/" + gameId + "/hints", gameHintDTO);
         log.info("websocket send: hints!");
 
-        try {
-            Thread.sleep(2000);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
-        }
+        // try {
+        //     Thread.sleep(2000);
+        // }
+        // catch (InterruptedException e) {
+        //     Thread.currentThread().interrupt();
+        //     messagingTemplate.convertAndSend("/topic/game/" + gameId + "/timer-interrupted", "TIMER_STOPPED");
+        // }
 
-        Game finalGameToStart = gameToStart;
-        Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, gameId));
-        timingThread.start();
+        // Game finalGameToStart = gameToStart;
+        // Thread timingThread = new Thread(() -> utilService.timingCounter((finalGameToStart.getTime()) * 60, gameId));
+        // timingThread.start();
 
         // reset ready status
         for (Long userId : gameToStart.getReadyMap().keySet()) {

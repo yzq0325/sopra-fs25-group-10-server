@@ -158,4 +158,11 @@ public class GameController {
   public void restartCheckReady (@PathVariable Long gameId){
     gameService.restartCheckReady(gameId);
   }
+
+  @PutMapping("/startcounter/{gameId}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void startTimeCounter(@PathVariable Long gameId){
+    gameService.startTimeCounter(gameId);
+  }
 }
