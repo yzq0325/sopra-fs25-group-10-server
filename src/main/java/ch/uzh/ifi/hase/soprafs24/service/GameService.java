@@ -52,6 +52,7 @@ public class GameService {
     private Map<Long, Country> answers = new HashMap<>();
 
     private final ConcurrentHashMap<Long, ReentrantLock> userLocks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, ReentrantLock> gameLocks = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, AtomicBoolean> refillInProgress = new ConcurrentHashMap<>();
 
     @Autowired
@@ -831,8 +832,18 @@ public class GameService {
     }
     
     public void saveGame(Long gameId) {
-        Game gameToSave = gameRepository.findBygameId(gameId);
+        ReentrantLock lock = gameLocks.computeIfAbsent(gameId, k -> new ReentrantLock());
+        boolean acquired = lock.tryLock();
+        if (!acquired) {
+            log.warn("Another createGame is already running for user {}", gameId);
+            return;
+        }
+        try{
+             Game gameToSave = gameRepository.findBygameId(gameId);
         if (gameToSave == null ) {
+            return;
+        }
+        if(gameToSave.getGameRunning() == false){
             return;
         }
         if(gameToSave.getModeType().equals("combat")){
@@ -877,6 +888,11 @@ public class GameService {
             gameRepository.deleteByGameId(gameId);
         }
         utilService.removeCacheForGame(gameId);
+        }
+        finally{    
+            lock.unlock();
+            gameLocks.remove(gameId);
+        }
     }
 
     public void giveupGame(Long userId) {
