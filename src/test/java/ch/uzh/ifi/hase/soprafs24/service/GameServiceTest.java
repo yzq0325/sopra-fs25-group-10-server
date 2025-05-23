@@ -1483,8 +1483,7 @@ public class GameServiceTest {
         verify(userRepository, times(1)).findAll();
     }
 
-
-    @Test
+     @Test
     public void nextQuestion_ExerciseMode_gameExists_returnsGameGetDTO() {
         // Arrange
         Long gameId = 1L;
