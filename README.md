@@ -1,118 +1,195 @@
-# SoPra RESTful Service Template FS25
 
-## Getting started with Spring Boot
--   Documentation: https://docs.spring.io/spring-boot/docs/current/reference/html/index.html
--   Guides: http://spring.io/guides
-    -   Building a RESTful Web Service: http://spring.io/guides/gs/rest-service/
-    -   Building REST services with Spring: https://spring.io/guides/tutorials/rest/
+<p align="center">
+  <img src="./assets/mapmaster-logo.png" alt="MapMaster Logo" width="300"/>
+</p>
 
-## Setup this Template with your IDE of choice
-Download your IDE of choice (e.g., [IntelliJ](https://www.jetbrains.com/idea/download/), [Visual Studio Code](https://code.visualstudio.com/), or [Eclipse](http://www.eclipse.org/downloads/)). Make sure Java 17 is installed on your system (for Windows, please make sure your `JAVA_HOME` environment variable is set to the correct version of Java).
+<p align="center" style="font-size: 20px;">
+  <i style="font-weight: bold;">One map to rule them all</i>
+</p>
+<p align="center">
+    <i style="font-weight: bold;">Server</i>
+</p>
 
-### IntelliJ
-If you consider to use IntelliJ as your IDE of choice, you can make use of your free educational license [here](https://www.jetbrains.com/community/education/#students).
-1. File -> Open... -> SoPra server template
-2. Accept to import the project as a `gradle project`
-3. To build right click the `build.gradle` file and choose `Run Build`
+[![build](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/actions/workflows/build.yml/badge.svg)](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/actions/workflows/build.yml)
+[![coverage](https://sonarcloud.io/api/project_badges/measure?project=T0hsakaR1n126_sopra-fs25-group-10-server&metric=coverage)](https://sonarcloud.io/summary/overview?id=T0hsakaR1n126_sopra-fs25-group-10-server)
+[![dockerize](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/actions/workflows/dockerize.yml/badge.svg)](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/actions/workflows/dockerize.yml)
 
-### VS Code
-The following extensions can help you get started more easily:
--   `vmware.vscode-spring-boot`
--   `vscjava.vscode-spring-initializr`
--   `vscjava.vscode-spring-boot-dashboard`
--   `vscjava.vscode-java-pack`
+[![contributors](https://img.shields.io/github/contributors-anon/T0hsakaR1n126/sopra-fs25-group-10-server?color=yellow&style=flat-square)](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/graphs/contributors)
+[![license](https://img.shields.io/badge/apache%202.0-blue.svg?style=flat-square&label=license)](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/blob/main/LICENSE)
+[![notice](https://img.shields.io/badge/notice-blue.svg?style=flat-square&label=notice)](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server/blob/main/NOTICE)
 
-**Note:** You'll need to build the project first with Gradle, just click on the `build` command in the _Gradle Tasks_ extension. Then check the _Spring Boot Dashboard_ extension if it already shows `soprafs24` and hit the play button to start the server. If it doesn't show up, restart VS Code and check again.
 
-## Building with Gradle
-You can use the local Gradle Wrapper to build the application.
--   macOS: `./gradlew`
--   Linux: `./gradlew`
--   Windows: `./gradlew.bat`
+<h2 align="left">🧭 Introduction</h2> <strong>MapMaster</strong> is not just another geography game — it’s your new adventure across the globe! Dive into an interactive world map and put your knowledge to the test as you guess countries based on clever, progressively revealed hints about population, climate, history, and more. Whether you're flying solo, battling friends in multiplayer mode, or exploring at your own pace, MapMaster turns learning into a thrilling challenge. Powered by Spring Boot and cutting-edge frontend tech, this game delivers real-time interaction, smart scoring, and dynamic difficulty that keeps every round fresh and exciting. Ready to sharpen your geography skills and become a world map master? 
+<h3 align="left">📌 Goal</h3> <p> MapMaster’s mission is simple: make geography *fun*, *engaging*, and *addictive*. It’s designed to help you boost your map smarts, recall countries faster, and compete with friends or players worldwide. Whether you’re a student, trivia buff, or travel fanatic, MapMaster offers a smooth, intuitive experience that’s perfect for all ages and skill levels. Get ready for fast-paced gameplay that turns learning into an unforgettable game! 
+</p> <h3 align="left">📌 Motivation</h3> <p> Traditional geography drills can be dull. MapMaster was born to change that — transforming rote memorization into an exciting, interactive journey. In today’s world, keeping players hooked means blending education with entertainment seamlessly. Whether prepping for exams, teaching, or just indulging your curiosity, MapMaster is your go-to for a fresh, engaging way to connect with the world — one clue, one click, one country at a time. </p>
 
-More Information about [Gradle Wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html) and [Gradle](https://gradle.org/docs/).
 
-### Build
+## Table of contents
 
-```bash
-./gradlew build
+- [Technologies](#technologies)
+- [High-level components](#high-level-components)
+- [Launch and Deployment](#launch-and-deployment)
+- [Illustrations](#illustrations-and-game-flow)
+- [Roadmap](#roadmap)
+- [Authors](#authors)
+- [Acknowledgment](#acknowledgement)
+- [License](#license)
+
+<a name="technologies"></a>
+
+## Technologies
+### 🛠️ Server Tech Stack
+- **[Spring Boot](https://spring.io/projects/spring-boot)** – Java-based backend framework for building production-ready RESTful services efficiently.
+- **[Spring STOMP over WebSocket](https://docs.spring.io/spring-framework/reference/web/websocket/stomp.html)** – Spring's built-in support for STOMP messaging over WebSocket, enabling real-time bidirectional communication between clients and the server.
+- **[SockJS](https://github.com/sockjs)** – WebSocket emulation library ensuring reliable message delivery with fallback support.
+- **[Mockito](https://site.mockito.org/)** – Java testing framework for mocking objects in unit tests, essential for effective test-driven development.
+- **[Google Gemini API](https://ai.google.dev/gemini-api/docs)** – Used for generating dynamic, AI-powered clues for countries within the game.
+- **[Swagger / SpringDoc OpenAPI](https://springdoc.org/)** – Automatically generates interactive API documentation from Spring Boot projects using OpenAPI 3.
+- **[Google Cloud Platform (GCP)](https://cloud.google.com/)** – Cloud infrastructure for hosting backend services, scalable databases, storage, and AI integrations.
+- **[Nix](https://nixos.org/)** – Declarative package manager that ensures consistent development and CI environments.
+- **[Docker](https://www.docker.com/)** – Container platform for building, shipping, and running the backend in isolated, reproducible environments.
+
+<a name="high-level-components"></a>
+## High level components
+Here we show you the component tree at L1 for this repository where you see most key components of the game. We explain the ones that are most important both for the game play and functioning.
+```
+├── Application.java
+├── config
+│   ├── CorsConfig.java
+│   └── WebSocketConfig.java
+├── constant
+│   ├── Country.java
+│   └── UserStatus.java
+├── controller
+│   ├── GameChatController.java
+│   ├── GameController.java
+│   └── UserController.java
+├── entity
+│   ├── ChatMessage.java
+│   ├── Game.java
+│   └── User.java
+├── exceptions
+│   └── GlobalExceptionAdvice.java
+├── repository
+│   ├── GameRepository.java
+│   └── UserRepository.java
+├── rest
+│   ├── dto
+│   └── mapper
+└── service
+    ├── GameService.java
+    ├── UserService.java
 ```
 
-### Run
+### [`main app folder`](./src/main/java/ch/uzh/ifi/hase/soprafs24/)
+Primary directory of the springboot application code resides for this project where all the functionality and game centric confuguration exists. The tree above is from this directory.
 
-```bash
-./gradlew bootRun
-```
+### [`controller`](./src/main/java/ch/uzh/ifi/hase/soprafs24/controller/)
+Three controller each for the [Game](./src/main/java/ch/uzh/ifi/hase/soprafs24/controller/GameController.java), [Chat](./src/main/java/ch/uzh/ifi/hase/soprafs24/controller//GameChatController.java) and [User](./src/main/java/ch/uzh/ifi/hase/soprafs24/controller/UserController.java) functions exist here. Game controller provides access to the controllers relevant to game creation, scoring logic, and other game processing logic.
+Chat controller is aimed at providing ephemeral ws interfaces for chats both in chat and game.
+User controller is positioned to address user related activites such as creation, update and tracking progress.
 
+### [`service`](./src/main/java/ch/uzh/ifi/hase/soprafs24/service/)
+Incidentally for all the contollers we mentioned above, services exist. Whole contollers are mere wrappers for the `clients` to establish communication majority of the functioning logic sits in the service. For each of Game and User controllers we see a service respectively: [Game](./src/main/java/ch/uzh/ifi/hase/soprafs24/service/GameService.java), [User](./src/main/java/ch/uzh/ifi/hase/soprafs24/service/UserService.java). [`UtilService`](./src/main/java/ch/uzh/ifi/hase/soprafs24/service/UserService.java) holds the key logic for hint generation, enabling caching requirements and logic requiring to ensure that users are given bias-free, incrementally easier hints. In the util service, you will also add your api key for the google gemini. 
+
+### [`websocket`](./src/main/java/ch/uzh/ifi/hase/soprafs24/config/WebSocketConfig.java)
+Webscoket configuration can be found here and all the websocker logic is embedded into the respective services we have seen. 
+
+### [`tests`](./src/test/java/ch/uzh/ifi/hase/soprafs24/)
+All the tests can be found here. The test names indicate the relevant block tests are written for.
+
+
+## Launch and Deployment
+<a name="Launch and Deployment"></a>
+
+You will need to \
+For Frontend: `git clone https://github.com/T0hsakaR1n126/sopra-fs25-group-10-client` \
+For Backend: `git clone https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server`
+
+**Optional (for full compatibility)**
+ - You have to briefly follow the steps for `nix` set up so that the project's development environment is setup as required. You can follow follow more detailed instructions for your development setup [here](SetupScratch.md)
+- Once you have installed `nix` and other pre-requisites, you will be prompted to allow `direnv`. Then please do `direnv allow`.
+
+**Straight Forward Setup** 
+#### Prerequisites
+Make sure you have installed:
+- Your IDE, preferably IntelliJ or VSC
+- Java JDK 17
+- Gradle 8.7
+
+You need to have:
+- Access to the [GitHub project](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-server) for the CI/CD
+  Pipeline.
+- Access to the GCP project `sopra-fs25-group-10-server`
+- MailJet API credentials for sending notifications from the dev session.
+- Installed and initialized the gcloud cli: https://cloud.google.com/sdk/docs/install-sdk
+
+#### Setup Instructions
+As for developing locally, everything is managed via an in memory H2 Database. So no setup is necessary.
+
+1. **Clone the Repository**
+2. **Build**
+    ```bash
+    ./gradlew build
+    ```
+3. **Run**
+    ```bash
+    ./gradlew bootRun
+    ```
 You can verify that the server is running by visiting `localhost:8080` in your browser.
 
-### Test
+4. **Test**
+    ```bash
+    ./gradlew test
+    ```
 
-```bash
-./gradlew test
-```
+### Development
+Developers are encouraged to push to feature branches and create pull requests for code reviews. Ensure that all merge
+conflicts are resolved and all tests pass before requesting a review.
+Please create feature branches from the `development` branch.
 
-### Development Mode
-You can start the backend in development mode, this will automatically trigger a new build and reload the application
-once the content of a file has been changed.
+### Deployment
+For deployment, the project is set up with GitHub Actions for continuous integration and continuous deployment (CI/CD) to Google Cloud Platform. To perform a release:
+1. Merge your changes into the main branch via pull request.
+2. Ensure all GitHub Actions checks pass.
+3. Once merged, GitHub Actions will automatically deploy the new version to Google Cloud.
 
-Start two terminal windows and run:
+<a name="illustration"></a>
 
-`./gradlew build --continuous`
+## Illustrations
+This  `.gif` image depicts our game flow rather quickly. This is aimed to help players understand game flow easily. 
+![MapMaster demo](./assets/mapmaster2.gif)
 
-and in the other one:
+<a name="roadmap"></a>
 
-`./gradlew bootRun`
+## Roadmap
 
-If you want to avoid running all tests with every change, use the following command instead:
+- [ ] 🔄 Guest players can join games without registration  
+- [ ] 🔄 Team vs Team gameplay mode  
+- [ ] Configurable settings:  
+  - [ ] Select continents or countries to be tested on  
+  - [ ] Choose more difficulty levels
+- [ ] Add other themes such as cities, rivers, food etc.
+- [ ] Ability to end a round early  
 
-`./gradlew build --continuous -xtest`
+<a name="authors"></a>
 
-## API Endpoint Testing with Postman
-We recommend using [Postman](https://www.getpostman.com) to test your API Endpoints.
+## Authors
 
-## Debugging
-If something is not working and/or you don't know what is going on. We recommend using a debugger and step-through the process step-by-step.
+| Name          | Personal page                                                                                                                                  |
+|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rohit KOONIREDDY  | [![GitHub followers](https://img.shields.io/github/followers/rkoonireddy?label=Follow&style=social)](https://github.com/rkoonireddy)  |
+| Zheyuan FU        | [![GitHub followers](https://img.shields.io/github/followers/T0hsakaR1n126?label=Follow&style=social)](https://github.com/T0hsakaR1n126) |
+| Ziqi YANG         | [![GitHub followers](https://img.shields.io/github/followers/yzq0325?label=Follow&style=social)](https://github.com/yzq0325)      |
+| Xinyu FU          | [![GitHub followers](https://img.shields.io/github/followers/fuxinyu01?label=Follow&style=social)](https://github.com/fuxinyu01)    |
+| Jiawei Pei        | [![GitHub followers](https://img.shields.io/github/followers/JaveyBae?label=Follow&style=social)](https://github.com/JaveyBae)   |
 
-To configure a debugger for SpringBoot's Tomcat servlet (i.e. the process you start with `./gradlew bootRun` command), do the following:
+<a name="acknowledgement"></a>
+### Acknowledgement
 
-1. Open Tab: **Run**/Edit Configurations
-2. Add a new Remote Configuration and name it properly
-3. Start the Server in Debug mode: `./gradlew bootRun --debug-jvm`
-4. Press `Shift + F9` or the use **Run**/Debug "Name of your task"
-5. Set breakpoints in the application where you need it
-6. Step through the process one step at a time
+- This repository code derives the framework from the kind **UZH HASEL team** provided [SoPra FS25 - Client Template](https://github.com/HASEL-UZH/sopra-fs25-template-client).
+- Many thanks to **[Silvan Schlegel](https://github.com/silvanschlegel)** who helped us as our TA and Scrum Master during this project.
 
-## Testing
-Have a look here: https://www.baeldung.com/spring-boot-testing
-
-<br>
-<br>
-<br>
-
-## Docker
-
-### Introduction
-This year, for the first time, Docker will be used to ease the process of deployment.\
-Docker is a tool that uses containers as isolated environments, ensuring that the application runs consistently and uniformly across different devices.\
-Everything in this repository is already set up to minimize your effort for deployment.\
-All changes to the main branch will automatically be pushed to dockerhub and optimized for production.
-
-### Setup
-1. **One** member of the team should create an account on [dockerhub](https://hub.docker.com/), _incorporating the group number into the account name_, for example, `SoPra_group_XX`.\
-2. This account then creates a repository on dockerhub with the _same name as the group's Github repository name_.\
-3. Finally, the person's account details need to be added as [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) to the group's repository:
-    - dockerhub_username (the username of the dockerhub account from step 1, for example, `SoPra_group_XX`)
-    - dockerhub_password (a generated PAT([personal access token](https://docs.docker.com/docker-hub/access-tokens/)) of the account with read and write access)
-    - dockerhub_repo_name (the name of the dockerhub repository from step 2)
-
-### Pull and run
-Once the image is created and has been successfully pushed to dockerhub, the image can be run on any machine.\
-Ensure that [Docker](https://www.docker.com/) is installed on the machine you wish to run the container.\
-First, pull (download) the image with the following command, replacing your username and repository name accordingly.
-
-```docker pull <dockerhub_username>/<dockerhub_repo_name>```
-
-Then, run the image in a container with the following command, again replacing _<dockerhub_username>_ and _<dockerhub_repo_name>_ accordingly.
-
-```docker run -p 3000:3000 <dockerhub_username>/<dockerhub_repo_name>```
+<a name="license"></a>
+## License
+We publish the code under the terms of the [Apache 2.0 License](https://github.com/T0hsakaR1n126/sopra-fs25-group-10-client/blob/main/LICENSE) that allows distribution, modification, and commercial use. This software, however, comes without any warranty or liability.
