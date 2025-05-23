@@ -1517,8 +1517,7 @@ public class GameServiceTest {
         verify(userRepository, times(1)).findAll();
     }
 
-
-@Test
+    @Test
     void nextQuestion_ExerciseMode_gameExists_returnsGameGetDTO() {
         // Arrange
         Long gameId = 1L;
@@ -1584,7 +1583,9 @@ public class GameServiceTest {
 
         verify(gameRepository, times(1)).findBygameId(gameId);
         verify(gameService, times(1)).getHintsOfOneCountry(gameId, testGame.getOwnerId(), testGame.getDifficulty());
-
+    }
+    
+    @Test
     void testGiveupGame_SoloPlayer_GameDeleted() {
         Long userId = 1L;
         Game game = spy(new Game());
