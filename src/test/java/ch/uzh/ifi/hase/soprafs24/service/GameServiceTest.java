@@ -11,6 +11,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.UtilService;
+import ch.uzh.ifi.hase.soprafs24.service.UtilService.HintList;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.persistence.CollectionTable;
@@ -40,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
+
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
@@ -1253,5 +1257,38 @@ public class GameServiceTest {
             eq("/topic/game/" + gameId + "/timer-interrupted"),
             eq("TIMER_STOPPED")
         );
+    }
+
+    @Test
+    void getHintsOfOneCountry_shouldReturnHints_withoutRefill() {
+        Long gameId = 1L;
+        Long userId = 1L;
+        String difficulty = "easy";
+
+        HintList hintList = mock(HintList.class);
+        ConcurrentMap<Long, HintList> hintCache = new ConcurrentHashMap<>();
+        hintCache.put(gameId, hintList);
+        when(utilService.getHintCache()).thenReturn(hintCache);
+
+        when(hintList.getMaxProgressAcrossUsers()).thenReturn(3);  // below refill threshold
+        when(hintList.size()).thenReturn(10);
+
+        Map<Country, List<Map<String, Object>>> expectedHints = new HashMap<>();
+        Map<String, Object> hintDataEasy = new HashMap<>();
+        hintDataEasy.put("hint", "It's in Europe");
+        List<Map<String, Object>> hintListEasy = new ArrayList<>();
+        hintListEasy.add(hintDataEasy);
+        expectedHints.put(Country.Switzerland, hintListEasy);
+
+        when(utilService.getHintForUser(gameId, userId)).thenReturn(expectedHints);
+
+        ConcurrentMap<Long, AtomicBoolean> refillInProgress =
+            (ConcurrentMap<Long, AtomicBoolean>) ReflectionTestUtils.getField(gameService, "refillInProgress");
+        refillInProgress.clear();
+
+        Map<Country, List<Map<String, Object>>> hints = gameService.getHintsOfOneCountry(gameId, userId, difficulty);
+
+        assertEquals(expectedHints, hints);
+        verify(utilService, never()).addHintForGame(anyLong(), anyString());
     }
 }
