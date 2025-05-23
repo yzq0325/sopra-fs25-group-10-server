@@ -973,7 +973,7 @@ public class GameService {
         return leaderBoard;
     }
 
-    void broadcastReadyStatus(Long gameId) { //change permissions for test
+    public void broadcastReadyStatus(Long gameId) { //change permissions for test
         Game game = gameRepository.findBygameId(gameId);
         Map<Long, Boolean> readyMap = game.getReadyMap();
 

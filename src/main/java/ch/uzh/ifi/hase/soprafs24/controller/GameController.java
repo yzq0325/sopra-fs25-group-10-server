@@ -151,4 +151,11 @@ public class GameController {
   public void finishexercisegame (@PathVariable Long gameId){
     gameService.saveGame(gameId);
   }
+
+  @PutMapping("/checkready/{gameId}}")
+  @ResponseStatus(HttpStatus.OK)
+  @ResponseBody
+  public void checkReady (@PathVariable Long gameId){
+    gameService.broadcastReadyStatus(gameId);
+  }
 }
