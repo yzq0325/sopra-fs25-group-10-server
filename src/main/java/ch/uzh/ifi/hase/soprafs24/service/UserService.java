@@ -129,6 +129,7 @@ public class UserService {
 
     userInDB.setStatus(UserStatus.OFFLINE);
     userInDB.setToken(UUID.randomUUID().toString());
+    userLastHeartBeatMap.remove(user.getUserId());
     userRepository.save(userInDB);
   }
 
