@@ -1039,4 +1039,6 @@ public class GameService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Someone is not ready!");
         }
     }
+
+    
 }

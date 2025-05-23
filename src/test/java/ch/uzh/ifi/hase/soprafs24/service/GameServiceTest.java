@@ -1357,4 +1357,147 @@ void restartCheckReady_allPlayersReady_noExceptionThrown() {
         // Assert
         verify(gameRepository, times(1)).findBygameId(gameId);
     }
+
+    @Test
+    void getLeaderboard_multipleUsers_returnsSortedList() {
+        // Arrange
+        User user1 = new User();
+        user1.setUserId(1L);
+        user1.setUsername("User1");
+        user1.setAvatar("avatar1.png");
+        user1.setLevel(new BigDecimal("5.50")); // 550 after *100
+
+        User user2 = new User();
+        user2.setUserId(2L);
+        user2.setUsername("User2");
+        user2.setAvatar("avatar2.png");
+        user2.setLevel(new BigDecimal("10.00")); // 1000 after *100
+
+        User user3 = new User();
+        user3.setUserId(3L);
+        user3.setUsername("User3");
+        user3.setAvatar("avatar3.png");
+        user3.setLevel(new BigDecimal("3.25")); // 325 after *100
+
+        List<User> users = Arrays.asList(user1, user2, user3);
+        when(userRepository.findAll()).thenReturn(users);
+
+        // Act
+        List<UserGetDTO> leaderboard = gameService.getLeaderboard();
+
+        // Assert
+        assertEquals(3, leaderboard.size(), "Leaderboard should contain 3 users");
+        // 验证按 level 降序排序：user2 (1000), user1 (550), user3 (325)
+        assertEquals(2L, leaderboard.get(0).getUserId());
+        assertEquals("User2", leaderboard.get(0).getUsername());
+        assertEquals("avatar2.png", leaderboard.get(0).getAvatar());
+        assertEquals(1000, leaderboard.get(0).getLevel());
+
+        assertEquals(1L, leaderboard.get(1).getUserId());
+        assertEquals("User1", leaderboard.get(1).getUsername());
+        assertEquals("avatar1.png", leaderboard.get(1).getAvatar());
+        assertEquals(550, leaderboard.get(1).getLevel());
+
+        assertEquals(3L, leaderboard.get(2).getUserId());
+        assertEquals("User3", leaderboard.get(2).getUsername());
+        assertEquals("avatar3.png", leaderboard.get(2).getAvatar());
+        assertEquals(325, leaderboard.get(2).getLevel());
+
+        verify(userRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getLeaderboard_emptyUserList_returnsEmptyList() {
+        // Arrange
+        when(userRepository.findAll()).thenReturn(Collections.emptyList());
+
+        // Act
+        List<UserGetDTO> leaderboard = gameService.getLeaderboard();
+
+        // Assert
+        assertTrue(leaderboard.isEmpty(), "Leaderboard should be empty");
+        verify(userRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getLeaderboard_singleUser_returnsSingleDTO() {
+        // Arrange
+        User user = new User();
+        user.setUserId(1L);
+        user.setUsername("User1");
+        user.setAvatar("avatar1.png");
+        user.setLevel(new BigDecimal("7.89")); // 789 after *100
+
+        when(userRepository.findAll()).thenReturn(Collections.singletonList(user));
+
+        // Act
+        List<UserGetDTO> leaderboard = gameService.getLeaderboard();
+
+        // Assert
+        assertEquals(1, leaderboard.size(), "Leaderboard should contain 1 user");
+        UserGetDTO dto = leaderboard.get(0);
+        assertEquals(1L, dto.getUserId());
+        assertEquals("User1", dto.getUsername());
+        assertEquals("avatar1.png", dto.getAvatar());
+        assertEquals(789, dto.getLevel());
+        verify(userRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getLeaderboard_usersWithDecimalAndNegativeLevels_handlesCorrectly() {
+        // Arrange
+        User user1 = new User();
+        user1.setUserId(1L);
+        user1.setUsername("User1");
+        user1.setAvatar("avatar1.png");
+        user1.setLevel(new BigDecimal("0.123")); // 12 after *100 (round down)
+
+        User user2 = new User();
+        user2.setUserId(2L);
+        user2.setUsername("User2");
+        user2.setAvatar("avatar2.png");
+        user2.setLevel(new BigDecimal("-1.50")); // -150 after *100
+
+        List<User> users = Arrays.asList(user1, user2);
+        when(userRepository.findAll()).thenReturn(users);
+
+        // Act
+        List<UserGetDTO> leaderboard = gameService.getLeaderboard();
+
+        // Assert
+        assertEquals(2, leaderboard.size(), "Leaderboard should contain 2 users");
+        // 验证排序：user1 (12), user2 (-150)
+        assertEquals(1L, leaderboard.get(0).getUserId());
+        assertEquals(12, leaderboard.get(0).getLevel());
+        assertEquals(2L, leaderboard.get(1).getUserId());
+        assertEquals(-150, leaderboard.get(1).getLevel());
+        verify(userRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getLeaderboard_nullUsernameOrAvatar_handlesCorrectly() {
+        // Arrange
+        User user = new User();
+        user.setUserId(1L);
+        user.setUsername(null); // 模拟 null username
+        user.setAvatar(null); // 模拟 null avatar
+        user.setLevel(new BigDecimal("5.00")); // 500 after *100
+
+        when(userRepository.findAll()).thenReturn(Collections.singletonList(user));
+
+        // Act
+        List<UserGetDTO> leaderboard = gameService.getLeaderboard();
+
+        // Assert
+        assertEquals(1, leaderboard.size(), "Leaderboard should contain 1 user");
+        UserGetDTO dto = leaderboard.get(0);
+        assertEquals(1L, dto.getUserId());
+        assertNull(dto.getUsername(), "Username should be null");
+        assertNull(dto.getAvatar(), "Avatar should be null");
+        assertEquals(500, dto.getLevel());
+        verify(userRepository, times(1)).findAll();
+    }
+
+
+
 }
