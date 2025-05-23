@@ -956,6 +956,15 @@ public class GameService {
                 userRepository.flush();
                 getGameLobby();
                 broadcastReadyStatus(gameToEnd.getGameId());
+
+                Map<String, Integer> scoreBoardFront = new HashMap<>();
+                for (Long userid : gameToEnd.getScoreBoard().keySet()) {
+                    String username = (userRepository.findByUserId(userid)).getUsername();
+                    int score = (gameToEnd.getScoreBoard()).get(userid);
+                    scoreBoardFront.put(username, score);
+                }
+                messagingTemplate.convertAndSend("/topic/user/"+gameToEnd.getGameId()+"/scoreBoard", scoreBoardFront);
+                log.info("websocket send: scoreBoard!");
             }
             else {
                 gameToEnd.setRealPlayersNumber(gameToEnd.getRealPlayersNumber() - 1);
