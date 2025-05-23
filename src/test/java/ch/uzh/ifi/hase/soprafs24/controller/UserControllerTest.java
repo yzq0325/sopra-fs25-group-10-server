@@ -22,6 +22,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
@@ -113,53 +115,22 @@ public class UserControllerTest {
         .andExpect(jsonPath("$.username", is(user.getUsername())))
         .andExpect(jsonPath("$.status", is(user.getStatus().toString())));
   }
-/* 
+
   @Test
-  public void changePassword_validToken_success() throws Exception {
-      // given: valid token and password DTO
-      UserPasswordDTO passwordDTO = new UserPasswordDTO();
-      passwordDTO.setToken("valid-token");
-      passwordDTO.setCurrentPassword("oldPassword");
-      passwordDTO.setNewPassword("newPassword123");
+  public void changePassword_validInput_success() throws Exception {
+      UserPostDTO passwordDTO = new UserPostDTO();
+      passwordDTO.setUserId(1L);
+      passwordDTO.setPassword("newPassword123");
+
+      doNothing().when(userService).changePassword(any());
   
-      User user = new User();
-      user.setUserId(1L);
-      user.setToken("valid-token");
-  
-      // when: mock authentication and password change
-      given(userService.userAuthenticate(Mockito.any())).willReturn(user);
-      doNothing().when(userService).changePassword(user.getUserId(), "oldPassword", "newPassword123");
-  
-      // then: perform request and expect 204
       MockHttpServletRequestBuilder request = put("/users/pwd")
           .contentType(MediaType.APPLICATION_JSON)
           .content(asJsonString(passwordDTO));
-  
+
       mockMvc.perform(request)
-          .andExpect(status().isNoContent());
+          .andExpect(status().isOk());
   }
-
-  @Test
-  public void changePassword_invalidToken_throwsException() throws Exception {
-    // given: DTO with invalid token
-    UserPasswordDTO passwordDTO = new UserPasswordDTO();
-    passwordDTO.setToken("invalid-token");
-    passwordDTO.setCurrentPassword("oldPassword");
-    passwordDTO.setNewPassword("newPassword123");
-
-    // when: authentication fails
-    given(userService.userAuthenticate(Mockito.any()))
-        .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Authenticated"));
-
-    // then: perform request and expect 404 with reason
-    MockHttpServletRequestBuilder request = put("/users/pwd")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(asJsonString(passwordDTO));
-
-    mockMvc.perform(request)
-        .andExpect(status().isNotFound())
-        .andExpect(status().reason("User Not Authenticated"));
-  } */
   
   @Test
   public void userAuthenticate_validToken_success() throws Exception {
@@ -402,6 +373,30 @@ public class UserControllerTest {
     mockMvc.perform(putRequest)
         .andExpect(status().isBadRequest())
         .andExpect(status().reason("Invalid avatar selection"));
+  }
+
+  @Test
+  public void getHistory_validUserId_success() throws Exception {
+      UserGetDTO userDTO = new UserGetDTO();
+      userDTO.setGameHistory(new ArrayList<>());
+
+      given(userService.getHistory(1L)).willReturn(userDTO);
+  
+      mockMvc.perform(get("/history/1"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.gameHistory").isArray());
+  }
+
+  @Test
+  public void getLearningTracking_validUserId_success() throws Exception {
+      UserGetDTO userDTO = new UserGetDTO();
+      userDTO.setLearningTracking(new HashMap<>());
+
+      given(userService.getLearningTracking(1L)).willReturn(userDTO);
+
+      mockMvc.perform(get("/users/1/statistics"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.learningTracking").isMap());
   }
   /**
    * Helper Method to convert userPostDTO into a JSON string such that the input

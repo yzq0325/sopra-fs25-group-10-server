@@ -4,6 +4,7 @@ import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.constant.Country;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 /**
  * Test class for the UserResource REST resource.
@@ -46,6 +48,9 @@ public class UserServiceIntegrationTest {
     testUser = new User();
     testUser.setUsername("testUsername");
     testUser.setPassword("testPassword");
+    testUser.setAvatar("/avatar_1.png");
+    testUser.setEmail("");
+    testUser.setBio("");
     testUser.setStatus(UserStatus.OFFLINE);
     testUser.setToken(UUID.randomUUID().toString());
     userRepository.save(testUser);
@@ -69,6 +74,11 @@ public class UserServiceIntegrationTest {
     assertEquals("testValidUsername", createdUser.getUsername());
     assertNotNull(createdUser.getToken());
     assertEquals(UserStatus.ONLINE, createdUser.getStatus());
+    assertNotNull(createdUser.getAvatar());
+    assertEquals("", createdUser.getEmail());
+    assertEquals("", createdUser.getBio());
+    assertNotNull(createdUser.getLevel());
+    assertEquals(new BigDecimal("0.0"), createdUser.getLevel());
   }
 
   @Test
@@ -175,50 +185,47 @@ public class UserServiceIntegrationTest {
     testUser.setPassword("oldPassword");
     testUser = userRepository.saveAndFlush(testUser);
 
-    userService.changePassword(testUser.getUserId(), "oldPassword", "newPassword123");
+    UserPostDTO userPostDTO = new UserPostDTO();
+    userPostDTO.setUserId(testUser.getUserId());
+    userPostDTO.setPassword("newPassword123");
+
+    userService.changePassword(userPostDTO);
 
     User updatedUser = userRepository.findById(testUser.getUserId()).orElse(null);
     assertNotNull(updatedUser);
     assertEquals("newPassword123", updatedUser.getPassword());
-  }
-
-  
-  @Test
-  public void changePassword_wrongOldPassword_throwsBadRequest() {
-    testUser.setPassword("oldPassword");
-    userRepository.saveAndFlush(testUser);
-  
-    ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-        userService.changePassword(testUser.getUserId(), "wrongPassword", "newPass");
-    });
-  
-    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-    assertEquals("Incorrect current password", exception.getReason());
   }
   
   @Test
   public void changePassword_newPasswordEmpty_throwsBadRequest() {
     testUser.setPassword("correctOld");
     userRepository.saveAndFlush(testUser);
+
+    UserPostDTO userPostDTO = new UserPostDTO();
+    userPostDTO.setUserId(testUser.getUserId());
+    userPostDTO.setPassword("");
+
   
     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-        userService.changePassword(testUser.getUserId(), "correctOld", "   ");
+        userService.changePassword(userPostDTO);
     });
   
     assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-    assertEquals("New password must not be empty", exception.getReason());
+    assertEquals("The password can not be empty! Please change one!", exception.getReason());
   }
   
   @Test
   public void changePassword_userNotFound_throwsNotFound() {
-    Long invalidId = 9999L;
+    UserPostDTO userPostDTO = new UserPostDTO();
+    userPostDTO.setUsername("UserNotExist");
+    userPostDTO.setPassword("newPassword123");
   
     ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-        userService.changePassword(invalidId, "old", "new");
+        userService.changePassword(userPostDTO);
     });
   
     assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
-    assertEquals("User not found", exception.getReason());
+    assertEquals("User not found!", exception.getReason());
   }
   
   @Test
@@ -228,6 +235,9 @@ public class UserServiceIntegrationTest {
     savedUser.setPassword("abc");
     savedUser.setToken(UUID.randomUUID().toString());
     savedUser.setStatus(UserStatus.OFFLINE);
+    savedUser.setAvatar("/avatar_1.png");
+    savedUser.setEmail("");
+    savedUser.setBio("");
 
     savedUser = userRepository.saveAndFlush(savedUser);
 
@@ -261,7 +271,6 @@ public class UserServiceIntegrationTest {
       updateInfo.setAvatar("/avatar_2.png");
       updateInfo.setEmail("new@example.com");
       updateInfo.setBio("New bio");
-      updateInfo.setPassword("password");
   
       User updatedUser = userService.updateUserProfile(testUser.getUserId(), updateInfo);
   
@@ -269,7 +278,6 @@ public class UserServiceIntegrationTest {
       assertEquals("/avatar_2.png", updatedUser.getAvatar());
       assertEquals("new@example.com", updatedUser.getEmail());
       assertEquals("New bio", updatedUser.getBio());
-      assertEquals("password", updatedUser.getPassword());
   }
 
   @Test
@@ -277,6 +285,8 @@ public class UserServiceIntegrationTest {
     User update = new User();
     update.setUsername("newName");
     update.setAvatar("/invalid.png");
+    update.setEmail("");
+    update.setBio("");
   
     assertThrows(ResponseStatusException.class, () ->
         userService.updateUserProfile(testUser.getUserId(), update));
@@ -289,10 +299,16 @@ public class UserServiceIntegrationTest {
     existing.setPassword("pass");
     existing.setToken(UUID.randomUUID().toString());
     existing.setStatus(UserStatus.OFFLINE);
+    existing.setAvatar("/avatar_1.png");
+    existing.setEmail("");
+    existing.setBio("");
     userRepository.saveAndFlush(existing);
   
     User update = new User();
     update.setUsername("duplicate");
+    update.setAvatar("/avatar_1.png");
+    update.setEmail("");
+    update.setBio("");
   
     assertThrows(ResponseStatusException.class, () ->
         userService.updateUserProfile(testUser.getUserId(), update));
@@ -300,7 +316,7 @@ public class UserServiceIntegrationTest {
 
   @Test
   public void getGameHistory_success() {
-    testUser.setGameHistory("game1", 100, 8, 10, LocalDateTime.now(), 5, "solo");
+    testUser.setGameHistory("game1", 100, 8, 10, LocalDateTime.now(), 5, "solo", "easy");
     userRepository.save(testUser);
 
     UserGetDTO result = userService.getHistory(testUser.getUserId());

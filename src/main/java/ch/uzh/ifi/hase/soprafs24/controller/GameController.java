@@ -152,5 +152,4 @@ public class GameController {
   public void finishexercisegame (@PathVariable Long gameId){
     gameService.saveGame(gameId);
   }
-
 }

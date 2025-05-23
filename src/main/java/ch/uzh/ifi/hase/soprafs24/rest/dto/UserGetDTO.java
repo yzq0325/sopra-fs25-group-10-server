@@ -19,6 +19,7 @@ public class UserGetDTO {
   private int level;
   private List<GameQuickSave> gameHistory;
   private Map<Country, Integer> learningTracking;
+  private Map<Long, Boolean> readyMap;
 
   public Long getUserId() {
     return userId;
@@ -98,5 +99,13 @@ public class UserGetDTO {
 
   public Map<Country,Integer> getLearningTracking(){
     return learningTracking;
+  }
+
+  public void setReadyMap(Map<Long, Boolean> readyMap){
+    this.readyMap = readyMap;
+  }
+
+  public Map<Long, Boolean> getReadyMap(){
+    return readyMap;
   }
 }

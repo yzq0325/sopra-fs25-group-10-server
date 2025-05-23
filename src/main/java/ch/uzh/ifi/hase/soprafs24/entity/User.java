@@ -56,6 +56,9 @@ public class User implements Serializable {
         @Column(name = "modeType", nullable = false)
         private String modeType;
 
+        @Column(name = "Difficulty", nullable = false)
+        private String difficulty;
+
         public String getGameName() {
             return gameName;
         }
@@ -111,6 +114,14 @@ public class User implements Serializable {
         public void setModeType(String modeType) {
            this.modeType = modeType;
         }
+
+        public String getDifficulty() {
+            return difficulty;
+        }
+
+        public void setDifficulty(String difficulty) {
+            this.difficulty = difficulty;
+  }
     }
 
     @Id
@@ -129,17 +140,14 @@ public class User implements Serializable {
     @Column(nullable = false)
     private String password;
 
-    @Column
+    @Column(nullable = false)
     private String avatar;
 
-    @Column
+    @Column(nullable = false)
     private String email;
 
-    @Column
+    @Column(nullable = false)
     private String bio;
-
-    @Column(name = "isReady", nullable = false)
-    private boolean isReady = false;
 
     @ManyToOne
     @JoinColumn(name = "gameId", nullable = true)
@@ -240,15 +248,8 @@ public class User implements Serializable {
         this.level = level;
     }
 
-    public boolean isReady() {
-        return isReady;
-    }
-    
-    public void setReady(boolean isReady) {
-        this.isReady = isReady;
-    }
 
-    public void setGameHistory(String gameName, int score, int correct, int total, LocalDateTime gameCreationDate, int gameTime, String modeType) {
+    public void setGameHistory(String gameName, int score, int correct, int total, LocalDateTime gameCreationDate, int gameTime, String modeType, String difficulty) {
         GameQuickSave gameQuickSave = new GameQuickSave();
         gameQuickSave.setGameName(gameName); 
         gameQuickSave.setScore(score);
@@ -257,6 +258,7 @@ public class User implements Serializable {
         gameQuickSave.setGameCreationDate(gameCreationDate);
         gameQuickSave.setGameTime(gameTime);
         gameQuickSave.setModeType(modeType);
+        gameQuickSave.setDifficulty(difficulty);
         gameHistory.add(gameQuickSave);
     }
 
