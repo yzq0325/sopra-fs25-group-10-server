@@ -26,6 +26,7 @@ import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -142,12 +143,12 @@ public class GameServiceTest {
         testGameCombat.setDifficulty("easy");
         
         // Setup User entity
-        owner = new User();
+        owner = spy(new User());
         owner.setUserId(1L);
         owner.setUsername("Test Owner");
         // owner.setReady(true); // Also mark owner (player1) as ready
 
-        player2 = new User();
+        player2 = spy(new User());
         player2.setUserId(2L);
         player2.setUsername("PlayerTwo");
         // player2.setReady(true); // Mark as ready
@@ -177,10 +178,21 @@ public class GameServiceTest {
         Map<String, Object> hintDataEasy = new HashMap<>();
         hintDataEasy.put("hint", "It's in Europe");
         
+
+        //MockHint
+        Country mockCountry = Country.Switzerland;
+        List<Map<String, Object>> hintList = new ArrayList<>();
+        Map<String, Object> hint1 = new HashMap<>();
+        hint1.put("hint", "It's in Europe");
+        hintList.add(hint1);
+        Map<String, Object> hint2 = new HashMap<>();
+        hint2.put("hint", "Famous for chocolate");
+        hintList.add(hint2);
+        Map<Country, List<Map<String, Object>>> mockHintMap = new HashMap<>();
+        mockHintMap.put(mockCountry, hintList);
         List<Map<String, Object>> hintListEasy = new ArrayList<>();
         hintListEasy.add(hintDataEasy);
         
-        Map<Country, List<Map<String, Object>>> mockHintMap = new HashMap<>();
         mockHintMap.put(mockCountryEasy, hintListEasy);
         
         // Configure mock behavior
@@ -1290,5 +1302,196 @@ public class GameServiceTest {
 
         assertEquals(expectedHints, hints);
         verify(utilService, never()).addHintForGame(anyLong(), anyString());
+    }
+
+    @Test
+    void testGiveupGame_SoloPlayer_GameDeleted() {
+        Long userId = 1L;
+        Game game = spy(new Game());
+        game.setGameId(100L);
+        game.setOwnerId(userId);
+        game.setRealPlayersNumber(1);
+        game.setPlayers(new ArrayList<>(List.of(userId)));
+        game.setGameName("SoloGame");
+        game.setGameCreationDate(LocalDateTime.now());
+        game.setTime(5);
+        game.setModeType("solo");
+        game.setDifficulty("easy");
+
+        User player = new User();
+        player.setUserId(userId);
+        player.setGame(game);
+
+        game.getScoreBoard().put(userId, 40);
+        game.getCorrectAnswersMap().put(userId, 4);
+        game.getTotalQuestionsMap().put(userId, 10);
+
+        doReturn(40).when(game).getScore(userId);
+        doReturn(4).when(game).getCorrectAnswers(userId);
+        doReturn(10).when(game).getTotalQuestions(userId);
+
+        when(userRepository.findByUserId(userId)).thenReturn(player);
+
+        gameService.giveupGame(userId);
+
+        verify(game, times(2)).updateScore(eq(userId), eq(-1));
+        verify(userRepository).save(player);
+        verify(userRepository).flush();
+        verify(gameRepository).deleteByGameId(eq(100L));
+        verify(utilService).removeCacheForGame(eq(100L));
+    }
+
+    @Test
+    void testGiveupGame_Multiplayer_OwnerQuits() {
+        // Given
+        Long ownerId = owner.getUserId();        // 1L
+        Long newOwnerId = player2.getUserId();   // 2L
+
+        // Spy users to allow mocking getGame()
+        owner = spy(owner);
+        player2 = spy(player2);
+
+        // Use modifiable list for players to allow removal
+        List<Long> modifiablePlayers = new ArrayList<>(Arrays.asList(ownerId, newOwnerId));
+        testGameCombat.setPlayers(modifiablePlayers);
+
+        // Mark both players as ready
+        Map<Long, Boolean> readyMap = new HashMap<>();
+        readyMap.put(ownerId, true);
+        readyMap.put(newOwnerId, true);
+        testGameCombat.setReadyMap(readyMap);
+
+        // Attach the game to users
+        owner.setGame(testGameCombat);
+        player2.setGame(testGameCombat);
+
+        // Score and answer tracking
+        testGameCombat.getScoreBoard().put(ownerId, 100);
+        testGameCombat.getCorrectAnswersMap().put(ownerId, 8);
+        testGameCombat.getTotalQuestionsMap().put(ownerId, 10);
+
+        // Mock repository and getters
+        when(userRepository.findByUserId(ownerId)).thenReturn(owner);
+        when(userRepository.findByUserId(newOwnerId)).thenReturn(player2);
+        when(owner.getGame()).thenReturn(testGameCombat);
+        when(player2.getGame()).thenReturn(testGameCombat);
+        doNothing().when(gameService).broadcastReadyStatus(testGameCombat.getGameId());
+        doNothing().when(gameService).getGameLobby();
+
+        // When
+        gameService.giveupGame(ownerId);
+
+        // Then
+        verify(gameRepository, never()).deleteByGameId(testGameCombat.getGameId());  // game shouldn't be deleted (still 1 player left)
+        verify(owner, times(1)).setGameHistory(
+            eq(testGameCombat.getGameName()),
+            eq(testGameCombat.getScore(ownerId)),
+            eq(testGameCombat.getCorrectAnswers(ownerId)),
+            eq(testGameCombat.getTotalQuestions(ownerId)),
+            eq(testGameCombat.getGameCreationDate()),
+            eq(testGameCombat.getTime()),
+            eq(testGameCombat.getModeType()),
+            eq(testGameCombat.getDifficulty())
+        );
+        verify(owner, atLeastOnce()).setGame(null);
+        verify(userRepository, times(1)).save(owner);
+        verify(userRepository, times(1)).flush();
+
+        // Ensure the new owner is assigned and broadcast occurred
+        assertEquals(newOwnerId, testGameCombat.getOwnerId());
+        verify(messagingTemplate, times(1)).convertAndSend(contains("/owner"), eq(newOwnerId));
+        verify(utilService, times(1)).removeExitPlayer(testGameCombat.getGameId(), ownerId);
+    }
+
+    @Test
+    void testSaveGame_GameNotFoundOrNotRunning() {
+        Long gameId = 4L;
+
+        when(gameRepository.findBygameId(gameId)).thenReturn(null);
+        gameService.saveGame(gameId);
+        verifyNoInteractions(userRepository);
+        verifyNoInteractions(utilService);
+
+        Game game = new Game();
+        game.setGameId(gameId);
+        game.setGameRunning(false);
+        when(gameRepository.findBygameId(gameId)).thenReturn(game);
+        gameService.saveGame(gameId);
+        verifyNoMoreInteractions(userRepository);
+        verifyNoMoreInteractions(utilService);
+    }
+
+    @Test
+    void testSaveGame_SoloMode() {
+        Long gameId = 2L;
+
+        // Mock the Game object (not real)
+        Game game = mock(Game.class);
+
+        // Setup mocks for game
+        when(game.getGameId()).thenReturn(gameId);
+        when(game.getModeType()).thenReturn("solo");
+        when(game.getGameRunning()).thenReturn(true);
+        when(game.getOwnerId()).thenReturn(1L);
+        when(game.getGameCreationDate()).thenReturn(LocalDateTime.now());
+        when(game.getTime()).thenReturn(5);
+        when(game.getDifficulty()).thenReturn("medium");
+        when(game.getScore(1L)).thenReturn(120);
+        when(game.getCorrectAnswers(1L)).thenReturn(7);
+        when(game.getTotalQuestions(1L)).thenReturn(10);
+        when(game.getGameName()).thenReturn("Solo Test Game");
+
+        when(gameRepository.findBygameId(gameId)).thenReturn(game);
+
+        // Mock owner user
+        User owner = mock(User.class);
+        when(userRepository.findByUserId(1L)).thenReturn(owner);
+
+        // Call method under test
+        gameService.saveGame(gameId);
+
+        // Verify interactions
+        verify(owner).setGameHistory(eq("Solo Test Game"), eq(120), eq(7), eq(10), any(), eq(5), eq("solo"), eq("medium"));
+        verify(owner).setGame(null);
+        verify(userRepository).save(owner);
+
+        verify(gameRepository).deleteByGameId(gameId);
+        verify(userRepository).flush();
+        verify(utilService).removeCacheForGame(gameId);
+    }
+
+    @Test
+    void testGetHintsOfOneCountry() {
+        Long gameId = 1L;
+        Long userId = 100L;
+        String difficulty = "easy";
+
+        // Prepare a hint list with one hint map
+        List<Map<String, Object>> hintsList = new ArrayList<>();
+        Map<String, Object> hintDetails = new HashMap<>();
+        hintDetails.put("hint", "It's in Europe");
+        hintsList.add(hintDetails);
+
+        // Prepare mock hint map with content
+        Map<Country, List<Map<String, Object>>> mockHintMap = new HashMap<>();
+        mockHintMap.put(Country.Switzerland, hintsList);
+
+        when(utilService.getHintForUser(gameId, userId)).thenReturn(mockHintMap);
+
+        HintList mockHintList = mock(HintList.class);
+        ConcurrentMap<Long, HintList> mockHintCache = new ConcurrentHashMap<>();
+        mockHintCache.put(gameId, mockHintList);
+        when(utilService.getHintCache()).thenReturn(mockHintCache);
+
+        when(mockHintList.size()).thenReturn(20);
+        when(mockHintList.getMaxProgressAcrossUsers()).thenReturn(16);
+
+        // Call the actual method
+        Map<Country, List<Map<String, Object>>> result = gameService.getHintsOfOneCountry(gameId, userId, difficulty);
+
+        // Assert content matches expected hints, not the same instance
+        assertEquals(1, result.size());
+        assertTrue(result.containsKey(Country.Switzerland));
+        assertEquals("It's in Europe", result.get(Country.Switzerland).get(0).get("hint"));
     }
 }
