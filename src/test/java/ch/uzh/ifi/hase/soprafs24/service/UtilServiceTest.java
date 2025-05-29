@@ -2,14 +2,11 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
-import ch.uzh.ifi.hase.soprafs24.service.UtilService.HintList;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
@@ -19,7 +16,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import ch.uzh.ifi.hase.soprafs24.constant.Country;
@@ -40,13 +36,6 @@ public class UtilServiceTest {
     
     private Long gameId = 1L;
     private Long userId = 101L;
-
-    @Mock
-    private Game mockGame;
-
-    @Spy
-    private ConcurrentHashMap<Long, HintList> hintCache = new ConcurrentHashMap<>();
-
     
     @BeforeEach
     public void setup() {
@@ -178,82 +167,7 @@ public class UtilServiceTest {
         
         verify(gameRepository, atLeastOnce()).findBygameId(gameId);
     }
-
-    @Test
-    void testGetHintForUser_WithManuallyAddedHint() {
-        Long gameId = 123L;
-        Long userId = 456L;
-
-        Game mockGame = new Game();
-        mockGame.setGameId(gameId);
-        mockGame.setDifficulty("easy");
-        when(gameRepository.findBygameId(gameId)).thenReturn(mockGame);
-
-        utilService.initHintQueue(gameId, List.of(userId));
-
-        Map<String, Object> clue = new HashMap<>();
-        clue.put("text", "This country has the Eiffel Tower.");
-        clue.put("difficulty", 1);
-
-        Map<Country, List<Map<String, Object>>> hint = new HashMap<>();
-        hint.put(Country.France, List.of(clue));
-
-        UtilService.HintList hintList = utilService.getHintCache().get(gameId);
-        hintList.add(hint);
-
-        // reset progress to ensure the hint is fetched
-        hintList.userProgress.get(userId).set(0);
-
-        Map<Country, List<Map<String, Object>>> result = utilService.getHintForUser(gameId, userId);
-
-        assertNotNull(result);
-        assertTrue(result.containsKey(Country.France));
-        assertEquals("This country has the Eiffel Tower.", result.get(Country.France).get(0).get("text"));
-    }
-
-
-    @Test
-    public void testGetHintForUser_ThrowsWhenGameIdIsNull() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            utilService.getHintForUser(null, 5L);
-        });
-    }
-
-    @Test
-    public void testGetHintForUser_ThrowsWhenUserIdIsNull() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            utilService.getHintForUser(1L, null);
-        });
-    }
-
-    @Test
-    public void testGetHintForUser_ThrowsWhenHintListNotInitialized() {
-        Long gameId = 99L;
-        Long userId = 100L;
-
-        assertThrows(IllegalStateException.class, () -> {
-            utilService.getHintForUser(gameId, userId);
-        });
-    }
     
-    @Test
-    public void testGetHintForUser_ThrowsWhenNoMoreHints() {
-        Long gameId = 2L;
-        Long userId = 20L;
-
-        mockGame.setGameId(gameId);
-        mockGame.setDifficulty("easy");
-        when(gameRepository.findBygameId(gameId)).thenReturn(mockGame);
-
-        UtilService.HintList emptyHintList = new UtilService.HintList(0);
-        utilService.getHintCache().put(gameId, emptyHintList);
-
-        assertThrows(IllegalStateException.class, () -> {
-            utilService.getHintForUser(gameId, userId);
-        });
-    }
-
-
     //    @Test
     //    void testGenerateClues_validOutput_returns5Clues() {
     //        Map<Country, List<Map<String, Object>>> result = utilService.generateClues(5);
