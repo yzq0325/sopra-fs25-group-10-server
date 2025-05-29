@@ -168,10 +168,10 @@ public class UtilService {
         synchronized (list.hintList) {
             int listSize = list.hintList.size();
             int minProgress = list.getMinProgressAcrossUsers();
-            // if ((listSize - minProgress) <= 1) {
-            //     log.info("Hint queue low for game {} — proactively refilling...", gameId);
-            //     refillHintQueue(gameId, gameRepository.findBygameId(gameId).getDifficulty());
-            // }
+            if ((listSize - minProgress) <= 1) {
+                log.info("Hint queue low for game {} — proactively refilling...", gameId);
+                refillHintQueue(gameId, gameRepository.findBygameId(gameId).getDifficulty());
+            }
 
             if (index >= listSize) {
                 throw new IllegalStateException("No more hints available for game " + gameId);
