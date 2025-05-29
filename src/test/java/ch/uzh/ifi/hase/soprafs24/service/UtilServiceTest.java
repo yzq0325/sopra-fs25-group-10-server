@@ -179,45 +179,45 @@ public class UtilServiceTest {
         verify(gameRepository, atLeastOnce()).findBygameId(gameId);
     }
 
-    // @Test
-    // void testGetHintForUser_WithManuallyAddedHint() {
-    //     Long gameId = 123L;
-    //     Long userId = 456L;
+    @Test
+    void testGetHintForUser_WithManuallyAddedHint() {
+        Long gameId = 123L;
+        Long userId = 456L;
 
-    //     Game mockGame = new Game();
-    //     mockGame.setGameId(gameId);
-    //     mockGame.setDifficulty("easy");
-    //     when(gameRepository.findBygameId(gameId)).thenReturn(mockGame);
+        Game mockGame = new Game();
+        mockGame.setGameId(gameId);
+        mockGame.setDifficulty("easy");
+        when(gameRepository.findBygameId(gameId)).thenReturn(mockGame);
 
-    //     utilService.initHintQueue(gameId, List.of(userId));
+        utilService.initHintQueue(gameId, List.of(userId));
 
-    //     Map<String, Object> clue = new HashMap<>();
-    //     clue.put("text", "This country has the Eiffel Tower.");
-    //     clue.put("difficulty", 1);
+        Map<String, Object> clue = new HashMap<>();
+        clue.put("text", "This country has the Eiffel Tower.");
+        clue.put("difficulty", 1);
 
-    //     Map<Country, List<Map<String, Object>>> hint = new HashMap<>();
-    //     hint.put(Country.France, List.of(clue));
+        Map<Country, List<Map<String, Object>>> hint = new HashMap<>();
+        hint.put(Country.France, List.of(clue));
 
-    //     UtilService.HintList hintList = utilService.getHintCache().get(gameId);
-    //     hintList.add(hint);
+        UtilService.HintList hintList = utilService.getHintCache().get(gameId);
+        hintList.add(hint);
 
-    //     // reset progress to ensure the hint is fetched
-    //     hintList.userProgress.get(userId).set(0);
+        // reset progress to ensure the hint is fetched
+        hintList.userProgress.get(userId).set(0);
 
-    //     Map<Country, List<Map<String, Object>>> result = utilService.getHintForUser(gameId, userId);
+        Map<Country, List<Map<String, Object>>> result = utilService.getHintForUser(gameId, userId);
 
-    //     assertNotNull(result);
-    //     assertTrue(result.containsKey(Country.France));
-    //     assertEquals("This country has the Eiffel Tower.", result.get(Country.France).get(0).get("text"));
-    // }
+        assertNotNull(result);
+        assertTrue(result.containsKey(Country.France));
+        assertEquals("This country has the Eiffel Tower.", result.get(Country.France).get(0).get("text"));
+    }
 
 
-    // @Test
-    // public void testGetHintForUser_ThrowsWhenGameIdIsNull() {
-    //     assertThrows(IllegalArgumentException.class, () -> {
-    //         utilService.getHintForUser(null, 5L);
-    //     });
-    // }
+    @Test
+    public void testGetHintForUser_ThrowsWhenGameIdIsNull() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            utilService.getHintForUser(null, 5L);
+        });
+    }
 
     @Test
     public void testGetHintForUser_ThrowsWhenUserIdIsNull() {
@@ -236,22 +236,22 @@ public class UtilServiceTest {
         });
     }
     
-    // @Test
-    // public void testGetHintForUser_ThrowsWhenNoMoreHints() {
-    //     Long gameId = 2L;
-    //     Long userId = 20L;
+    @Test
+    public void testGetHintForUser_ThrowsWhenNoMoreHints() {
+        Long gameId = 2L;
+        Long userId = 20L;
 
-    //     mockGame.setGameId(gameId);
-    //     mockGame.setDifficulty("easy");
-    //     when(gameRepository.findBygameId(gameId)).thenReturn(mockGame);
+        mockGame.setGameId(gameId);
+        mockGame.setDifficulty("easy");
+        when(gameRepository.findBygameId(gameId)).thenReturn(mockGame);
 
-    //     UtilService.HintList emptyHintList = new UtilService.HintList(0);
-    //     utilService.getHintCache().put(gameId, emptyHintList);
+        UtilService.HintList emptyHintList = new UtilService.HintList(0);
+        utilService.getHintCache().put(gameId, emptyHintList);
 
-    //     assertThrows(IllegalStateException.class, () -> {
-    //         utilService.getHintForUser(gameId, userId);
-    //     });
-    // }
+        assertThrows(IllegalStateException.class, () -> {
+            utilService.getHintForUser(gameId, userId);
+        });
+    }
 
 
     //    @Test
